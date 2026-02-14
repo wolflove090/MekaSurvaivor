@@ -6,6 +6,9 @@ using UnityEngine.InputSystem;
 /// </summary>
 public class PlayerController : MonoBehaviour
 {
+    // シングルトンインスタンス
+    static PlayerController _instance;
+
     [Header("移動設定")]
     [SerializeField]
     [Tooltip("移動速度")]
@@ -30,6 +33,14 @@ public class PlayerController : MonoBehaviour
     SpriteRenderer _spriteRenderer;
 
     /// <summary>
+    /// PlayerControllerのシングルトンインスタンスを取得します
+    /// </summary>
+    public static PlayerController Instance
+    {
+        get => _instance;
+    }
+
+    /// <summary>
     /// 移動速度を取得または設定します
     /// </summary>
     public float MoveSpeed
@@ -40,6 +51,15 @@ public class PlayerController : MonoBehaviour
 
     void Awake()
     {
+        // シングルトンの設定
+        if (_instance != null && _instance != this)
+        {
+            Debug.LogError($"PlayerControllerが複数存在します。既存: {_instance.gameObject.name}, 新規: {gameObject.name}");
+            enabled = false;
+            return;
+        }
+        _instance = this;
+
         // Input Actions の初期化
         _inputActions = new PlayerInputActions();
 
@@ -61,6 +81,15 @@ public class PlayerController : MonoBehaviour
         _inputActions.Player.Move.Disable();
         _inputActions.Player.Move.performed -= OnMove;
         _inputActions.Player.Move.canceled -= OnMove;
+    }
+
+    void OnDestroy()
+    {
+        // インスタンスのクリア
+        if (_instance == this)
+        {
+            _instance = null;
+        }
     }
 
     /// <summary>
