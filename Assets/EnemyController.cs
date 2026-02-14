@@ -11,6 +11,11 @@ public class EnemyController : MonoBehaviour
     [Tooltip("移動速度")]
     float _moveSpeed = 3f;
 
+    [Header("HP設定")]
+    [SerializeField]
+    [Tooltip("初期HP")]
+    int _maxHp = 3;
+
     [Header("スプライト設定")]
     [SerializeField]
     [Tooltip("左向きのスプライト")]
@@ -23,6 +28,9 @@ public class EnemyController : MonoBehaviour
     // SpriteRenderer コンポーネント
     SpriteRenderer _spriteRenderer;
 
+    // 現在のHP
+    int _currentHp;
+
     /// <summary>
     /// 移動速度を取得または設定します
     /// </summary>
@@ -32,10 +40,41 @@ public class EnemyController : MonoBehaviour
         set => _moveSpeed = value;
     }
 
+    /// <summary>
+    /// 現在のHPを取得します
+    /// </summary>
+    public int CurrentHp => _currentHp;
+
     void Awake()
     {
         // SpriteRenderer コンポーネントの取得
         _spriteRenderer = GetComponent<SpriteRenderer>();
+
+        // HPの初期化
+        _currentHp = _maxHp;
+    }
+
+    /// <summary>
+    /// ダメージを受けます
+    /// HPが0以下になった場合、自身を破棄します
+    /// </summary>
+    /// <param name="damage">受けるダメージ量</param>
+    public void TakeDamage(int damage)
+    {
+        _currentHp -= damage;
+
+        // HPが0以下になった場合
+        if (_currentHp <= 0)
+        {
+            // EnemySpawnerのリストから削除
+            if (EnemySpawner.Instance != null)
+            {
+                EnemySpawner.Instance.RemoveEnemy(gameObject);
+            }
+
+            // 自身を破棄
+            Destroy(gameObject);
+        }
     }
 
     void Update()

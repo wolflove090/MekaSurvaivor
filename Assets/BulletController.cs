@@ -52,16 +52,14 @@ public class BulletController : MonoBehaviour
         // エネミーに衝突した場合
         if (other.CompareTag("Enemy"))
         {
-            // EnemySpawnerのリストから削除
-            if (EnemySpawner.Instance != null)
+            // EnemyControllerを取得してダメージを与える
+            EnemyController enemy = other.GetComponent<EnemyController>();
+            if (enemy != null)
             {
-                EnemySpawner.Instance.RemoveEnemy(other.gameObject);
+                enemy.TakeDamage(1);
             }
-
-            // エネミーを破棄
-            Destroy(other.gameObject);
             
-            // 弾自身も破棄
+            // 弾自身を破棄
             Destroy(gameObject);
         }
     }
