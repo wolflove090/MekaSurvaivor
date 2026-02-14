@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -6,6 +7,9 @@ using UnityEngine;
 /// </summary>
 public class EnemySpawner : MonoBehaviour
 {
+    // シングルトンインスタンス
+    static EnemySpawner _instance;
+
     [Header("スポーン設定")]
     [SerializeField]
     [Tooltip("スポーンするエネミーのプレハブ")]
@@ -26,6 +30,17 @@ public class EnemySpawner : MonoBehaviour
     // 次のスポーンまでの残り時間
     float _spawnTimer;
 
+    // 生成されたエネミーのリスト
+    List<GameObject> _enemies = new List<GameObject>();
+
+    /// <summary>
+    /// EnemySpawnerのシングルトンインスタンスを取得します
+    /// </summary>
+    public static EnemySpawner Instance
+    {
+        get => _instance;
+    }
+
     /// <summary>
     /// スポーン間隔を取得または設定します
     /// </summary>
@@ -33,6 +48,27 @@ public class EnemySpawner : MonoBehaviour
     {
         get => _spawnInterval;
         set => _spawnInterval = value;
+    }
+
+    void Awake()
+    {
+        // シングルトンの設定
+        if (_instance != null && _instance != this)
+        {
+            Debug.LogError($"EnemySpawnerが複数存在します。既存: {_instance.gameObject.name}, 新規: {gameObject.name}");
+            enabled = false;
+            return;
+        }
+        _instance = this;
+    }
+
+    void OnDestroy()
+    {
+        // インスタンスのクリア
+        if (_instance == this)
+        {
+            _instance = null;
+        }
     }
 
     void Start()
@@ -73,7 +109,55 @@ public class EnemySpawner : MonoBehaviour
         Vector3 spawnPosition = CalculateSpawnPosition();
 
         // エネミーを生成
-        Instantiate(_enemyPrefab, spawnPosition, Quaternion.identity);
+        GameObject enemy = Instantiate(_enemyPrefab, spawnPosition, Quaternion.identity);
+
+        // リストに追加
+        _enemies.Add(enemy);
+    }
+
+    /// <summary>
+    /// 指定された位置から一番近いエネミーを検索します
+    /// </summary>
+    /// <param name="position">基準位置</param>
+    /// <returns>一番近いエネミーのGameObject、存在しない場合はnull</returns>
+    public GameObject FindNearestEnemy(Vector3 position)
+    {
+        // リストから破棄されたエネミーを削除
+        _enemies.RemoveAll(enemy => enemy == null);
+
+        // エネミーが存在しない場合
+        if (_enemies.Count == 0)
+        {
+            return null;
+        }
+
+        GameObject nearestEnemy = null;
+        float nearestDistance = float.MaxValue;
+
+        // 全てのエネミーとの距離を計算
+        // TODO 全検索しているため数が多くなると重たくなる
+        foreach (GameObject enemy in _enemies)
+        {
+            float distance = Vector3.Distance(position, enemy.transform.position);
+
+            // より近いエネミーが見つかった場合
+            if (distance < nearestDistance)
+            {
+                nearestDistance = distance;
+                nearestEnemy = enemy;
+            }
+        }
+
+        return nearestEnemy;
+    }
+
+    /// <summary>
+    /// エネミーをリストから削除します
+    /// </summary>
+    /// <param name="enemy">削除するエネミー</param>
+    public void RemoveEnemy(GameObject enemy)
+    {
+        _enemies.Remove(enemy);
     }
 
     /// <summary>
