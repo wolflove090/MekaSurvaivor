@@ -14,6 +14,15 @@ public class PlayerController : MonoBehaviour
     [Tooltip("移動速度")]
     float _moveSpeed = 5f;
 
+    [Header("ノックバック設定")]
+    [SerializeField]
+    [Tooltip("ノックバックの距離")]
+    float _knockbackDistance = 1f;
+
+    [SerializeField]
+    [Tooltip("ノックバックの持続時間")]
+    float _knockbackDuration = 0.2f;
+
     [Header("スプライト設定")]
     [SerializeField]
     [Tooltip("左向きのスプライト")]
@@ -31,6 +40,10 @@ public class PlayerController : MonoBehaviour
 
     // SpriteRenderer コンポーネント
     SpriteRenderer _spriteRenderer;
+
+    // ノックバック関連
+    bool _isKnockedBack;
+    float _knockbackTimer;
 
     /// <summary>
     /// PlayerControllerのシングルトンインスタンスを取得します
@@ -103,6 +116,13 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        // ノックバック中の処理
+        if (_isKnockedBack)
+        {
+            UpdateKnockback();
+            return;
+        }
+
         // 移動処理
         if (_moveInput != Vector2.zero)
         {
@@ -111,6 +131,52 @@ public class PlayerController : MonoBehaviour
 
             // スプライトの切り替え
             UpdateSprite();
+        }
+    }
+
+    /// <summary>
+    /// ノックバック処理を更新します
+    /// </summary>
+    void UpdateKnockback()
+    {
+        // ノックバックタイマーを減少
+        _knockbackTimer -= Time.deltaTime;
+
+        // ノックバック終了判定
+        if (_knockbackTimer <= 0f)
+        {
+            _isKnockedBack = false;
+        }
+    }
+
+    /// <summary>
+    /// ノックバックを適用します
+    /// </summary>
+    /// <param name="direction">ノックバック方向（正規化済み）</param>
+    public void ApplyKnockback(Vector3 direction)
+    {
+        _isKnockedBack = true;
+        _knockbackTimer = _knockbackDuration;
+
+        // 瞬間的に指定距離だけ移動
+        transform.position += direction.normalized * _knockbackDistance;
+    }
+
+    /// <summary>
+    /// エネミーとのトリガー接触時の処理
+    /// </summary>
+    /// <param name="other">接触したCollider</param>
+    void OnTriggerEnter(Collider other)
+    {
+        // エネミーとの接触判定
+        if (other.CompareTag("Enemy"))
+        {
+            // 接触方向の計算（エネミーからプレイヤーへの方向）
+            Vector3 knockbackDirection = transform.position - other.transform.position;
+            knockbackDirection.y = 0f; // Y軸方向を無効化
+
+            // ノックバックを適用
+            ApplyKnockback(knockbackDirection);
         }
     }
 

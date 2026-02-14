@@ -131,6 +131,8 @@ GameObject:
   - component: {fileID: 153723277}
   - component: {fileID: 153723276}
   - component: {fileID: 153723279}
+  - component: {fileID: 153723281}
+  - component: {fileID: 153723280}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -151,6 +153,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   _moveSpeed: 5
+  _knockbackDistance: 1
+  _knockbackDuration: 0.3
   _leftSprite: {fileID: 21300000, guid: 523d8ba1b2f0f4fcc9bfac275c9ebb9a, type: 3}
   _rightSprite: {fileID: 21300000, guid: e3146c7143f5f4a6585c4a6ad9cbbab0, type: 3}
 --- !u!212 &153723277
@@ -234,7 +238,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 153723275}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 274504390d85d4be78420835fb2af912, type: 3}
   m_Name: 
@@ -242,6 +246,56 @@ MonoBehaviour:
   _bulletPrefab: {fileID: 4081888370426802533, guid: 7ea5a00f6225f490b81c817497f90dcc, type: 3}
   _shootInterval: 1
   _shootOffset: {x: 0, y: 0, z: 0}
+--- !u!136 &153723280
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 153723275}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.7142224
+  m_Height: 2.56
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!54 &153723281
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 153723275}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &161327160
 GameObject:
   m_ObjectHideFlags: 0
