@@ -47,7 +47,7 @@ public class BulletController : MonoBehaviour
         transform.position += _direction * _speed * Time.deltaTime;
     }
 
-    void OnTriggerEnter2D(Collider2D other)
+    void OnTriggerEnter(Collider other)
     {
         // エネミーに衝突した場合
         if (other.CompareTag("Enemy"))

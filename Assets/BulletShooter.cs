@@ -70,8 +70,8 @@ public class BulletShooter : MonoBehaviour
         // 発射位置を計算
         Vector3 shootPosition = transform.position + _shootOffset;
 
-        // 一番近いエネミーを検索
-        GameObject nearestEnemy = EnemySpawner.Instance.FindNearestEnemy(shootPosition);
+        // 一番近いエネミーを検索（カメラに写っているもののみ）
+        GameObject nearestEnemy = EnemySpawner.Instance.FindNearestEnemy(shootPosition, onlyVisible: true);
 
         // エネミーが存在しない場合は発射しない
         if (nearestEnemy == null)

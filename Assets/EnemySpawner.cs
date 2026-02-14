@@ -119,8 +119,9 @@ public class EnemySpawner : MonoBehaviour
     /// 指定された位置から一番近いエネミーを検索します
     /// </summary>
     /// <param name="position">基準位置</param>
+    /// <param name="onlyVisible">カメラに写っているエネミーのみを対象にするか</param>
     /// <returns>一番近いエネミーのGameObject、存在しない場合はnull</returns>
-    public GameObject FindNearestEnemy(Vector3 position)
+    public GameObject FindNearestEnemy(Vector3 position, bool onlyVisible = false)
     {
         // リストから破棄されたエネミーを削除
         _enemies.RemoveAll(enemy => enemy == null);
@@ -134,10 +135,22 @@ public class EnemySpawner : MonoBehaviour
         GameObject nearestEnemy = null;
         float nearestDistance = float.MaxValue;
 
+        // カメラの取得（可視判定が必要な場合）
+        Camera mainCamera = onlyVisible ? Camera.main : null;
+
         // 全てのエネミーとの距離を計算
-        // TODO 全検索しているため数が多くなると重たくなる
+        // TODO 全件検索のため数が多くなると重たくなる
         foreach (GameObject enemy in _enemies)
         {
+            // 可視判定が有効な場合、カメラに写っているかチェック
+            if (onlyVisible && mainCamera != null)
+            {
+                if (!IsVisibleFromCamera(enemy, mainCamera))
+                {
+                    continue;
+                }
+            }
+
             float distance = Vector3.Distance(position, enemy.transform.position);
 
             // より近いエネミーが見つかった場合
@@ -149,6 +162,23 @@ public class EnemySpawner : MonoBehaviour
         }
 
         return nearestEnemy;
+    }
+
+    /// <summary>
+    /// エネミーがカメラに写っているか判定します
+    /// </summary>
+    /// <param name="enemy">判定対象のエネミー</param>
+    /// <param name="camera">判定に使用するカメラ</param>
+    /// <returns>カメラに写っている場合はtrue</returns>
+    bool IsVisibleFromCamera(GameObject enemy, Camera camera)
+    {
+        // エネミーの位置をビューポート座標に変換
+        Vector3 viewportPoint = camera.WorldToViewportPoint(enemy.transform.position);
+
+        // ビューポート座標が0～1の範囲内かつ、カメラの前方にあるかチェック
+        return viewportPoint.x >= 0f && viewportPoint.x <= 1f &&
+               viewportPoint.y >= 0f && viewportPoint.y <= 1f &&
+               viewportPoint.z > 0f;
     }
 
     /// <summary>
