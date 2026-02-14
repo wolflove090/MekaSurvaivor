@@ -11,11 +11,23 @@ public class PlayerController : MonoBehaviour
     [Tooltip("移動速度")]
     float _moveSpeed = 5f;
 
+    [Header("スプライト設定")]
+    [SerializeField]
+    [Tooltip("左向きのスプライト")]
+    Sprite _leftSprite;
+
+    [SerializeField]
+    [Tooltip("右向きのスプライト")]
+    Sprite _rightSprite;
+
     // 入力アクション
     PlayerInputActions _inputActions;
     
     // 移動入力値
     Vector2 _moveInput;
+
+    // SpriteRenderer コンポーネント
+    SpriteRenderer _spriteRenderer;
 
     /// <summary>
     /// 移動速度を取得または設定します
@@ -30,6 +42,9 @@ public class PlayerController : MonoBehaviour
     {
         // Input Actions の初期化
         _inputActions = new PlayerInputActions();
+
+        // SpriteRenderer コンポーネントの取得
+        _spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     void OnEnable()
@@ -64,6 +79,29 @@ public class PlayerController : MonoBehaviour
         {
             Vector3 movement = new Vector3(_moveInput.x, 0f, _moveInput.y);
             transform.position += movement * _moveSpeed * Time.deltaTime;
+
+            // スプライトの切り替え
+            UpdateSprite();
+        }
+    }
+
+    /// <summary>
+    /// 移動方向に応じてスプライトを更新します
+    /// </summary>
+    void UpdateSprite()
+    {
+        if (_spriteRenderer == null) return;
+
+        // 横方向の入力がある場合のみスプライトを切り替え
+        if (_moveInput.x < 0f)
+        {
+            // 左向き
+            _spriteRenderer.sprite = _leftSprite;
+        }
+        else if (_moveInput.x > 0f)
+        {
+            // 右向き
+            _spriteRenderer.sprite = _rightSprite;
         }
     }
 }
