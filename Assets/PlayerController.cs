@@ -83,6 +83,30 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     public bool IsGameOver => _isGameOver;
 
+    /// <summary>
+    /// プレイヤーの向いている方向を取得します
+    /// </summary>
+    /// <returns>向いている方向ベクトル（左または右）</returns>
+    public Vector3 GetFacingDirection()
+    {
+        if (_moveInput.x < 0f)
+        {
+            return Vector3.left;
+        }
+        else if (_moveInput.x > 0f)
+        {
+            return Vector3.right;
+        }
+        
+        // 移動入力がない場合はスプライトから判定
+        if (_spriteRenderer != null && _spriteRenderer.sprite == _leftSprite)
+        {
+            return Vector3.left;
+        }
+        
+        return Vector3.right;
+    }
+
     void Awake()
     {
         // シングルトンの設定
