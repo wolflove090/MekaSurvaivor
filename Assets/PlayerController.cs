@@ -23,6 +23,11 @@ public class PlayerController : MonoBehaviour
     [Tooltip("ノックバックの持続時間")]
     float _knockbackDuration = 0.2f;
 
+    [Header("HP設定")]
+    [SerializeField]
+    [Tooltip("初期HP")]
+    int _maxHp = 10;
+
     [Header("スプライト設定")]
     [SerializeField]
     [Tooltip("左向きのスプライト")]
@@ -45,6 +50,12 @@ public class PlayerController : MonoBehaviour
     bool _isKnockedBack;
     float _knockbackTimer;
 
+    // 現在のHP
+    int _currentHp;
+
+    // ゲームオーバーフラグ
+    bool _isGameOver;
+
     /// <summary>
     /// PlayerControllerのシングルトンインスタンスを取得します
     /// </summary>
@@ -62,6 +73,16 @@ public class PlayerController : MonoBehaviour
         set => _moveSpeed = value;
     }
 
+    /// <summary>
+    /// 現在のHPを取得します
+    /// </summary>
+    public int CurrentHp => _currentHp;
+
+    /// <summary>
+    /// ゲームオーバー状態かどうかを取得します
+    /// </summary>
+    public bool IsGameOver => _isGameOver;
+
     void Awake()
     {
         // シングルトンの設定
@@ -78,6 +99,10 @@ public class PlayerController : MonoBehaviour
 
         // SpriteRenderer コンポーネントの取得
         _spriteRenderer = GetComponent<SpriteRenderer>();
+
+        // HPの初期化
+        _currentHp = _maxHp;
+        _isGameOver = false;
     }
 
     void OnEnable()
@@ -116,6 +141,12 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        // ゲームオーバー時は処理を停止
+        if (_isGameOver)
+        {
+            return;
+        }
+
         // ノックバック中の処理
         if (_isKnockedBack)
         {
@@ -163,6 +194,41 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
+    /// ダメージを受けます
+    /// HPが0以下になった場合、ゲームオーバー処理を実行します
+    /// </summary>
+    /// <param name="damage">受けるダメージ量</param>
+    public void TakeDamage(int damage)
+    {
+        // ゲームオーバー時はダメージを受けない
+        if (_isGameOver)
+        {
+            return;
+        }
+
+        _currentHp -= damage;
+        Debug.Log($"プレイヤーがダメージを受けました。残りHP: {_currentHp}");
+
+        // HPが0以下になった場合
+        if (_currentHp <= 0)
+        {
+            GameOver();
+        }
+    }
+
+    /// <summary>
+    /// ゲームオーバー処理を実行します
+    /// </summary>
+    void GameOver()
+    {
+        _isGameOver = true;
+        Debug.Log("ゲームオーバー！");
+
+        // 画面を一時停止
+        Time.timeScale = 0f;
+    }
+
+    /// <summary>
     /// エネミーとのトリガー接触時の処理
     /// </summary>
     /// <param name="other">接触したCollider</param>
@@ -177,6 +243,9 @@ public class PlayerController : MonoBehaviour
 
             // ノックバックを適用
             ApplyKnockback(knockbackDirection);
+
+            // ダメージを受ける
+            TakeDamage(1);
         }
     }
 
