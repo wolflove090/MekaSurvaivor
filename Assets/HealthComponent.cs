@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// HP管理とダメージ処理を担当するコンポーネント
 /// </summary>
-public class HealthComponent : MonoBehaviour
+public class HealthComponent : MonoBehaviour, IDamageable
 {
     [SerializeField]
     [Tooltip("最大HP")]
@@ -45,7 +45,8 @@ public class HealthComponent : MonoBehaviour
     /// ダメージを受けます
     /// </summary>
     /// <param name="damage">受けるダメージ量</param>
-    public void TakeDamage(int damage)
+    /// <param name="knockbackDirection">ノックバック方向（デフォルトはVector3.zero）</param>
+    public void TakeDamage(int damage, Vector3 knockbackDirection = default)
     {
         if (IsDead)
         {
@@ -56,6 +57,16 @@ public class HealthComponent : MonoBehaviour
         _currentHp = Mathf.Max(_currentHp, 0);
 
         OnDamaged?.Invoke(damage);
+
+        // ノックバック方向が指定されている場合、KnockbackComponentに適用
+        if (knockbackDirection != Vector3.zero)
+        {
+            KnockbackComponent knockback = GetComponent<KnockbackComponent>();
+            if (knockback != null)
+            {
+                knockback.ApplyKnockback(knockbackDirection);
+            }
+        }
 
         if (IsDead)
         {

@@ -15,6 +15,7 @@ public class GameManager : MonoBehaviour
 
     float _elapsedTime;
     bool _isGameClear;
+    bool _isGameOver;
 
     /// <summary>
     /// GameManagerのシングルトンインスタンスを取得します
@@ -46,6 +47,9 @@ public class GameManager : MonoBehaviour
 
         _elapsedTime = 0f;
         _isGameClear = false;
+
+        // イベントを購読
+        GameEvents.OnGameOver += OnGameOver;
     }
 
     void OnDestroy()
@@ -54,11 +58,23 @@ public class GameManager : MonoBehaviour
         {
             _instance = null;
         }
+
+        // イベントの購読を解除
+        GameEvents.OnGameOver -= OnGameOver;
+    }
+
+    /// <summary>
+    /// ゲームオーバー時のコールバック
+    /// </summary>
+    void OnGameOver()
+    {
+        _isGameOver = true;
+        Debug.Log("GameManager: ゲームオーバーを検知しました");
     }
 
     void Update()
     {
-        if (_isGameClear || (PlayerController.Instance != null && PlayerController.Instance.IsGameOver))
+        if (_isGameClear || _isGameOver)
         {
             return;
         }

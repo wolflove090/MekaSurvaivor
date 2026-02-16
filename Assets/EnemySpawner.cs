@@ -28,6 +28,7 @@ public class EnemySpawner : MonoBehaviour
 
     float _spawnTimer;
     List<GameObject> _enemies = new List<GameObject>();
+    Transform _playerTransform;
 
     /// <summary>
     /// EnemySpawnerのシングルトンインスタンスを取得します
@@ -68,11 +69,26 @@ public class EnemySpawner : MonoBehaviour
     void Start()
     {
         _spawnTimer = _spawnInterval;
+
+        // プレイヤーの参照を取得（後方互換性のため）
+        if (PlayerController.Instance != null)
+        {
+            _playerTransform = PlayerController.Instance.transform;
+        }
+    }
+
+    /// <summary>
+    /// スポーンの基準となるターゲットを設定します
+    /// </summary>
+    /// <param name="target">基準となるTransform（通常はプレイヤー）</param>
+    public void SetSpawnTarget(Transform target)
+    {
+        _playerTransform = target;
     }
 
     void Update()
     {
-        if (PlayerController.Instance == null) return;
+        if (_playerTransform == null) return;
 
         _spawnTimer -= Time.deltaTime;
 
@@ -97,6 +113,16 @@ public class EnemySpawner : MonoBehaviour
         Vector3 spawnPosition = CalculateSpawnPosition();
         GameObject enemy = Instantiate(_enemyPrefab, spawnPosition, Quaternion.identity);
         _enemies.Add(enemy);
+
+        // エネミーにターゲットを設定
+        EnemyController enemyController = enemy.GetComponent<EnemyController>();
+        if (enemyController != null && _playerTransform != null)
+        {
+            enemyController.SetTarget(_playerTransform);
+        }
+
+        // スポーンイベントを発火
+        GameEvents.RaiseEnemySpawned(enemy);
     }
 
     /// <summary>
@@ -165,21 +191,26 @@ public class EnemySpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// プレイヤーの周囲のランダムな位置を計算します
+    /// ターゲットの周囲のランダムな位置を計算します
     /// </summary>
     /// <returns>スポーン位置</returns>
     Vector3 CalculateSpawnPosition()
     {
-        Vector3 playerPosition = PlayerController.Instance.transform.position;
+        if (_playerTransform == null)
+        {
+            return Vector3.zero;
+        }
+
+        Vector3 targetPosition = _playerTransform.position;
         float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
         float distance = Random.Range(_spawnDistanceMin, _spawnDistanceMax);
         float x = Mathf.Cos(angle) * distance;
         float z = Mathf.Sin(angle) * distance;
 
         return new Vector3(
-            playerPosition.x + x,
-            playerPosition.y,
-            playerPosition.z + z
+            targetPosition.x + x,
+            targetPosition.y,
+            targetPosition.z + z
         );
     }
 }

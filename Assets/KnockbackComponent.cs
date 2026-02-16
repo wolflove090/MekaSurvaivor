@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// ノックバック処理を担当するコンポーネント
 /// </summary>
-public class KnockbackComponent : MonoBehaviour
+public class KnockbackComponent : MonoBehaviour, IKnockbackable
 {
     [SerializeField]
     [Tooltip("ノックバックの距離")]

@@ -30,7 +30,16 @@ public class DamageFieldController : MonoBehaviour
     Vector3 _positionOffset = new Vector3(0f, 0f, 0.5f);
 
     Dictionary<GameObject, float> _enemiesInField = new Dictionary<GameObject, float>();
-    Transform _playerTransform;
+    Transform _targetTransform;
+
+    /// <summary>
+    /// 追従するターゲットを設定します
+    /// </summary>
+    /// <param name="target">追従対象のTransform</param>
+    public void SetFollowTarget(Transform target)
+    {
+        _targetTransform = target;
+    }
 
     /// <summary>
     /// 与えるダメージ量を取得または設定します
@@ -63,7 +72,7 @@ public class DamageFieldController : MonoBehaviour
     {
         if (_followPlayer && PlayerController.Instance != null)
         {
-            _playerTransform = PlayerController.Instance.transform;
+            _targetTransform = PlayerController.Instance.transform;
         }
 
         Destroy(gameObject, _duration);
@@ -71,9 +80,9 @@ public class DamageFieldController : MonoBehaviour
 
     void Update()
     {
-        if (_followPlayer && _playerTransform != null)
+        if (_followPlayer && _targetTransform != null)
         {
-            transform.position = _playerTransform.position + _positionOffset;
+            transform.position = _targetTransform.position + _positionOffset;
         }
 
         List<GameObject> enemiesToRemove = new List<GameObject>();
@@ -110,12 +119,12 @@ public class DamageFieldController : MonoBehaviour
     /// <param name="enemy">ダメージを与えるエネミー</param>
     void ApplyDamageToEnemy(GameObject enemy)
     {
-        EnemyController enemyController = enemy.GetComponent<EnemyController>();
-        if (enemyController != null)
+        IDamageable damageable = enemy.GetComponent<IDamageable>();
+        if (damageable != null && !damageable.IsDead)
         {
             Vector3 knockbackDirection = enemy.transform.position - transform.position;
             knockbackDirection.y = 0f;
-            enemyController.TakeDamage(_damage, knockbackDirection);
+            damageable.TakeDamage(_damage, knockbackDirection);
         }
     }
 

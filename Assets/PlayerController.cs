@@ -142,6 +142,9 @@ public class PlayerController : MonoBehaviour
             {
                 _spriteDirectionController.UpdateDirection(_moveInput.x);
             }
+
+            // プレイヤー移動イベントを発火
+            GameEvents.RaisePlayerMoved(transform.position);
         }
     }
 
@@ -152,6 +155,7 @@ public class PlayerController : MonoBehaviour
     void OnDamaged(int damage)
     {
         Debug.Log($"プレイヤーがダメージを受けました。残りHP: {CurrentHp}");
+        GameEvents.RaisePlayerDamaged(damage);
     }
 
     /// <summary>
@@ -161,6 +165,8 @@ public class PlayerController : MonoBehaviour
     {
         _isGameOver = true;
         Debug.Log("ゲームオーバー！");
+        GameEvents.RaisePlayerDied();
+        GameEvents.RaiseGameOver();
         Time.timeScale = 0f;
     }
 
@@ -175,14 +181,9 @@ public class PlayerController : MonoBehaviour
             Vector3 knockbackDirection = transform.position - other.transform.position;
             knockbackDirection.y = 0f;
 
-            if (_knockbackComponent != null)
-            {
-                _knockbackComponent.ApplyKnockback(knockbackDirection);
-            }
-
             if (_healthComponent != null)
             {
-                _healthComponent.TakeDamage(1);
+                _healthComponent.TakeDamage(1, knockbackDirection);
             }
         }
     }

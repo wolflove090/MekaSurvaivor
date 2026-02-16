@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// エネミーの移動を制御するコンポーネント
-/// プレイヤーに向かって徐々に近づく動作を行います
+/// ターゲットに向かって徐々に近づく動作を行います
 /// </summary>
 public class EnemyController : MonoBehaviour
 {
@@ -14,6 +14,7 @@ public class EnemyController : MonoBehaviour
     HealthComponent _healthComponent;
     KnockbackComponent _knockbackComponent;
     SpriteDirectionController _spriteDirectionController;
+    Transform _targetTransform;
 
     /// <summary>
     /// 移動速度を取得または設定します
@@ -28,6 +29,15 @@ public class EnemyController : MonoBehaviour
     /// 現在のHPを取得します
     /// </summary>
     public int CurrentHp => _healthComponent != null ? _healthComponent.CurrentHp : 0;
+
+    /// <summary>
+    /// 追跡するターゲットを設定します
+    /// </summary>
+    /// <param name="target">追跡対象のTransform</param>
+    public void SetTarget(Transform target)
+    {
+        _targetTransform = target;
+    }
 
     void Awake()
     {
@@ -50,12 +60,7 @@ public class EnemyController : MonoBehaviour
     {
         if (_healthComponent != null)
         {
-            _healthComponent.TakeDamage(damage);
-        }
-
-        if (knockbackDirection != Vector3.zero && _knockbackComponent != null)
-        {
-            _knockbackComponent.ApplyKnockback(knockbackDirection);
+            _healthComponent.TakeDamage(damage, knockbackDirection);
         }
     }
 
@@ -64,6 +69,8 @@ public class EnemyController : MonoBehaviour
     /// </summary>
     void OnDied()
     {
+        GameEvents.RaiseEnemyDied(gameObject);
+
         if (EnemySpawner.Instance != null)
         {
             EnemySpawner.Instance.RemoveEnemy(gameObject);
@@ -74,11 +81,11 @@ public class EnemyController : MonoBehaviour
 
     void Update()
     {
-        if (PlayerController.Instance != null)
+        if (_targetTransform != null)
         {
             if (_knockbackComponent == null || !_knockbackComponent.IsKnockedBack)
             {
-                MoveTowardsPlayer();
+                MoveTowardsTarget();
             }
             
             UpdateSprite();
@@ -86,11 +93,13 @@ public class EnemyController : MonoBehaviour
     }
 
     /// <summary>
-    /// プレイヤーに向かって移動します
+    /// ターゲットに向かって移動します
     /// </summary>
-    void MoveTowardsPlayer()
+    void MoveTowardsTarget()
     {
-        Vector3 direction = (PlayerController.Instance.transform.position - transform.position).normalized;
+        if (_targetTransform == null) return;
+
+        Vector3 direction = (_targetTransform.position - transform.position).normalized;
         direction.y = 0f;
         transform.position += direction * _moveSpeed * Time.deltaTime;
     }
@@ -100,9 +109,9 @@ public class EnemyController : MonoBehaviour
     /// </summary>
     void UpdateSprite()
     {
-        if (_spriteDirectionController == null || PlayerController.Instance == null) return;
+        if (_spriteDirectionController == null || _targetTransform == null) return;
 
-        float directionX = PlayerController.Instance.transform.position.x - transform.position.x;
+        float directionX = _targetTransform.position.x - transform.position.x;
         _spriteDirectionController.UpdateDirection(directionX);
     }
 }

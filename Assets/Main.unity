@@ -135,6 +135,9 @@ GameObject:
   - component: {fileID: 153723279}
   - component: {fileID: 153723282}
   - component: {fileID: 153723283}
+  - component: {fileID: 153723286}
+  - component: {fileID: 153723285}
+  - component: {fileID: 153723284}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -155,11 +158,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   _moveSpeed: 5
-  _knockbackDistance: 1
-  _knockbackDuration: 0.3
-  _maxHp: 10
-  _leftSprite: {fileID: 21300000, guid: 523d8ba1b2f0f4fcc9bfac275c9ebb9a, type: 3}
-  _rightSprite: {fileID: 21300000, guid: e3146c7143f5f4a6585c4a6ad9cbbab0, type: 3}
 --- !u!212 &153723277
 SpriteRenderer:
   serializedVersion: 2
@@ -329,6 +327,47 @@ MonoBehaviour:
   _damageFieldPrefab: {fileID: 4081888370426802533, guid: 0de497e01b829453d8ed97563749aeab, type: 3}
   _spawnInterval: 3
   _spawnOffset: {x: 0, y: 0, z: 0}
+--- !u!114 &153723284
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 153723275}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ca0865be60834812a21c0f4791845a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpriteDirectionController
+  _leftSprite: {fileID: 21300000, guid: 523d8ba1b2f0f4fcc9bfac275c9ebb9a, type: 3}
+  _rightSprite: {fileID: 21300000, guid: e3146c7143f5f4a6585c4a6ad9cbbab0, type: 3}
+--- !u!114 &153723285
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 153723275}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80be7e4250b41446fa7f666d34aef351, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KnockbackComponent
+  _knockbackDistance: 1
+  _knockbackDuration: 0.2
+--- !u!114 &153723286
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 153723275}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c20abe31478a044f59a43438d08539a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
+  _maxHp: 10
 --- !u!1 &161327160
 GameObject:
   m_ObjectHideFlags: 0

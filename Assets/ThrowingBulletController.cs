@@ -15,15 +15,4 @@ public class ThrowingBulletController : ProjectileController
         base.SetDirection(direction);
         _direction.y = 0f;
     }
-
-    /// <summary>
-    /// 敵に命中した時の処理
-    /// </summary>
-    /// <param name="enemy">命中した敵</param>
-    protected override void OnHitEnemy(EnemyController enemy)
-    {
-        Vector3 knockbackDirection = _direction;
-        knockbackDirection.y = 0f;
-        enemy.TakeDamage(Damage, knockbackDirection);
-    }
 }

@@ -56,19 +56,15 @@ public abstract class ProjectileController : MonoBehaviour
     {
         if (other.CompareTag("Enemy"))
         {
-            EnemyController enemy = other.GetComponent<EnemyController>();
-            if (enemy != null)
+            IDamageable damageable = other.GetComponent<IDamageable>();
+            if (damageable != null && !damageable.IsDead)
             {
-                OnHitEnemy(enemy);
+                Vector3 knockbackDirection = _direction;
+                knockbackDirection.y = 0f;
+                damageable.TakeDamage(_damage, knockbackDirection);
             }
             
             Destroy(gameObject);
         }
     }
-
-    /// <summary>
-    /// 敵に命中した時の処理
-    /// </summary>
-    /// <param name="enemy">命中した敵</param>
-    protected abstract void OnHitEnemy(EnemyController enemy);
 }
