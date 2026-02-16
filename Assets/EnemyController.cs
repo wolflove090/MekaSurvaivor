@@ -11,33 +11,9 @@ public class EnemyController : MonoBehaviour
     [Tooltip("移動速度")]
     float _moveSpeed = 3f;
 
-    [Header("HP設定")]
-    [SerializeField]
-    [Tooltip("初期HP")]
-    int _maxHp = 3;
-
-    [Header("ノックバック設定")]
-    [SerializeField]
-    [Tooltip("ノックバックの距離")]
-    float _knockbackDistance = 0.5f;
-
-    [SerializeField]
-    [Tooltip("ノックバックの持続時間")]
-    float _knockbackDuration = 0.1f;
-
-    [Header("スプライト設定")]
-    [SerializeField]
-    [Tooltip("左向きのスプライト")]
-    Sprite _leftSprite;
-
-    [SerializeField]
-    [Tooltip("右向きのスプライト")]
-    Sprite _rightSprite;
-
-    SpriteRenderer _spriteRenderer;
-    int _currentHp;
-    bool _isKnockedBack;
-    float _knockbackTimer;
+    HealthComponent _healthComponent;
+    KnockbackComponent _knockbackComponent;
+    SpriteDirectionController _spriteDirectionController;
 
     /// <summary>
     /// 移動速度を取得または設定します
@@ -51,80 +27,61 @@ public class EnemyController : MonoBehaviour
     /// <summary>
     /// 現在のHPを取得します
     /// </summary>
-    public int CurrentHp => _currentHp;
+    public int CurrentHp => _healthComponent != null ? _healthComponent.CurrentHp : 0;
 
     void Awake()
     {
-        _spriteRenderer = GetComponent<SpriteRenderer>();
-        _currentHp = _maxHp;
+        _healthComponent = GetComponent<HealthComponent>();
+        _knockbackComponent = GetComponent<KnockbackComponent>();
+        _spriteDirectionController = GetComponent<SpriteDirectionController>();
+
+        if (_healthComponent != null)
+        {
+            _healthComponent.OnDied += OnDied;
+        }
     }
 
     /// <summary>
     /// ダメージを受けます
-    /// HPが0以下になった場合、自身を破棄します
     /// </summary>
     /// <param name="damage">受けるダメージ量</param>
     /// <param name="knockbackDirection">ノックバック方向（正規化済み）</param>
     public void TakeDamage(int damage, Vector3 knockbackDirection = default)
     {
-        _currentHp -= damage;
-
-        if (knockbackDirection != Vector3.zero)
+        if (_healthComponent != null)
         {
-            ApplyKnockback(knockbackDirection);
+            _healthComponent.TakeDamage(damage);
         }
 
-        if (_currentHp <= 0)
+        if (knockbackDirection != Vector3.zero && _knockbackComponent != null)
         {
-            if (EnemySpawner.Instance != null)
-            {
-                EnemySpawner.Instance.RemoveEnemy(gameObject);
-            }
-
-            Destroy(gameObject);
+            _knockbackComponent.ApplyKnockback(knockbackDirection);
         }
     }
 
     /// <summary>
-    /// ノックバックを適用します
+    /// 死亡時の処理
     /// </summary>
-    /// <param name="direction">ノックバック方向（正規化済み）</param>
-    public void ApplyKnockback(Vector3 direction)
+    void OnDied()
     {
-        _isKnockedBack = true;
-        _knockbackTimer = _knockbackDuration;
+        if (EnemySpawner.Instance != null)
+        {
+            EnemySpawner.Instance.RemoveEnemy(gameObject);
+        }
 
-        // 瞬間的に指定距離だけ移動
-        transform.position += direction.normalized * _knockbackDistance;
+        Destroy(gameObject);
     }
 
     void Update()
     {
         if (PlayerController.Instance != null)
         {
-            if (_isKnockedBack)
-            {
-                UpdateKnockback();
-            }
-            else
+            if (_knockbackComponent == null || !_knockbackComponent.IsKnockedBack)
             {
                 MoveTowardsPlayer();
             }
             
             UpdateSprite();
-        }
-    }
-
-    /// <summary>
-    /// ノックバック処理を更新します
-    /// </summary>
-    void UpdateKnockback()
-    {
-        _knockbackTimer -= Time.deltaTime;
-
-        if (_knockbackTimer <= 0f)
-        {
-            _isKnockedBack = false;
         }
     }
 
@@ -143,17 +100,9 @@ public class EnemyController : MonoBehaviour
     /// </summary>
     void UpdateSprite()
     {
-        if (_spriteRenderer == null || PlayerController.Instance == null) return;
+        if (_spriteDirectionController == null || PlayerController.Instance == null) return;
 
         float directionX = PlayerController.Instance.transform.position.x - transform.position.x;
-
-        if (directionX < 0f)
-        {
-            _spriteRenderer.sprite = _leftSprite;
-        }
-        else if (directionX > 0f)
-        {
-            _spriteRenderer.sprite = _rightSprite;
-        }
+        _spriteDirectionController.UpdateDirection(directionX);
     }
 }

@@ -13,36 +13,13 @@ public class PlayerController : MonoBehaviour
     [Tooltip("移動速度")]
     float _moveSpeed = 5f;
 
-    [Header("ノックバック設定")]
-    [SerializeField]
-    [Tooltip("ノックバックの距離")]
-    float _knockbackDistance = 1f;
-
-    [SerializeField]
-    [Tooltip("ノックバックの持続時間")]
-    float _knockbackDuration = 0.2f;
-
-    [Header("HP設定")]
-    [SerializeField]
-    [Tooltip("初期HP")]
-    int _maxHp = 10;
-
-    [Header("スプライト設定")]
-    [SerializeField]
-    [Tooltip("左向きのスプライト")]
-    Sprite _leftSprite;
-
-    [SerializeField]
-    [Tooltip("右向きのスプライト")]
-    Sprite _rightSprite;
-
     PlayerInputActions _inputActions;
     Vector2 _moveInput;
-    SpriteRenderer _spriteRenderer;
-    bool _isKnockedBack;
-    float _knockbackTimer;
-    int _currentHp;
     bool _isGameOver;
+
+    HealthComponent _healthComponent;
+    KnockbackComponent _knockbackComponent;
+    SpriteDirectionController _spriteDirectionController;
 
     /// <summary>
     /// PlayerControllerのシングルトンインスタンスを取得します
@@ -64,7 +41,7 @@ public class PlayerController : MonoBehaviour
     /// <summary>
     /// 現在のHPを取得します
     /// </summary>
-    public int CurrentHp => _currentHp;
+    public int CurrentHp => _healthComponent != null ? _healthComponent.CurrentHp : 0;
 
     /// <summary>
     /// ゲームオーバー状態かどうかを取得します
@@ -77,18 +54,14 @@ public class PlayerController : MonoBehaviour
     /// <returns>向いている方向ベクトル（左または右）</returns>
     public Vector3 GetFacingDirection()
     {
-        if (_moveInput.x < 0f)
+        if (_moveInput.x != 0f)
         {
-            return Vector3.left;
-        }
-        else if (_moveInput.x > 0f)
-        {
-            return Vector3.right;
+            return _moveInput.x < 0f ? Vector3.left : Vector3.right;
         }
         
-        if (_spriteRenderer != null && _spriteRenderer.sprite == _leftSprite)
+        if (_spriteDirectionController != null)
         {
-            return Vector3.left;
+            return _spriteDirectionController.GetFacingDirection();
         }
         
         return Vector3.right;
@@ -105,9 +78,16 @@ public class PlayerController : MonoBehaviour
         _instance = this;
 
         _inputActions = new PlayerInputActions();
-        _spriteRenderer = GetComponent<SpriteRenderer>();
-        _currentHp = _maxHp;
+        _healthComponent = GetComponent<HealthComponent>();
+        _knockbackComponent = GetComponent<KnockbackComponent>();
+        _spriteDirectionController = GetComponent<SpriteDirectionController>();
         _isGameOver = false;
+
+        if (_healthComponent != null)
+        {
+            _healthComponent.OnDied += GameOver;
+            _healthComponent.OnDamaged += OnDamaged;
+        }
     }
 
     void OnEnable()
@@ -148,9 +128,8 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        if (_isKnockedBack)
+        if (_knockbackComponent != null && _knockbackComponent.IsKnockedBack)
         {
-            UpdateKnockback();
             return;
         }
 
@@ -158,55 +137,21 @@ public class PlayerController : MonoBehaviour
         {
             Vector3 movement = new Vector3(_moveInput.x, 0f, _moveInput.y);
             transform.position += movement * _moveSpeed * Time.deltaTime;
-            UpdateSprite();
+
+            if (_spriteDirectionController != null)
+            {
+                _spriteDirectionController.UpdateDirection(_moveInput.x);
+            }
         }
     }
 
     /// <summary>
-    /// ノックバック処理を更新します
+    /// ダメージを受けた時のコールバック
     /// </summary>
-    void UpdateKnockback()
+    /// <param name="damage">受けたダメージ量</param>
+    void OnDamaged(int damage)
     {
-        _knockbackTimer -= Time.deltaTime;
-
-        if (_knockbackTimer <= 0f)
-        {
-            _isKnockedBack = false;
-        }
-    }
-
-    /// <summary>
-    /// ノックバックを適用します
-    /// </summary>
-    /// <param name="direction">ノックバック方向（正規化済み）</param>
-    public void ApplyKnockback(Vector3 direction)
-    {
-        _isKnockedBack = true;
-        _knockbackTimer = _knockbackDuration;
-
-        // 瞬間的に指定距離だけ移動
-        transform.position += direction.normalized * _knockbackDistance;
-    }
-
-    /// <summary>
-    /// ダメージを受けます
-    /// HPが0以下になった場合、ゲームオーバー処理を実行します
-    /// </summary>
-    /// <param name="damage">受けるダメージ量</param>
-    public void TakeDamage(int damage)
-    {
-        if (_isGameOver)
-        {
-            return;
-        }
-
-        _currentHp -= damage;
-        Debug.Log($"プレイヤーがダメージを受けました。残りHP: {_currentHp}");
-
-        if (_currentHp <= 0)
-        {
-            GameOver();
-        }
+        Debug.Log($"プレイヤーがダメージを受けました。残りHP: {CurrentHp}");
     }
 
     /// <summary>
@@ -229,25 +174,16 @@ public class PlayerController : MonoBehaviour
         {
             Vector3 knockbackDirection = transform.position - other.transform.position;
             knockbackDirection.y = 0f;
-            ApplyKnockback(knockbackDirection);
-            TakeDamage(1);
-        }
-    }
 
-    /// <summary>
-    /// 移動方向に応じてスプライトを更新します
-    /// </summary>
-    void UpdateSprite()
-    {
-        if (_spriteRenderer == null) return;
+            if (_knockbackComponent != null)
+            {
+                _knockbackComponent.ApplyKnockback(knockbackDirection);
+            }
 
-        if (_moveInput.x < 0f)
-        {
-            _spriteRenderer.sprite = _leftSprite;
-        }
-        else if (_moveInput.x > 0f)
-        {
-            _spriteRenderer.sprite = _rightSprite;
+            if (_healthComponent != null)
+            {
+                _healthComponent.TakeDamage(1);
+            }
         }
     }
 }

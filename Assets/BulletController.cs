@@ -3,60 +3,16 @@ using UnityEngine;
 /// <summary>
 /// 弾の移動と衝突処理を制御するコンポーネント
 /// </summary>
-public class BulletController : MonoBehaviour
+public class BulletController : ProjectileController
 {
-    [Header("弾設定")]
-    [SerializeField]
-    [Tooltip("弾の移動速度")]
-    float _speed = 10f;
-
-    [SerializeField]
-    [Tooltip("弾の生存時間（秒）")]
-    float _lifetime = 5f;
-
-    Vector3 _direction;
-
     /// <summary>
-    /// 弾の移動速度を取得または設定します
+    /// 敵に命中した時の処理
     /// </summary>
-    public float Speed
+    /// <param name="enemy">命中した敵</param>
+    protected override void OnHitEnemy(EnemyController enemy)
     {
-        get => _speed;
-        set => _speed = value;
-    }
-
-    /// <summary>
-    /// 弾の移動方向を設定します
-    /// </summary>
-    /// <param name="direction">正規化された方向ベクトル</param>
-    public void SetDirection(Vector3 direction)
-    {
-        _direction = direction.normalized;
-    }
-
-    void Start()
-    {
-        Destroy(gameObject, _lifetime);
-    }
-
-    void Update()
-    {
-        transform.position += _direction * _speed * Time.deltaTime;
-    }
-
-    void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Enemy"))
-        {
-            EnemyController enemy = other.GetComponent<EnemyController>();
-            if (enemy != null)
-            {
-                Vector3 knockbackDirection = _direction;
-                knockbackDirection.y = 0f;
-                enemy.TakeDamage(1, knockbackDirection);
-            }
-            
-            Destroy(gameObject);
-        }
+        Vector3 knockbackDirection = _direction;
+        knockbackDirection.y = 0f;
+        enemy.TakeDamage(Damage, knockbackDirection);
     }
 }

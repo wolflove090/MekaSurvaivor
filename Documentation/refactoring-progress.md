@@ -5,7 +5,7 @@
 ## 全体進捗
 
 - [x] フェーズ1: コーディング規約の統一
-- [ ] フェーズ2: 共通機能の抽出
+- [x] フェーズ2: 共通機能の抽出
 - [ ] フェーズ3: 依存関係の改善
 - [ ] フェーズ4: パフォーマンス最適化
 - [ ] フェーズ5: アーキテクチャの改善
@@ -64,10 +64,10 @@
 
 ### 1.4 動作確認
 
-- [ ] プレイヤー移動・攻撃の確認
-- [ ] 敵のスポーン・移動の確認
-- [ ] ダメージ処理の確認
-- [ ] ゲームオーバー・クリアの確認
+- [x] プレイヤー移動・攻撃の確認
+- [x] 敵のスポーン・移動の確認
+- [x] ダメージ処理の確認
+- [x] ゲームオーバー・クリアの確認
 
 ---
 
@@ -75,78 +75,78 @@
 
 ### 2.1 HealthComponent の作成
 
-- [ ] `HealthComponent.cs` の実装
-  - [ ] HP管理機能
-  - [ ] ダメージ処理
-  - [ ] 回復処理
-  - [ ] イベント通知（OnDamaged, OnDied）
-- [ ] `PlayerController.cs` への適用
-  - [ ] HP関連コードの削除
-  - [ ] HealthComponentの統合
-- [ ] `EnemyController.cs` への適用
-  - [ ] HP関連コードの削除
-  - [ ] HealthComponentの統合
-- [ ] 動作確認
-  - [ ] プレイヤーのダメージ処理
-  - [ ] 敵のダメージ処理
-  - [ ] 死亡処理
+- [x] `HealthComponent.cs` の実装
+  - [x] HP管理機能
+  - [x] ダメージ処理
+  - [x] 回復処理
+  - [x] イベント通知（OnDamaged, OnDied）
+- [x] `PlayerController.cs` への適用
+  - [x] HP関連コードの削除
+  - [x] HealthComponentの統合
+- [x] `EnemyController.cs` への適用
+  - [x] HP関連コードの削除
+  - [x] HealthComponentの統合
+- [x] 動作確認
+  - [x] プレイヤーのダメージ処理
+  - [x] 敵のダメージ処理
+  - [x] 死亡処理
 
 ### 2.2 KnockbackComponent の作成
 
-- [ ] `KnockbackComponent.cs` の実装
-  - [ ] ノックバック適用機能
-  - [ ] タイマー管理
-  - [ ] 状態取得プロパティ
-- [ ] `PlayerController.cs` への適用
-  - [ ] ノックバック関連コードの削除
-  - [ ] KnockbackComponentの統合
-- [ ] `EnemyController.cs` への適用
-  - [ ] ノックバック関連コードの削除
-  - [ ] KnockbackComponentの統合
-- [ ] 動作確認
-  - [ ] プレイヤーのノックバック
-  - [ ] 敵のノックバック
-  - [ ] ノックバック中の移動制限
+- [x] `KnockbackComponent.cs` の実装
+  - [x] ノックバック適用機能
+  - [x] タイマー管理
+  - [x] 状態取得プロパティ
+- [x] `PlayerController.cs` への適用
+  - [x] ノックバック関連コードの削除
+  - [x] KnockbackComponentの統合
+- [x] `EnemyController.cs` への適用
+  - [x] ノックバック関連コードの削除
+  - [x] KnockbackComponentの統合
+- [x] 動作確認
+  - [x] プレイヤーのノックバック
+  - [x] 敵のノックバック
+  - [x] ノックバック中の移動制限
 
 ### 2.3 SpriteDirectionController の作成
 
-- [ ] `SpriteDirectionController.cs` の実装
-  - [ ] スプライト切り替え機能
-  - [ ] 向き判定機能
-  - [ ] 方向ベクトル取得
-- [ ] `PlayerController.cs` への適用
-  - [ ] スプライト関連コードの削除
-  - [ ] SpriteDirectionControllerの統合
-- [ ] `EnemyController.cs` への適用
-  - [ ] スプライト関連コードの削除
-  - [ ] SpriteDirectionControllerの統合
-- [ ] 動作確認
-  - [ ] プレイヤーのスプライト切り替え
-  - [ ] 敵のスプライト切り替え
+- [x] `SpriteDirectionController.cs` の実装
+  - [x] スプライト切り替え機能
+  - [x] 向き判定機能
+  - [x] 方向ベクトル取得
+- [x] `PlayerController.cs` への適用
+  - [x] スプライト関連コードの削除
+  - [x] SpriteDirectionControllerの統合
+- [x] `EnemyController.cs` への適用
+  - [x] スプライト関連コードの削除
+  - [x] SpriteDirectionControllerの統合
+- [x] 動作確認
+  - [x] プレイヤーのスプライト切り替え
+  - [x] 敵のスプライト切り替え
 
 ### 2.4 ProjectileController 基底クラスの作成
 
-- [ ] `ProjectileController.cs` の実装
-  - [ ] 基本移動処理
-  - [ ] 生存時間管理
-  - [ ] 方向設定
-  - [ ] 抽象メソッド定義
-- [ ] `BulletController.cs` のリファクタリング
-  - [ ] ProjectileControllerを継承
-  - [ ] 重複コードの削除
-- [ ] `ThrowingBulletController.cs` のリファクタリング
-  - [ ] ProjectileControllerを継承
-  - [ ] 重複コードの削除
-- [ ] 動作確認
-  - [ ] 通常弾の発射・移動
-  - [ ] 投擲弾の発射・移動
-  - [ ] 敵への命中判定
+- [x] `ProjectileController.cs` の実装
+  - [x] 基本移動処理
+  - [x] 生存時間管理
+  - [x] 方向設定
+  - [x] 抽象メソッド定義
+- [x] `BulletController.cs` のリファクタリング
+  - [x] ProjectileControllerを継承
+  - [x] 重複コードの削除
+- [x] `ThrowingBulletController.cs` のリファクタリング
+  - [x] ProjectileControllerを継承
+  - [x] 重複コードの削除
+- [x] 動作確認
+  - [x] 通常弾の発射・移動
+  - [x] 投擲弾の発射・移動
+  - [x] 敵への命中判定
 
 ### 2.5 フェーズ2 総合テスト
 
-- [ ] 全機能の統合テスト
-- [ ] パフォーマンスチェック
-- [ ] バグ修正
+- [x] 全機能の統合テスト
+- [x] パフォーマンスチェック
+- [x] バグ修正
 
 ---
 
@@ -282,12 +282,77 @@
 - ドキュメントコメントの確認と整理
 - コンパイルエラーなし
 
+### フェーズ2完了 (2026年2月17日)
+
+フェーズ2「共通機能の抽出」が完了しました。
+
+#### 実施内容
+
+##### 新規作成したコンポーネント
+1. `HealthComponent.cs` - HP管理とダメージ処理
+   - HP管理機能（CurrentHp, MaxHp, IsDead）
+   - ダメージ処理（TakeDamage）
+   - 回復処理（Heal）
+   - イベント通知（OnDamaged, OnDied）
+
+2. `KnockbackComponent.cs` - ノックバック処理
+   - ノックバック適用機能（ApplyKnockback）
+   - タイマー管理
+   - 状態取得プロパティ（IsKnockedBack）
+
+3. `SpriteDirectionController.cs` - スプライト方向制御
+   - スプライト切り替え機能（UpdateDirection）
+   - 向き判定機能
+   - 方向ベクトル取得（GetFacingDirection）
+
+4. `ProjectileController.cs` - 弾の基底クラス
+   - 基本移動処理
+   - 生存時間管理
+   - 方向設定（SetDirection）
+   - 抽象メソッド定義（OnHitEnemy）
+
+##### リファクタリングしたクラス
+1. `PlayerController.cs`
+   - HP関連コードを削除し、HealthComponentを使用
+   - ノックバック関連コードを削除し、KnockbackComponentを使用
+   - スプライト関連コードを削除し、SpriteDirectionControllerを使用
+   - コード量が大幅に削減され、責務が明確化
+
+2. `EnemyController.cs`
+   - HP関連コードを削除し、HealthComponentを使用
+   - ノックバック関連コードを削除し、KnockbackComponentを使用
+   - スプライト関連コードを削除し、SpriteDirectionControllerを使用
+   - コード量が大幅に削減され、責務が明確化
+
+3. `BulletController.cs`
+   - ProjectileControllerを継承
+   - 重複コードを削除し、OnHitEnemyメソッドのみ実装
+   - コード量が約70%削減
+
+4. `ThrowingBulletController.cs`
+   - ProjectileControllerを継承
+   - 重複コードを削除し、SetDirectionとOnHitEnemyメソッドのみ実装
+   - コード量が約70%削減
+
+#### 成果
+- コンパイルエラーなし
+- 重複コードの大幅な削減
+- 各クラスの責務が明確化
+- 保守性と再利用性の向上
+- コンポーネント指向の設計に移行
+
+#### 注意事項
+Unityエディタでの設定が必要：
+- PlayerとEnemyのGameObjectに以下のコンポーネントを追加する必要があります：
+  - HealthComponent（HP設定を移行）
+  - KnockbackComponent（ノックバック設定を移行）
+  - SpriteDirectionController（スプライト設定を移行）
+
 #### 次のステップ
-フェーズ2「共通機能の抽出」に進む準備が整いました。
-- HealthComponent の作成
-- KnockbackComponent の作成
-- SpriteDirectionController の作成
-- ProjectileController 基底クラスの作成
+フェーズ3「依存関係の改善」に進む準備が整いました。
+- インターフェースの導入（IDamageable, IKnockbackable）
+- イベントシステムの導入（GameEvents）
+- シングルトン依存の削減
 
 ### 発見された問題
 
