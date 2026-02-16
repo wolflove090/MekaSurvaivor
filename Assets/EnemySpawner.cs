@@ -7,7 +7,6 @@ using UnityEngine;
 /// </summary>
 public class EnemySpawner : MonoBehaviour
 {
-    // シングルトンインスタンス
     static EnemySpawner _instance;
 
     [Header("スポーン設定")]
@@ -27,10 +26,7 @@ public class EnemySpawner : MonoBehaviour
     [Tooltip("スポーン間隔（秒）")]
     float _spawnInterval = 2f;
 
-    // 次のスポーンまでの残り時間
     float _spawnTimer;
-
-    // 生成されたエネミーのリスト
     List<GameObject> _enemies = new List<GameObject>();
 
     /// <summary>
@@ -52,7 +48,6 @@ public class EnemySpawner : MonoBehaviour
 
     void Awake()
     {
-        // シングルトンの設定
         if (_instance != null && _instance != this)
         {
             Debug.LogError($"EnemySpawnerが複数存在します。既存: {_instance.gameObject.name}, 新規: {gameObject.name}");
@@ -64,7 +59,6 @@ public class EnemySpawner : MonoBehaviour
 
     void OnDestroy()
     {
-        // インスタンスのクリア
         if (_instance == this)
         {
             _instance = null;
@@ -73,19 +67,15 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
-        // 初期タイマー設定
         _spawnTimer = _spawnInterval;
     }
 
     void Update()
     {
-        // PlayerControllerが存在しない場合は処理しない
         if (PlayerController.Instance == null) return;
 
-        // タイマーを減算
         _spawnTimer -= Time.deltaTime;
 
-        // スポーン処理
         if (_spawnTimer <= 0f)
         {
             TrySpawnEnemy();
@@ -98,20 +88,14 @@ public class EnemySpawner : MonoBehaviour
     /// </summary>
     void TrySpawnEnemy()
     {
-        // エネミープレハブが設定されていない場合は警告
         if (_enemyPrefab == null)
         {
             Debug.LogWarning("エネミープレハブが設定されていません");
             return;
         }
 
-        // スポーン位置を計算
         Vector3 spawnPosition = CalculateSpawnPosition();
-
-        // エネミーを生成
         GameObject enemy = Instantiate(_enemyPrefab, spawnPosition, Quaternion.identity);
-
-        // リストに追加
         _enemies.Add(enemy);
     }
 
@@ -123,10 +107,8 @@ public class EnemySpawner : MonoBehaviour
     /// <returns>一番近いエネミーのGameObject、存在しない場合はnull</returns>
     public GameObject FindNearestEnemy(Vector3 position, bool onlyVisible = false)
     {
-        // リストから破棄されたエネミーを削除
         _enemies.RemoveAll(enemy => enemy == null);
 
-        // エネミーが存在しない場合
         if (_enemies.Count == 0)
         {
             return null;
@@ -134,15 +116,11 @@ public class EnemySpawner : MonoBehaviour
 
         GameObject nearestEnemy = null;
         float nearestDistance = float.MaxValue;
-
-        // カメラの取得（可視判定が必要な場合）
         Camera mainCamera = onlyVisible ? Camera.main : null;
 
-        // 全てのエネミーとの距離を計算
-        // TODO 全件検索のため数が多くなると重たくなる
+        // 全てのエネミーとの距離を計算（TODO: 空間分割による最適化が必要）
         foreach (GameObject enemy in _enemies)
         {
-            // 可視判定が有効な場合、カメラに写っているかチェック
             if (onlyVisible && mainCamera != null)
             {
                 if (!IsVisibleFromCamera(enemy, mainCamera))
@@ -153,7 +131,6 @@ public class EnemySpawner : MonoBehaviour
 
             float distance = Vector3.Distance(position, enemy.transform.position);
 
-            // より近いエネミーが見つかった場合
             if (distance < nearestDistance)
             {
                 nearestDistance = distance;
@@ -172,10 +149,7 @@ public class EnemySpawner : MonoBehaviour
     /// <returns>カメラに写っている場合はtrue</returns>
     bool IsVisibleFromCamera(GameObject enemy, Camera camera)
     {
-        // エネミーの位置をビューポート座標に変換
         Vector3 viewportPoint = camera.WorldToViewportPoint(enemy.transform.position);
-
-        // ビューポート座標が0～1の範囲内かつ、カメラの前方にあるかチェック
         return viewportPoint.x >= 0f && viewportPoint.x <= 1f &&
                viewportPoint.y >= 0f && viewportPoint.y <= 1f &&
                viewportPoint.z > 0f;
@@ -196,26 +170,16 @@ public class EnemySpawner : MonoBehaviour
     /// <returns>スポーン位置</returns>
     Vector3 CalculateSpawnPosition()
     {
-        // プレイヤーの位置を取得
         Vector3 playerPosition = PlayerController.Instance.transform.position;
-
-        // ランダムな角度を生成（0～360度）
         float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-
-        // ランダムな距離を生成
         float distance = Random.Range(_spawnDistanceMin, _spawnDistanceMax);
-
-        // 極座標から直交座標に変換
         float x = Mathf.Cos(angle) * distance;
         float z = Mathf.Sin(angle) * distance;
 
-        // スポーン位置を計算（Y座標はプレイヤーと同じ）
-        Vector3 spawnPosition = new Vector3(
+        return new Vector3(
             playerPosition.x + x,
             playerPosition.y,
             playerPosition.z + z
         );
-
-        return spawnPosition;
     }
 }

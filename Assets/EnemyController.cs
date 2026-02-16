@@ -34,13 +34,8 @@ public class EnemyController : MonoBehaviour
     [Tooltip("右向きのスプライト")]
     Sprite _rightSprite;
 
-    // SpriteRenderer コンポーネント
     SpriteRenderer _spriteRenderer;
-
-    // 現在のHP
     int _currentHp;
-
-    // ノックバック関連
     bool _isKnockedBack;
     float _knockbackTimer;
 
@@ -60,10 +55,7 @@ public class EnemyController : MonoBehaviour
 
     void Awake()
     {
-        // SpriteRenderer コンポーネントの取得
         _spriteRenderer = GetComponent<SpriteRenderer>();
-
-        // HPの初期化
         _currentHp = _maxHp;
     }
 
@@ -77,22 +69,18 @@ public class EnemyController : MonoBehaviour
     {
         _currentHp -= damage;
 
-        // ノックバックを適用
         if (knockbackDirection != Vector3.zero)
         {
             ApplyKnockback(knockbackDirection);
         }
 
-        // HPが0以下になった場合
         if (_currentHp <= 0)
         {
-            // EnemySpawnerのリストから削除
             if (EnemySpawner.Instance != null)
             {
                 EnemySpawner.Instance.RemoveEnemy(gameObject);
             }
 
-            // 自身を破棄
             Destroy(gameObject);
         }
     }
@@ -112,10 +100,8 @@ public class EnemyController : MonoBehaviour
 
     void Update()
     {
-        // PlayerControllerのインスタンスが存在する場合のみ移動処理を実行
         if (PlayerController.Instance != null)
         {
-            // ノックバック中は移動処理をスキップ
             if (_isKnockedBack)
             {
                 UpdateKnockback();
@@ -134,10 +120,8 @@ public class EnemyController : MonoBehaviour
     /// </summary>
     void UpdateKnockback()
     {
-        // ノックバックタイマーを減少
         _knockbackTimer -= Time.deltaTime;
 
-        // ノックバック終了判定
         if (_knockbackTimer <= 0f)
         {
             _isKnockedBack = false;
@@ -149,13 +133,8 @@ public class EnemyController : MonoBehaviour
     /// </summary>
     void MoveTowardsPlayer()
     {
-        // プレイヤーへの方向ベクトルを計算
         Vector3 direction = (PlayerController.Instance.transform.position - transform.position).normalized;
-
-        // Y軸の移動を無効化（2D平面上での移動）
         direction.y = 0f;
-
-        // プレイヤーに向かって移動
         transform.position += direction * _moveSpeed * Time.deltaTime;
     }
 
@@ -166,17 +145,14 @@ public class EnemyController : MonoBehaviour
     {
         if (_spriteRenderer == null || PlayerController.Instance == null) return;
 
-        // プレイヤーとの相対位置から向きを判定
         float directionX = PlayerController.Instance.transform.position.x - transform.position.x;
 
         if (directionX < 0f)
         {
-            // 左向き
             _spriteRenderer.sprite = _leftSprite;
         }
         else if (directionX > 0f)
         {
-            // 右向き
             _spriteRenderer.sprite = _rightSprite;
         }
     }

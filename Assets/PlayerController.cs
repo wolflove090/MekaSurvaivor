@@ -6,7 +6,6 @@ using UnityEngine.InputSystem;
 /// </summary>
 public class PlayerController : MonoBehaviour
 {
-    // シングルトンインスタンス
     static PlayerController _instance;
 
     [Header("移動設定")]
@@ -37,23 +36,12 @@ public class PlayerController : MonoBehaviour
     [Tooltip("右向きのスプライト")]
     Sprite _rightSprite;
 
-    // 入力アクション
     PlayerInputActions _inputActions;
-    
-    // 移動入力値
     Vector2 _moveInput;
-
-    // SpriteRenderer コンポーネント
     SpriteRenderer _spriteRenderer;
-
-    // ノックバック関連
     bool _isKnockedBack;
     float _knockbackTimer;
-
-    // 現在のHP
     int _currentHp;
-
-    // ゲームオーバーフラグ
     bool _isGameOver;
 
     /// <summary>
@@ -98,7 +86,6 @@ public class PlayerController : MonoBehaviour
             return Vector3.right;
         }
         
-        // 移動入力がない場合はスプライトから判定
         if (_spriteRenderer != null && _spriteRenderer.sprite == _leftSprite)
         {
             return Vector3.left;
@@ -109,7 +96,6 @@ public class PlayerController : MonoBehaviour
 
     void Awake()
     {
-        // シングルトンの設定
         if (_instance != null && _instance != this)
         {
             Debug.LogError($"PlayerControllerが複数存在します。既存: {_instance.gameObject.name}, 新規: {gameObject.name}");
@@ -118,20 +104,14 @@ public class PlayerController : MonoBehaviour
         }
         _instance = this;
 
-        // Input Actions の初期化
         _inputActions = new PlayerInputActions();
-
-        // SpriteRenderer コンポーネントの取得
         _spriteRenderer = GetComponent<SpriteRenderer>();
-
-        // HPの初期化
         _currentHp = _maxHp;
         _isGameOver = false;
     }
 
     void OnEnable()
     {
-        // Move アクションの有効化とコールバック登録
         _inputActions.Player.Move.Enable();
         _inputActions.Player.Move.performed += OnMove;
         _inputActions.Player.Move.canceled += OnMove;
@@ -139,7 +119,6 @@ public class PlayerController : MonoBehaviour
 
     void OnDisable()
     {
-        // Move アクションの無効化とコールバック解除
         _inputActions.Player.Move.Disable();
         _inputActions.Player.Move.performed -= OnMove;
         _inputActions.Player.Move.canceled -= OnMove;
@@ -147,7 +126,6 @@ public class PlayerController : MonoBehaviour
 
     void OnDestroy()
     {
-        // インスタンスのクリア
         if (_instance == this)
         {
             _instance = null;
@@ -165,26 +143,21 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        // ゲームオーバー時は処理を停止
         if (_isGameOver)
         {
             return;
         }
 
-        // ノックバック中の処理
         if (_isKnockedBack)
         {
             UpdateKnockback();
             return;
         }
 
-        // 移動処理
         if (_moveInput != Vector2.zero)
         {
             Vector3 movement = new Vector3(_moveInput.x, 0f, _moveInput.y);
             transform.position += movement * _moveSpeed * Time.deltaTime;
-
-            // スプライトの切り替え
             UpdateSprite();
         }
     }
@@ -194,10 +167,8 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     void UpdateKnockback()
     {
-        // ノックバックタイマーを減少
         _knockbackTimer -= Time.deltaTime;
 
-        // ノックバック終了判定
         if (_knockbackTimer <= 0f)
         {
             _isKnockedBack = false;
@@ -224,7 +195,6 @@ public class PlayerController : MonoBehaviour
     /// <param name="damage">受けるダメージ量</param>
     public void TakeDamage(int damage)
     {
-        // ゲームオーバー時はダメージを受けない
         if (_isGameOver)
         {
             return;
@@ -233,7 +203,6 @@ public class PlayerController : MonoBehaviour
         _currentHp -= damage;
         Debug.Log($"プレイヤーがダメージを受けました。残りHP: {_currentHp}");
 
-        // HPが0以下になった場合
         if (_currentHp <= 0)
         {
             GameOver();
@@ -247,8 +216,6 @@ public class PlayerController : MonoBehaviour
     {
         _isGameOver = true;
         Debug.Log("ゲームオーバー！");
-
-        // 画面を一時停止
         Time.timeScale = 0f;
     }
 
@@ -258,17 +225,11 @@ public class PlayerController : MonoBehaviour
     /// <param name="other">接触したCollider</param>
     void OnTriggerEnter(Collider other)
     {
-        // エネミーとの接触判定
         if (other.CompareTag("Enemy"))
         {
-            // 接触方向の計算（エネミーからプレイヤーへの方向）
             Vector3 knockbackDirection = transform.position - other.transform.position;
-            knockbackDirection.y = 0f; // Y軸方向を無効化
-
-            // ノックバックを適用
+            knockbackDirection.y = 0f;
             ApplyKnockback(knockbackDirection);
-
-            // ダメージを受ける
             TakeDamage(1);
         }
     }
@@ -280,15 +241,12 @@ public class PlayerController : MonoBehaviour
     {
         if (_spriteRenderer == null) return;
 
-        // 横方向の入力がある場合のみスプライトを切り替え
         if (_moveInput.x < 0f)
         {
-            // 左向き
             _spriteRenderer.sprite = _leftSprite;
         }
         else if (_moveInput.x > 0f)
         {
-            // 右向き
             _spriteRenderer.sprite = _rightSprite;
         }
     }

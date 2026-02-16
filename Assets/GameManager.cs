@@ -6,7 +6,6 @@ using UnityEngine;
 /// </summary>
 public class GameManager : MonoBehaviour
 {
-    // シングルトンインスタンス
     static GameManager _instance;
 
     [Header("ゲーム設定")]
@@ -14,10 +13,7 @@ public class GameManager : MonoBehaviour
     [Tooltip("制限時間（秒）")]
     float _timeLimit = 30f;
 
-    // 経過時間
     float _elapsedTime;
-
-    // ゲームクリアフラグ
     bool _isGameClear;
 
     /// <summary>
@@ -40,7 +36,6 @@ public class GameManager : MonoBehaviour
 
     void Awake()
     {
-        // シングルトンの設定
         if (_instance != null && _instance != this)
         {
             Debug.LogError($"GameManagerが複数存在します。既存: {_instance.gameObject.name}, 新規: {gameObject.name}");
@@ -49,14 +44,12 @@ public class GameManager : MonoBehaviour
         }
         _instance = this;
 
-        // 初期化
         _elapsedTime = 0f;
         _isGameClear = false;
     }
 
     void OnDestroy()
     {
-        // インスタンスのクリア
         if (_instance == this)
         {
             _instance = null;
@@ -65,16 +58,13 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        // ゲームクリア済みまたはゲームオーバーの場合は処理しない
         if (_isGameClear || (PlayerController.Instance != null && PlayerController.Instance.IsGameOver))
         {
             return;
         }
 
-        // 経過時間を加算
         _elapsedTime += Time.deltaTime;
 
-        // 制限時間に到達した場合
         if (_elapsedTime >= _timeLimit)
         {
             GameClear();
@@ -88,8 +78,6 @@ public class GameManager : MonoBehaviour
     {
         _isGameClear = true;
         Debug.Log("ゲームクリア");
-
-        // 画面を一時停止
         Time.timeScale = 0f;
     }
 }

@@ -14,7 +14,6 @@ public class BulletController : MonoBehaviour
     [Tooltip("弾の生存時間（秒）")]
     float _lifetime = 5f;
 
-    // 移動方向
     Vector3 _direction;
 
     /// <summary>
@@ -37,33 +36,26 @@ public class BulletController : MonoBehaviour
 
     void Start()
     {
-        // 生存時間後に自動的に破棄
         Destroy(gameObject, _lifetime);
     }
 
     void Update()
     {
-        // 設定された方向に移動
         transform.position += _direction * _speed * Time.deltaTime;
     }
 
     void OnTriggerEnter(Collider other)
     {
-        // エネミーに衝突した場合
         if (other.CompareTag("Enemy"))
         {
-            // EnemyControllerを取得してダメージを与える
             EnemyController enemy = other.GetComponent<EnemyController>();
             if (enemy != null)
             {
-                // ノックバック方向を計算（弾の進行方向）
                 Vector3 knockbackDirection = _direction;
-                knockbackDirection.y = 0f; // Y軸方向を無効化
-                
+                knockbackDirection.y = 0f;
                 enemy.TakeDamage(1, knockbackDirection);
             }
             
-            // 弾自身を破棄
             Destroy(gameObject);
         }
     }

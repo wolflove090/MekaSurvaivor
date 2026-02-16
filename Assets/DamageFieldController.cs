@@ -29,10 +29,7 @@ public class DamageFieldController : MonoBehaviour
     [Tooltip("プレイヤーからのオフセット（Z軸で後ろに配置）")]
     Vector3 _positionOffset = new Vector3(0f, 0f, 0.5f);
 
-    // フィールド内のエネミーとダメージタイマーを管理
     Dictionary<GameObject, float> _enemiesInField = new Dictionary<GameObject, float>();
-
-    // プレイヤーへの参照
     Transform _playerTransform;
 
     /// <summary>
@@ -64,41 +61,34 @@ public class DamageFieldController : MonoBehaviour
 
     void Start()
     {
-        // プレイヤーへの参照を取得
         if (_followPlayer && PlayerController.Instance != null)
         {
             _playerTransform = PlayerController.Instance.transform;
         }
 
-        // 持続時間後に自動的に破棄
         Destroy(gameObject, _duration);
     }
 
     void Update()
     {
-        // プレイヤーに追従
         if (_followPlayer && _playerTransform != null)
         {
             transform.position = _playerTransform.position + _positionOffset;
         }
 
-        // フィールド内の各エネミーのダメージタイマーを更新
         List<GameObject> enemiesToRemove = new List<GameObject>();
         List<GameObject> enemiesToUpdate = new List<GameObject>(_enemiesInField.Keys);
 
         foreach (GameObject enemy in enemiesToUpdate)
         {
-            // エネミーが破棄されている場合はリストから削除
             if (enemy == null)
             {
                 enemiesToRemove.Add(enemy);
                 continue;
             }
 
-            // タイマーを減算
             float timer = _enemiesInField[enemy] - Time.deltaTime;
 
-            // ダメージを与えるタイミング
             if (timer <= 0f)
             {
                 ApplyDamageToEnemy(enemy);
@@ -108,7 +98,6 @@ public class DamageFieldController : MonoBehaviour
             _enemiesInField[enemy] = timer;
         }
 
-        // 破棄されたエネミーをリストから削除
         foreach (var enemy in enemiesToRemove)
         {
             _enemiesInField.Remove(enemy);
@@ -124,10 +113,8 @@ public class DamageFieldController : MonoBehaviour
         EnemyController enemyController = enemy.GetComponent<EnemyController>();
         if (enemyController != null)
         {
-            // ノックバック方向を計算（フィールドの中心からエネミーへの方向）
             Vector3 knockbackDirection = enemy.transform.position - transform.position;
-            knockbackDirection.y = 0f; // Y軸方向を無効化
-            
+            knockbackDirection.y = 0f;
             enemyController.TakeDamage(_damage, knockbackDirection);
         }
     }
@@ -138,16 +125,11 @@ public class DamageFieldController : MonoBehaviour
     /// <param name="other">入ってきたCollider</param>
     void OnTriggerEnter(Collider other)
     {
-        // エネミーがフィールドに入った場合
         if (other.CompareTag("Enemy"))
         {
-            // まだリストに存在しない場合のみ追加
             if (!_enemiesInField.ContainsKey(other.gameObject))
             {
-                // 即座にダメージを与える
                 ApplyDamageToEnemy(other.gameObject);
-                
-                // タイマーを設定してリストに追加
                 _enemiesInField[other.gameObject] = _damageInterval;
             }
         }
@@ -159,10 +141,8 @@ public class DamageFieldController : MonoBehaviour
     /// <param name="other">出て行ったCollider</param>
     void OnTriggerExit(Collider other)
     {
-        // エネミーがフィールドから出た場合
         if (other.CompareTag("Enemy"))
         {
-            // リストから削除
             if (_enemiesInField.ContainsKey(other.gameObject))
             {
                 _enemiesInField.Remove(other.gameObject);

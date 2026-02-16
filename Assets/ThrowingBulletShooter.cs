@@ -37,7 +37,7 @@ public class ThrowingBulletShooter : MonoBehaviour
     }
 
     /// <summary>
-    /// 投擲弾を発射します
+    /// プレイヤーの向いている方向に投擲弾を発射します
     /// </summary>
     void Shoot()
     {
