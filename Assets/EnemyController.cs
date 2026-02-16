@@ -16,6 +16,15 @@ public class EnemyController : MonoBehaviour
     [Tooltip("初期HP")]
     int _maxHp = 3;
 
+    [Header("ノックバック設定")]
+    [SerializeField]
+    [Tooltip("ノックバックの距離")]
+    float _knockbackDistance = 0.5f;
+
+    [SerializeField]
+    [Tooltip("ノックバックの持続時間")]
+    float _knockbackDuration = 0.1f;
+
     [Header("スプライト設定")]
     [SerializeField]
     [Tooltip("左向きのスプライト")]
@@ -30,6 +39,10 @@ public class EnemyController : MonoBehaviour
 
     // 現在のHP
     int _currentHp;
+
+    // ノックバック関連
+    bool _isKnockedBack;
+    float _knockbackTimer;
 
     /// <summary>
     /// 移動速度を取得または設定します
@@ -59,9 +72,16 @@ public class EnemyController : MonoBehaviour
     /// HPが0以下になった場合、自身を破棄します
     /// </summary>
     /// <param name="damage">受けるダメージ量</param>
-    public void TakeDamage(int damage)
+    /// <param name="knockbackDirection">ノックバック方向（正規化済み）</param>
+    public void TakeDamage(int damage, Vector3 knockbackDirection = default)
     {
         _currentHp -= damage;
+
+        // ノックバックを適用
+        if (knockbackDirection != Vector3.zero)
+        {
+            ApplyKnockback(knockbackDirection);
+        }
 
         // HPが0以下になった場合
         if (_currentHp <= 0)
@@ -77,13 +97,50 @@ public class EnemyController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// ノックバックを適用します
+    /// </summary>
+    /// <param name="direction">ノックバック方向（正規化済み）</param>
+    public void ApplyKnockback(Vector3 direction)
+    {
+        _isKnockedBack = true;
+        _knockbackTimer = _knockbackDuration;
+
+        // 瞬間的に指定距離だけ移動
+        transform.position += direction.normalized * _knockbackDistance;
+    }
+
     void Update()
     {
         // PlayerControllerのインスタンスが存在する場合のみ移動処理を実行
         if (PlayerController.Instance != null)
         {
-            MoveTowardsPlayer();
+            // ノックバック中は移動処理をスキップ
+            if (_isKnockedBack)
+            {
+                UpdateKnockback();
+            }
+            else
+            {
+                MoveTowardsPlayer();
+            }
+            
             UpdateSprite();
+        }
+    }
+
+    /// <summary>
+    /// ノックバック処理を更新します
+    /// </summary>
+    void UpdateKnockback()
+    {
+        // ノックバックタイマーを減少
+        _knockbackTimer -= Time.deltaTime;
+
+        // ノックバック終了判定
+        if (_knockbackTimer <= 0f)
+        {
+            _isKnockedBack = false;
         }
     }
 

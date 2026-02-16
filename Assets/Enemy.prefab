@@ -107,6 +107,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
   _moveSpeed: 1
+  _maxHp: 3
+  _knockbackDistance: 1
+  _knockbackDuration: 0.3
   _leftSprite: {fileID: 21300000, guid: d92181cb835d840878892d6f90c94d5d, type: 3}
   _rightSprite: {fileID: 21300000, guid: 223de6ce286d94431b5a28cdb211a53c, type: 3}
 --- !u!136 &1100117721999747912

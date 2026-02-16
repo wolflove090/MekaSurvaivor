@@ -39,7 +39,16 @@ public class ThrowingBulletController : MonoBehaviour
     {
         if (other.CompareTag("Enemy"))
         {
-            other.GetComponent<EnemyController>()?.TakeDamage(1);
+            EnemyController enemy = other.GetComponent<EnemyController>();
+            if (enemy != null)
+            {
+                // ノックバック方向を計算（弾の進行方向）
+                Vector3 knockbackDirection = _direction;
+                knockbackDirection.y = 0f; // Y軸方向を無効化
+                
+                enemy.TakeDamage(1, knockbackDirection);
+            }
+            
             Destroy(gameObject);
         }
     }
