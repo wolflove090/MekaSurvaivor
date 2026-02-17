@@ -132,9 +132,9 @@ GameObject:
   - component: {fileID: 153723281}
   - component: {fileID: 153723280}
   - component: {fileID: 153723276}
-  - component: {fileID: 153723279}
-  - component: {fileID: 153723282}
-  - component: {fileID: 153723283}
+  - component: {fileID: 153723289}
+  - component: {fileID: 153723288}
+  - component: {fileID: 153723290}
   - component: {fileID: 153723286}
   - component: {fileID: 153723285}
   - component: {fileID: 153723284}
@@ -157,7 +157,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2c3d4e5f6a7890123456789012345bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  _moveSpeed: 5
 --- !u!212 &153723277
 SpriteRenderer:
   serializedVersion: 2
@@ -232,21 +231,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &153723279
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 153723275}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 274504390d85d4be78420835fb2af912, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BulletShooter
-  _bulletPrefab: {fileID: 4081888370426802533, guid: 7ea5a00f6225f490b81c817497f90dcc, type: 3}
-  _shootInterval: 1
-  _shootOffset: {x: 0, y: 0, z: 0}
 --- !u!136 &153723280
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -297,36 +281,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &153723282
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 153723275}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a0380ee1a14414926a836574d9292292, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ThrowingBulletShooter
-  _throwingBulletPrefab: {fileID: 4081888370426802533, guid: b828ad8ff900547aa8907fa261f49f25, type: 3}
-  _shootInterval: 1
-  _shootOffset: {x: 0, y: 0, z: 0}
---- !u!114 &153723283
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 153723275}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6366469d8e2c6454ba9cb6ecb29e23e9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DamageFieldSpawner
-  _damageFieldPrefab: {fileID: 4081888370426802533, guid: 0de497e01b829453d8ed97563749aeab, type: 3}
-  _spawnInterval: 3
-  _spawnOffset: {x: 0, y: 0, z: 0}
 --- !u!114 &153723284
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -368,6 +322,54 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
   _maxHp: 10
+--- !u!114 &153723288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 153723275}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbb079f2bd7942198ed2454168bf922f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ThrowingWeapon
+  _throwingBulletPrefab: {fileID: 4081888370426802533, guid: b828ad8ff900547aa8907fa261f49f25, type: 3}
+  _shootInterval: 1
+  _shootOffset: {x: 0, y: 0, z: 0}
+  _initialPoolSize: 12
+--- !u!114 &153723289
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 153723275}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4db48fc9b0e14b6ba609f0a20d3c27e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BulletWeapon
+  _bulletPrefab: {fileID: 4081888370426802533, guid: 7ea5a00f6225f490b81c817497f90dcc, type: 3}
+  _shootInterval: 1
+  _shootOffset: {x: 0, y: 0, z: 0}
+  _initialPoolSize: 20
+--- !u!114 &153723290
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 153723275}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8e07aef8d4a4bfb8079e3f79bf851cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageFieldWeapon
+  _damageFieldPrefab: {fileID: 4081888370426802533, guid: 0de497e01b829453d8ed97563749aeab, type: 3}
+  _spawnInterval: 3
+  _spawnOffset: {x: 0, y: 0, z: 0}
+  _initialPoolSize: 8
 --- !u!1 &161327160
 GameObject:
   m_ObjectHideFlags: 0
@@ -606,6 +608,9 @@ MonoBehaviour:
   _spawnDistanceMin: 10
   _spawnDistanceMax: 15
   _spawnInterval: 2
+  _gridCellSize: 5
+  _maxGridSearchSteps: 8
+  _initialPoolSize: 30
 --- !u!4 &730075974
 Transform:
   m_ObjectHideFlags: 0

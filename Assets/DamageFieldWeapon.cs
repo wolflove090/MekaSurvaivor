@@ -1,9 +1,9 @@
 using UnityEngine;
 
 /// <summary>
-/// プレイヤーの周囲にダメージフィールドを生成するコンポーネント
+/// プレイヤーの周囲にダメージフィールドを生成する武器コンポーネント
 /// </summary>
-public class DamageFieldSpawner : MonoBehaviour
+public class DamageFieldWeapon : WeaponBase
 {
     [Header("生成設定")]
     [SerializeField]
@@ -22,7 +22,6 @@ public class DamageFieldSpawner : MonoBehaviour
     [Tooltip("ダメージフィールドプールの初期サイズ")]
     int _initialPoolSize = 8;
 
-    float _spawnTimer;
     ObjectPool<DamageFieldController> _damageFieldPool;
 
     /// <summary>
@@ -34,27 +33,18 @@ public class DamageFieldSpawner : MonoBehaviour
         set => _spawnInterval = value;
     }
 
-    void Start()
+    protected override float CooldownDuration => _spawnInterval;
+
+    protected override void Start()
     {
-        _spawnTimer = _spawnInterval;
+        base.Start();
         InitializePool();
-    }
-
-    void Update()
-    {
-        _spawnTimer -= Time.deltaTime;
-
-        if (_spawnTimer <= 0f)
-        {
-            SpawnDamageField();
-            _spawnTimer = _spawnInterval;
-        }
     }
 
     /// <summary>
     /// ダメージフィールドを生成します
     /// </summary>
-    void SpawnDamageField()
+    protected override void Fire()
     {
         if (_damageFieldPrefab == null)
         {

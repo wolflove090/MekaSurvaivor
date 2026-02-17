@@ -1,9 +1,9 @@
 using UnityEngine;
 
 /// <summary>
-/// 一番近いエネミーの方向に弾を発射するコンポーネント
+/// 一番近いエネミーの方向に弾を発射する武器コンポーネント
 /// </summary>
-public class BulletShooter : MonoBehaviour
+public class BulletWeapon : WeaponBase
 {
     [Header("発射設定")]
     [SerializeField]
@@ -22,7 +22,6 @@ public class BulletShooter : MonoBehaviour
     [Tooltip("弾プールの初期サイズ")]
     int _initialPoolSize = 20;
 
-    float _shootTimer;
     ObjectPool<BulletController> _bulletPool;
 
     /// <summary>
@@ -34,27 +33,18 @@ public class BulletShooter : MonoBehaviour
         set => _shootInterval = value;
     }
 
-    void Start()
+    protected override float CooldownDuration => _shootInterval;
+
+    protected override void Start()
     {
-        _shootTimer = _shootInterval;
+        base.Start();
         InitializePool();
-    }
-
-    void Update()
-    {
-        _shootTimer -= Time.deltaTime;
-
-        if (_shootTimer <= 0f)
-        {
-            TryShoot();
-            _shootTimer = _shootInterval;
-        }
     }
 
     /// <summary>
     /// 弾の発射を試みます
     /// </summary>
-    void TryShoot()
+    protected override void Fire()
     {
         if (_bulletPrefab == null)
         {

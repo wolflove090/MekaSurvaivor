@@ -236,12 +236,12 @@
 
 ### 5.2 武器システムの抽象化
 
-- [ ] `WeaponBase.cs` の作成
-- [ ] `BulletWeapon.cs` の作成
-- [ ] `ThrowingWeapon.cs` の作成
-- [ ] `DamageFieldWeapon.cs` の作成
-- [ ] 既存武器クラスの移行
-- [ ] 動作確認
+- [x] `WeaponBase.cs` の作成
+- [x] `BulletWeapon.cs` の作成
+- [x] `ThrowingWeapon.cs` の作成
+- [x] `DamageFieldWeapon.cs` の作成
+- [x] 既存武器クラスの移行
+- [x] 動作確認
 
 ### 5.3 敵AIの抽象化
 
@@ -475,6 +475,23 @@ Unityエディタでの設定が必要：
 フェーズ4「パフォーマンス最適化」またはフェーズ5「アーキテクチャの改善」に進むことができます。
 - フェーズ4: 空間分割による敵検索の最適化、オブジェクトプーリングの導入
 - フェーズ5: PlayerControllerの分割、武器システムの抽象化、敵AIの抽象化
+
+### フェーズ5-2着手 (2026年2月17日)
+
+フェーズ5-2「武器システムの抽象化」に着手し、基底クラスと具体武器クラスの導入、および既存クラスの移行を実施しました。
+
+#### 実施内容
+- `WeaponBase.cs` を作成し、クールダウン制御と発動フローを共通化
+- `BulletWeapon.cs` / `ThrowingWeapon.cs` / `DamageFieldWeapon.cs` を作成
+- 既存クラスを後方互換ラッパーに移行
+  - `BulletShooter : BulletWeapon`
+  - `ThrowingBulletShooter : ThrowingWeapon`
+  - `DamageFieldSpawner : DamageFieldWeapon`
+- 新規スクリプトの `.meta` ファイルを追加
+
+#### 補足
+- 既存シーン・プレハブの参照互換性維持のため、旧クラス名は維持
+- 動作確認（Unityエディタ再生による確認）は未実施
 
 ### 発見された問題
 

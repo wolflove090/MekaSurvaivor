@@ -1,9 +1,9 @@
 using UnityEngine;
 
 /// <summary>
-/// プレイヤーの向いている方向に投擲弾を発射するコンポーネント
+/// プレイヤーの向いている方向に投擲弾を発射する武器コンポーネント
 /// </summary>
-public class ThrowingBulletShooter : MonoBehaviour
+public class ThrowingWeapon : WeaponBase
 {
     [SerializeField]
     [Tooltip("投擲弾のプレハブ")]
@@ -21,33 +21,27 @@ public class ThrowingBulletShooter : MonoBehaviour
     [Tooltip("投擲弾プールの初期サイズ")]
     int _initialPoolSize = 12;
 
-    float _shootTimer;
     PlayerController _playerController;
     ObjectPool<ThrowingBulletController> _throwingBulletPool;
 
-    void Start()
+    protected override float CooldownDuration => _shootInterval;
+
+    protected override void Start()
     {
-        _shootTimer = _shootInterval;
+        base.Start();
         _playerController = GetComponent<PlayerController>();
         InitializePool();
-    }
-
-    void Update()
-    {
-        _shootTimer -= Time.deltaTime;
-        if (_shootTimer <= 0f)
-        {
-            Shoot();
-            _shootTimer = _shootInterval;
-        }
     }
 
     /// <summary>
     /// プレイヤーの向いている方向に投擲弾を発射します
     /// </summary>
-    void Shoot()
+    protected override void Fire()
     {
-        if (_throwingBulletPrefab == null || _playerController == null) return;
+        if (_throwingBulletPrefab == null || _playerController == null)
+        {
+            return;
+        }
 
         Vector3 spawnPosition = transform.position + _shootOffset;
         ThrowingBulletController bulletController = null;
