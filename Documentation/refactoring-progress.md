@@ -214,14 +214,14 @@
 - [ ] ダメージフィールドのプーリング
   - [x] DamageFieldController対応
   - [x] DamageFieldSpawner対応
-- [ ] パフォーマンス測定
-- [ ] 動作確認
+- [x] パフォーマンス測定
+- [x] 動作確認
 
 ### 4.3 フェーズ4 総合テスト
 
-- [ ] パフォーマンス測定
-- [ ] メモリ使用量チェック
-- [ ] バグ修正
+- [x] パフォーマンス測定
+- [x] メモリ使用量チェック
+- [x] バグ修正
 
 ---
 
@@ -229,10 +229,10 @@
 
 ### 5.1 PlayerController の分割
 
-- [ ] `PlayerMovement.cs` の作成
-- [ ] `PlayerInput.cs` の作成
-- [ ] `PlayerController.cs` のリファクタリング
-- [ ] 動作確認
+- [x] `PlayerMovement.cs` の作成
+- [x] `PlayerInput.cs` の作成
+- [x] `PlayerController.cs` のリファクタリング
+- [x] 動作確認
 
 ### 5.2 武器システムの抽象化
 

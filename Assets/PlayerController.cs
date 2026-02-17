@@ -1,25 +1,16 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 /// <summary>
-/// プレイヤーの移動を制御するコンポーネント
+/// プレイヤー全体の状態を統合管理するコンポーネント
 /// </summary>
 public class PlayerController : MonoBehaviour
 {
     static PlayerController _instance;
 
-    [Header("移動設定")]
-    [SerializeField]
-    [Tooltip("移動速度")]
-    float _moveSpeed = 5f;
-
-    PlayerInputActions _inputActions;
-    Vector2 _moveInput;
     bool _isGameOver;
 
     HealthComponent _healthComponent;
-    KnockbackComponent _knockbackComponent;
-    SpriteDirectionController _spriteDirectionController;
+    PlayerMovement _playerMovement;
 
     /// <summary>
     /// PlayerControllerのシングルトンインスタンスを取得します
@@ -34,8 +25,14 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     public float MoveSpeed
     {
-        get => _moveSpeed;
-        set => _moveSpeed = value;
+        get => _playerMovement != null ? _playerMovement.MoveSpeed : 0f;
+        set
+        {
+            if (_playerMovement != null)
+            {
+                _playerMovement.MoveSpeed = value;
+            }
+        }
     }
 
     /// <summary>
@@ -54,16 +51,11 @@ public class PlayerController : MonoBehaviour
     /// <returns>向いている方向ベクトル（左または右）</returns>
     public Vector3 GetFacingDirection()
     {
-        if (_moveInput.x != 0f)
+        if (_playerMovement != null)
         {
-            return _moveInput.x < 0f ? Vector3.left : Vector3.right;
+            return _playerMovement.GetFacingDirection();
         }
-        
-        if (_spriteDirectionController != null)
-        {
-            return _spriteDirectionController.GetFacingDirection();
-        }
-        
+
         return Vector3.right;
     }
 
@@ -77,10 +69,18 @@ public class PlayerController : MonoBehaviour
         }
         _instance = this;
 
-        _inputActions = new PlayerInputActions();
+        if (GetComponent<PlayerInput>() == null)
+        {
+            gameObject.AddComponent<PlayerInput>();
+        }
+
         _healthComponent = GetComponent<HealthComponent>();
-        _knockbackComponent = GetComponent<KnockbackComponent>();
-        _spriteDirectionController = GetComponent<SpriteDirectionController>();
+        _playerMovement = GetComponent<PlayerMovement>();
+        if (_playerMovement == null)
+        {
+            _playerMovement = gameObject.AddComponent<PlayerMovement>();
+        }
+
         _isGameOver = false;
 
         if (_healthComponent != null)
@@ -88,63 +88,10 @@ public class PlayerController : MonoBehaviour
             _healthComponent.OnDied += GameOver;
             _healthComponent.OnDamaged += OnDamaged;
         }
-    }
-
-    void OnEnable()
-    {
-        _inputActions.Player.Move.Enable();
-        _inputActions.Player.Move.performed += OnMove;
-        _inputActions.Player.Move.canceled += OnMove;
-    }
-
-    void OnDisable()
-    {
-        _inputActions.Player.Move.Disable();
-        _inputActions.Player.Move.performed -= OnMove;
-        _inputActions.Player.Move.canceled -= OnMove;
-    }
-
-    void OnDestroy()
-    {
-        if (_instance == this)
+        
+        if (_playerMovement != null)
         {
-            _instance = null;
-        }
-    }
-
-    /// <summary>
-    /// 移動入力のコールバック
-    /// </summary>
-    /// <param name="context">入力コンテキスト</param>
-    void OnMove(InputAction.CallbackContext context)
-    {
-        _moveInput = context.ReadValue<Vector2>();
-    }
-
-    void Update()
-    {
-        if (_isGameOver)
-        {
-            return;
-        }
-
-        if (_knockbackComponent != null && _knockbackComponent.IsKnockedBack)
-        {
-            return;
-        }
-
-        if (_moveInput != Vector2.zero)
-        {
-            Vector3 movement = new Vector3(_moveInput.x, 0f, _moveInput.y);
-            transform.position += movement * _moveSpeed * Time.deltaTime;
-
-            if (_spriteDirectionController != null)
-            {
-                _spriteDirectionController.UpdateDirection(_moveInput.x);
-            }
-
-            // プレイヤー移動イベントを発火
-            GameEvents.RaisePlayerMoved(transform.position);
+            _playerMovement.OnMoved += OnMoved;
         }
     }
 
@@ -164,10 +111,48 @@ public class PlayerController : MonoBehaviour
     void GameOver()
     {
         _isGameOver = true;
+        if (_playerMovement != null)
+        {
+            _playerMovement.SetCanMove(false);
+        }
+
         Debug.Log("ゲームオーバー！");
         GameEvents.RaisePlayerDied();
         GameEvents.RaiseGameOver();
         Time.timeScale = 0f;
+    }
+
+    void OnDestroy()
+    {
+        if (_healthComponent != null)
+        {
+            _healthComponent.OnDied -= GameOver;
+            _healthComponent.OnDamaged -= OnDamaged;
+        }
+
+        if (_playerMovement != null)
+        {
+            _playerMovement.OnMoved -= OnMoved;
+        }
+
+        if (_instance == this)
+        {
+            _instance = null;
+        }
+    }
+
+    /// <summary>
+    /// 移動時のコールバック
+    /// </summary>
+    /// <param name="position">プレイヤーの現在位置</param>
+    void OnMoved(Vector3 position)
+    {
+        if (_isGameOver)
+        {
+            return;
+        }
+
+        GameEvents.RaisePlayerMoved(position);
     }
 
     /// <summary>
