@@ -31,6 +31,7 @@ public class DamageFieldController : MonoBehaviour
 
     Dictionary<GameObject, float> _enemiesInField = new Dictionary<GameObject, float>();
     Transform _targetTransform;
+    float _lifetimeTimer;
 
     /// <summary>
     /// 追従するターゲットを設定します
@@ -68,18 +69,37 @@ public class DamageFieldController : MonoBehaviour
         set => _duration = value;
     }
 
-    void Start()
+    /// <summary>
+    /// 有効化時に寿命タイマーと内部状態を初期化します
+    /// </summary>
+    void OnEnable()
     {
+        _lifetimeTimer = _duration;
+        _enemiesInField.Clear();
+
         if (_followPlayer && PlayerController.Instance != null)
         {
             _targetTransform = PlayerController.Instance.transform;
         }
+    }
 
-        Destroy(gameObject, _duration);
+    /// <summary>
+    /// 無効化時に内部状態をクリアします
+    /// </summary>
+    void OnDisable()
+    {
+        _enemiesInField.Clear();
     }
 
     void Update()
     {
+        _lifetimeTimer -= Time.deltaTime;
+        if (_lifetimeTimer <= 0f)
+        {
+            ReturnToPoolOrDestroy();
+            return;
+        }
+
         if (_followPlayer && _targetTransform != null)
         {
             transform.position = _targetTransform.position + _positionOffset;
@@ -157,5 +177,20 @@ public class DamageFieldController : MonoBehaviour
                 _enemiesInField.Remove(other.gameObject);
             }
         }
+    }
+
+    /// <summary>
+    /// ダメージフィールドをプールへ返却、未対応時は破棄します
+    /// </summary>
+    void ReturnToPoolOrDestroy()
+    {
+        PooledObject pooledObject = GetComponent<PooledObject>();
+        if (pooledObject != null)
+        {
+            pooledObject.ReturnToPool();
+            return;
+        }
+
+        Destroy(gameObject);
     }
 }

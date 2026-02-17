@@ -18,6 +18,7 @@ public abstract class ProjectileController : MonoBehaviour
     int _damage = 1;
 
     protected Vector3 _direction;
+    float _lifetimeTimer;
 
     /// <summary>
     /// 弾の移動速度を取得または設定します
@@ -42,14 +43,23 @@ public abstract class ProjectileController : MonoBehaviour
         _direction = direction.normalized;
     }
 
-    protected virtual void Start()
+    /// <summary>
+    /// 有効化時に生存時間タイマーを初期化します
+    /// </summary>
+    protected virtual void OnEnable()
     {
-        Destroy(gameObject, _lifetime);
+        _lifetimeTimer = _lifetime;
     }
 
     protected virtual void Update()
     {
         transform.position += _direction * _speed * Time.deltaTime;
+
+        _lifetimeTimer -= Time.deltaTime;
+        if (_lifetimeTimer <= 0f)
+        {
+            ReturnToPoolOrDestroy();
+        }
     }
 
     protected virtual void OnTriggerEnter(Collider other)
@@ -64,7 +74,22 @@ public abstract class ProjectileController : MonoBehaviour
                 damageable.TakeDamage(_damage, knockbackDirection);
             }
             
-            Destroy(gameObject);
+            ReturnToPoolOrDestroy();
         }
+    }
+
+    /// <summary>
+    /// 弾をプールに返却、未対応時は破棄します
+    /// </summary>
+    protected void ReturnToPoolOrDestroy()
+    {
+        PooledObject pooledObject = GetComponent<PooledObject>();
+        if (pooledObject != null)
+        {
+            pooledObject.ReturnToPool();
+            return;
+        }
+
+        Destroy(gameObject);
     }
 }

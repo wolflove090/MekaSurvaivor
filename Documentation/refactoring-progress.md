@@ -1,6 +1,6 @@
 # リファクタリング進捗管理
 
-最終更新: 2026年2月16日
+最終更新: 2026年2月17日
 
 ## 全体進捗
 
@@ -204,16 +204,16 @@
 
 ### 4.2 オブジェクトプーリングの導入
 
-- [ ] `ObjectPool.cs` の実装
+- [x] `ObjectPool.cs` の実装
 - [ ] 弾のプーリング
-  - [ ] BulletController対応
-  - [ ] ThrowingBulletController対応
+  - [x] BulletController対応
+  - [x] ThrowingBulletController対応
 - [ ] 敵のプーリング
-  - [ ] EnemyController対応
-  - [ ] EnemySpawner対応
+  - [x] EnemyController対応
+  - [x] EnemySpawner対応
 - [ ] ダメージフィールドのプーリング
-  - [ ] DamageFieldController対応
-  - [ ] DamageFieldSpawner対応
+  - [x] DamageFieldController対応
+  - [x] DamageFieldSpawner対応
 - [ ] パフォーマンス測定
 - [ ] 動作確認
 

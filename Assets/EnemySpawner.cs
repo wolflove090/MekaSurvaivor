@@ -35,11 +35,16 @@ public class EnemySpawner : MonoBehaviour
     [Tooltip("近傍探索の最大ステップ数")]
     int _maxGridSearchSteps = 8;
 
+    [SerializeField]
+    [Tooltip("エネミープールの初期サイズ")]
+    int _initialPoolSize = 30;
+
     float _spawnTimer;
     List<GameObject> _enemies = new List<GameObject>();
     SpatialGrid _spatialGrid;
     List<GameObject> _nearbyCandidatesBuffer = new List<GameObject>();
     Transform _playerTransform;
+    ObjectPool<EnemyController> _enemyPool;
 
     /// <summary>
     /// EnemySpawnerのシングルトンインスタンスを取得します
@@ -81,6 +86,7 @@ public class EnemySpawner : MonoBehaviour
     void Start()
     {
         _spawnTimer = _spawnInterval;
+        InitializePool();
 
         // プレイヤーの参照を取得（後方互換性のため）
         if (PlayerController.Instance != null)
@@ -126,12 +132,26 @@ public class EnemySpawner : MonoBehaviour
         }
 
         Vector3 spawnPosition = CalculateSpawnPosition();
-        GameObject enemy = Instantiate(_enemyPrefab, spawnPosition, Quaternion.identity);
+        GameObject enemy = null;
+        EnemyController enemyController = null;
+
+        if (_enemyPool != null)
+        {
+            enemyController = _enemyPool.Get();
+            enemy = enemyController.gameObject;
+            enemy.transform.position = spawnPosition;
+            enemy.transform.rotation = Quaternion.identity;
+        }
+        else
+        {
+            enemy = Instantiate(_enemyPrefab, spawnPosition, Quaternion.identity);
+            enemyController = enemy.GetComponent<EnemyController>();
+        }
+
         _enemies.Add(enemy);
         _spatialGrid.Register(enemy);
 
         // エネミーにターゲットを設定
-        EnemyController enemyController = enemy.GetComponent<EnemyController>();
         if (enemyController != null && _playerTransform != null)
         {
             enemyController.SetTarget(_playerTransform);
@@ -287,5 +307,25 @@ public class EnemySpawner : MonoBehaviour
             targetPosition.y,
             targetPosition.z + z
         );
+    }
+
+    /// <summary>
+    /// エネミープールを初期化します
+    /// </summary>
+    void InitializePool()
+    {
+        if (_enemyPrefab == null)
+        {
+            return;
+        }
+
+        EnemyController prefabController = _enemyPrefab.GetComponent<EnemyController>();
+        if (prefabController == null)
+        {
+            Debug.LogWarning("エネミープレハブにEnemyControllerがアタッチされていません");
+            return;
+        }
+
+        _enemyPool = new ObjectPool<EnemyController>(prefabController, _initialPoolSize, transform);
     }
 }

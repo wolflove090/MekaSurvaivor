@@ -34,6 +34,15 @@ public class KnockbackComponent : MonoBehaviour, IKnockbackable
         transform.position += direction.normalized * _knockbackDistance;
     }
 
+    /// <summary>
+    /// ノックバック状態をリセットします
+    /// </summary>
+    public void ResetState()
+    {
+        _isKnockedBack = false;
+        _knockbackTimer = 0f;
+    }
+
     void Update()
     {
         if (_isKnockedBack)

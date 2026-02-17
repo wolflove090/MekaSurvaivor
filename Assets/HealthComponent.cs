@@ -42,6 +42,14 @@ public class HealthComponent : MonoBehaviour, IDamageable
     }
 
     /// <summary>
+    /// HPを最大値までリセットします
+    /// </summary>
+    public void ResetToMaxHp()
+    {
+        _currentHp = _maxHp;
+    }
+
+    /// <summary>
     /// ダメージを受けます
     /// </summary>
     /// <param name="damage">受けるダメージ量</param>

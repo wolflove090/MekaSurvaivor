@@ -52,6 +52,22 @@ public class EnemyController : MonoBehaviour
     }
 
     /// <summary>
+    /// 再利用時に状態を初期化します
+    /// </summary>
+    void OnEnable()
+    {
+        if (_healthComponent != null)
+        {
+            _healthComponent.ResetToMaxHp();
+        }
+
+        if (_knockbackComponent != null)
+        {
+            _knockbackComponent.ResetState();
+        }
+    }
+
+    /// <summary>
     /// ダメージを受けます
     /// </summary>
     /// <param name="damage">受けるダメージ量</param>
@@ -74,6 +90,13 @@ public class EnemyController : MonoBehaviour
         if (EnemySpawner.Instance != null)
         {
             EnemySpawner.Instance.RemoveEnemy(gameObject);
+        }
+
+        PooledObject pooledObject = GetComponent<PooledObject>();
+        if (pooledObject != null)
+        {
+            pooledObject.ReturnToPool();
+            return;
         }
 
         Destroy(gameObject);

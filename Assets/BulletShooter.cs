@@ -18,7 +18,12 @@ public class BulletShooter : MonoBehaviour
     [Tooltip("弾の発射位置のオフセット")]
     Vector3 _shootOffset = Vector3.zero;
 
+    [SerializeField]
+    [Tooltip("弾プールの初期サイズ")]
+    int _initialPoolSize = 20;
+
     float _shootTimer;
+    ObjectPool<BulletController> _bulletPool;
 
     /// <summary>
     /// 発射間隔を取得または設定します
@@ -32,6 +37,7 @@ public class BulletShooter : MonoBehaviour
     void Start()
     {
         _shootTimer = _shootInterval;
+        InitializePool();
     }
 
     void Update()
@@ -72,11 +78,42 @@ public class BulletShooter : MonoBehaviour
         Vector3 direction = (nearestEnemy.transform.position - shootPosition).normalized;
         direction.y = 0f;
 
-        GameObject bullet = Instantiate(_bulletPrefab, shootPosition, Quaternion.identity);
-        BulletController bulletController = bullet.GetComponent<BulletController>();
+        BulletController bulletController = null;
+        if (_bulletPool != null)
+        {
+            bulletController = _bulletPool.Get();
+            bulletController.transform.position = shootPosition;
+            bulletController.transform.rotation = Quaternion.identity;
+        }
+        else
+        {
+            GameObject bullet = Instantiate(_bulletPrefab, shootPosition, Quaternion.identity);
+            bulletController = bullet.GetComponent<BulletController>();
+        }
+
         if (bulletController != null)
         {
             bulletController.SetDirection(direction);
         }
+    }
+
+    /// <summary>
+    /// 弾プールを初期化します
+    /// </summary>
+    void InitializePool()
+    {
+        if (_bulletPrefab == null)
+        {
+            return;
+        }
+
+        BulletController bulletPrefabController = _bulletPrefab.GetComponent<BulletController>();
+        if (bulletPrefabController == null)
+        {
+            Debug.LogWarning("弾プレハブにBulletControllerがアタッチされていません");
+            return;
+        }
+
+        _bulletPool = new ObjectPool<BulletController>(bulletPrefabController, _initialPoolSize, transform);
     }
 }
