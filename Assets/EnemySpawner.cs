@@ -26,8 +26,19 @@ public class EnemySpawner : MonoBehaviour
     [Tooltip("スポーン間隔（秒）")]
     float _spawnInterval = 2f;
 
+    [Header("検索最適化設定")]
+    [SerializeField]
+    [Tooltip("空間分割グリッドのセルサイズ")]
+    float _gridCellSize = 5f;
+
+    [SerializeField]
+    [Tooltip("近傍探索の最大ステップ数")]
+    int _maxGridSearchSteps = 8;
+
     float _spawnTimer;
     List<GameObject> _enemies = new List<GameObject>();
+    SpatialGrid _spatialGrid;
+    List<GameObject> _nearbyCandidatesBuffer = new List<GameObject>();
     Transform _playerTransform;
 
     /// <summary>
@@ -56,6 +67,7 @@ public class EnemySpawner : MonoBehaviour
             return;
         }
         _instance = this;
+        _spatialGrid = new SpatialGrid(_gridCellSize);
     }
 
     void OnDestroy()
@@ -88,6 +100,9 @@ public class EnemySpawner : MonoBehaviour
 
     void Update()
     {
+        CleanupNullEnemies();
+        RefreshEnemyGridPositions();
+
         if (_playerTransform == null) return;
 
         _spawnTimer -= Time.deltaTime;
@@ -113,6 +128,7 @@ public class EnemySpawner : MonoBehaviour
         Vector3 spawnPosition = CalculateSpawnPosition();
         GameObject enemy = Instantiate(_enemyPrefab, spawnPosition, Quaternion.identity);
         _enemies.Add(enemy);
+        _spatialGrid.Register(enemy);
 
         // エネミーにターゲットを設定
         EnemyController enemyController = enemy.GetComponent<EnemyController>();
@@ -133,38 +149,34 @@ public class EnemySpawner : MonoBehaviour
     /// <returns>一番近いエネミーのGameObject、存在しない場合はnull</returns>
     public GameObject FindNearestEnemy(Vector3 position, bool onlyVisible = false)
     {
-        _enemies.RemoveAll(enemy => enemy == null);
+        CleanupNullEnemies();
 
         if (_enemies.Count == 0)
         {
             return null;
         }
 
-        GameObject nearestEnemy = null;
-        float nearestDistance = float.MaxValue;
         Camera mainCamera = onlyVisible ? Camera.main : null;
 
-        // 全てのエネミーとの距離を計算（TODO: 空間分割による最適化が必要）
-        foreach (GameObject enemy in _enemies)
+        int maxSteps = Mathf.Max(1, _maxGridSearchSteps);
+        for (int step = 1; step <= maxSteps; step++)
         {
-            if (onlyVisible && mainCamera != null)
+            float radius = step * _spatialGrid.CellSize;
+            _spatialGrid.GetNearbyObjects(position, radius, _nearbyCandidatesBuffer);
+            GameObject nearestInRange = FindNearestFromCandidates(_nearbyCandidatesBuffer, position, onlyVisible, mainCamera);
+            if (nearestInRange != null)
             {
-                if (!IsVisibleFromCamera(enemy, mainCamera))
-                {
-                    continue;
-                }
+                return nearestInRange;
             }
 
-            float distance = Vector3.Distance(position, enemy.transform.position);
-
-            if (distance < nearestDistance)
+            if (_nearbyCandidatesBuffer.Count >= _enemies.Count)
             {
-                nearestDistance = distance;
-                nearestEnemy = enemy;
+                return null;
             }
         }
 
-        return nearestEnemy;
+        // 念のためのフォールバック（探索上限を超える距離に敵がいる場合）
+        return FindNearestFromCandidates(_enemies, position, onlyVisible, mainCamera);
     }
 
     /// <summary>
@@ -188,6 +200,69 @@ public class EnemySpawner : MonoBehaviour
     public void RemoveEnemy(GameObject enemy)
     {
         _enemies.Remove(enemy);
+        _spatialGrid.Unregister(enemy);
+    }
+
+    /// <summary>
+    /// 破棄済みのエネミー参照を管理リストから除外します。
+    /// </summary>
+    void CleanupNullEnemies()
+    {
+        for (int i = _enemies.Count - 1; i >= 0; i--)
+        {
+            GameObject enemy = _enemies[i];
+            if (enemy == null)
+            {
+                _enemies.RemoveAt(i);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 追跡中エネミーの現在位置を空間グリッドへ反映します。
+    /// </summary>
+    void RefreshEnemyGridPositions()
+    {
+        foreach (GameObject enemy in _enemies)
+        {
+            _spatialGrid.UpdateObjectPosition(enemy);
+        }
+    }
+
+    /// <summary>
+    /// 候補群から最短距離のエネミーを検索します。
+    /// </summary>
+    /// <param name="candidates">探索対象の候補リスト</param>
+    /// <param name="position">距離計算の基準位置</param>
+    /// <param name="onlyVisible">可視エネミーのみを対象にするか</param>
+    /// <param name="mainCamera">可視判定に使用するカメラ</param>
+    /// <returns>最短距離のエネミー。候補が無効な場合はnull</returns>
+    GameObject FindNearestFromCandidates(List<GameObject> candidates, Vector3 position, bool onlyVisible, Camera mainCamera)
+    {
+        GameObject nearestEnemy = null;
+        float nearestDistance = float.MaxValue;
+
+        foreach (GameObject enemy in candidates)
+        {
+            if (enemy == null)
+            {
+                continue;
+            }
+
+            if (onlyVisible && mainCamera != null && !IsVisibleFromCamera(enemy, mainCamera))
+            {
+                continue;
+            }
+
+            float distance = Vector3.Distance(position, enemy.transform.position);
+            if (distance < nearestDistance)
+            {
+                nearestDistance = distance;
+                nearestEnemy = enemy;
+            }
+        }
+
+        return nearestEnemy;
     }
 
     /// <summary>

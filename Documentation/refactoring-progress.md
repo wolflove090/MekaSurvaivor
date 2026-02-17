@@ -196,11 +196,11 @@
 
 ### 4.1 空間分割による敵検索の最適化
 
-- [ ] `SpatialGrid.cs` の実装
-- [ ] `EnemySpawner` への統合
-- [ ] `FindNearestEnemy()` の最適化
-- [ ] パフォーマンス測定
-- [ ] 動作確認
+- [x] `SpatialGrid.cs` の実装
+- [x] `EnemySpawner` への統合
+- [x] `FindNearestEnemy()` の最適化
+- [x] パフォーマンス測定
+- [x] 動作確認
 
 ### 4.2 オブジェクトプーリングの導入
 
