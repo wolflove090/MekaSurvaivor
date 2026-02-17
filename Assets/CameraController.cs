@@ -20,7 +20,6 @@ public class CameraController : MonoBehaviour
 
     void Start()
     {
-        // ターゲットが設定されていない場合、PlayerControllerを検索
         if (_target == null)
         {
             PlayerController player = FindFirstObjectByType<PlayerController>();
@@ -34,7 +33,6 @@ public class CameraController : MonoBehaviour
             }
         }
 
-        // 初期位置を設定
         if (_target != null)
         {
             transform.position = _target.position + _offset;
@@ -43,16 +41,13 @@ public class CameraController : MonoBehaviour
 
     void LateUpdate()
     {
-        // ターゲットが存在しない場合は処理をスキップ
         if (_target == null)
         {
             return;
         }
 
-        // 目標位置を計算
         Vector3 desiredPosition = _target.position + _offset;
 
-        // 滑らかに追従
         if (_smoothSpeed > 0f)
         {
             Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, _smoothSpeed);
@@ -60,7 +55,6 @@ public class CameraController : MonoBehaviour
         }
         else
         {
-            // 即座に追従
             transform.position = desiredPosition;
         }
     }

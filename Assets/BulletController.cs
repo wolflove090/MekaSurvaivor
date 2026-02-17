@@ -3,68 +3,6 @@ using UnityEngine;
 /// <summary>
 /// 弾の移動と衝突処理を制御するコンポーネント
 /// </summary>
-public class BulletController : MonoBehaviour
+public class BulletController : ProjectileController
 {
-    [Header("弾設定")]
-    [SerializeField]
-    [Tooltip("弾の移動速度")]
-    float _speed = 10f;
-
-    [SerializeField]
-    [Tooltip("弾の生存時間（秒）")]
-    float _lifetime = 5f;
-
-    // 移動方向
-    Vector3 _direction;
-
-    /// <summary>
-    /// 弾の移動速度を取得または設定します
-    /// </summary>
-    public float Speed
-    {
-        get => _speed;
-        set => _speed = value;
-    }
-
-    /// <summary>
-    /// 弾の移動方向を設定します
-    /// </summary>
-    /// <param name="direction">正規化された方向ベクトル</param>
-    public void SetDirection(Vector3 direction)
-    {
-        _direction = direction.normalized;
-    }
-
-    void Start()
-    {
-        // 生存時間後に自動的に破棄
-        Destroy(gameObject, _lifetime);
-    }
-
-    void Update()
-    {
-        // 設定された方向に移動
-        transform.position += _direction * _speed * Time.deltaTime;
-    }
-
-    void OnTriggerEnter(Collider other)
-    {
-        // エネミーに衝突した場合
-        if (other.CompareTag("Enemy"))
-        {
-            // EnemyControllerを取得してダメージを与える
-            EnemyController enemy = other.GetComponent<EnemyController>();
-            if (enemy != null)
-            {
-                // ノックバック方向を計算（弾の進行方向）
-                Vector3 knockbackDirection = _direction;
-                knockbackDirection.y = 0f; // Y軸方向を無効化
-                
-                enemy.TakeDamage(1, knockbackDirection);
-            }
-            
-            // 弾自身を破棄
-            Destroy(gameObject);
-        }
-    }
 }

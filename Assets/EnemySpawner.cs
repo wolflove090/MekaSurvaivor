@@ -7,7 +7,6 @@ using UnityEngine;
 /// </summary>
 public class EnemySpawner : MonoBehaviour
 {
-    // シングルトンインスタンス
     static EnemySpawner _instance;
 
     [Header("スポーン設定")]
@@ -27,11 +26,25 @@ public class EnemySpawner : MonoBehaviour
     [Tooltip("スポーン間隔（秒）")]
     float _spawnInterval = 2f;
 
-    // 次のスポーンまでの残り時間
-    float _spawnTimer;
+    [Header("検索最適化設定")]
+    [SerializeField]
+    [Tooltip("空間分割グリッドのセルサイズ")]
+    float _gridCellSize = 5f;
 
-    // 生成されたエネミーのリスト
+    [SerializeField]
+    [Tooltip("近傍探索の最大ステップ数")]
+    int _maxGridSearchSteps = 8;
+
+    [SerializeField]
+    [Tooltip("エネミープールの初期サイズ")]
+    int _initialPoolSize = 30;
+
+    float _spawnTimer;
     List<GameObject> _enemies = new List<GameObject>();
+    SpatialGrid _spatialGrid;
+    List<GameObject> _nearbyCandidatesBuffer = new List<GameObject>();
+    Transform _playerTransform;
+    ObjectPool<EnemyController> _enemyPool;
 
     /// <summary>
     /// EnemySpawnerのシングルトンインスタンスを取得します
@@ -52,7 +65,6 @@ public class EnemySpawner : MonoBehaviour
 
     void Awake()
     {
-        // シングルトンの設定
         if (_instance != null && _instance != this)
         {
             Debug.LogError($"EnemySpawnerが複数存在します。既存: {_instance.gameObject.name}, 新規: {gameObject.name}");
@@ -60,11 +72,11 @@ public class EnemySpawner : MonoBehaviour
             return;
         }
         _instance = this;
+        _spatialGrid = new SpatialGrid(_gridCellSize);
     }
 
     void OnDestroy()
     {
-        // インスタンスのクリア
         if (_instance == this)
         {
             _instance = null;
@@ -73,19 +85,34 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
-        // 初期タイマー設定
         _spawnTimer = _spawnInterval;
+        InitializePool();
+
+        // プレイヤーの参照を取得（後方互換性のため）
+        if (PlayerController.Instance != null)
+        {
+            _playerTransform = PlayerController.Instance.transform;
+        }
+    }
+
+    /// <summary>
+    /// スポーンの基準となるターゲットを設定します
+    /// </summary>
+    /// <param name="target">基準となるTransform（通常はプレイヤー）</param>
+    public void SetSpawnTarget(Transform target)
+    {
+        _playerTransform = target;
     }
 
     void Update()
     {
-        // PlayerControllerが存在しない場合は処理しない
-        if (PlayerController.Instance == null) return;
+        CleanupNullEnemies();
+        RefreshEnemyGridPositions();
 
-        // タイマーを減算
+        if (_playerTransform == null) return;
+
         _spawnTimer -= Time.deltaTime;
 
-        // スポーン処理
         if (_spawnTimer <= 0f)
         {
             TrySpawnEnemy();
@@ -98,21 +125,40 @@ public class EnemySpawner : MonoBehaviour
     /// </summary>
     void TrySpawnEnemy()
     {
-        // エネミープレハブが設定されていない場合は警告
         if (_enemyPrefab == null)
         {
             Debug.LogWarning("エネミープレハブが設定されていません");
             return;
         }
 
-        // スポーン位置を計算
         Vector3 spawnPosition = CalculateSpawnPosition();
+        GameObject enemy = null;
+        EnemyController enemyController = null;
 
-        // エネミーを生成
-        GameObject enemy = Instantiate(_enemyPrefab, spawnPosition, Quaternion.identity);
+        if (_enemyPool != null)
+        {
+            enemyController = _enemyPool.Get();
+            enemy = enemyController.gameObject;
+            enemy.transform.position = spawnPosition;
+            enemy.transform.rotation = Quaternion.identity;
+        }
+        else
+        {
+            enemy = Instantiate(_enemyPrefab, spawnPosition, Quaternion.identity);
+            enemyController = enemy.GetComponent<EnemyController>();
+        }
 
-        // リストに追加
         _enemies.Add(enemy);
+        _spatialGrid.Register(enemy);
+
+        // エネミーにターゲットを設定
+        if (enemyController != null && _playerTransform != null)
+        {
+            enemyController.SetTarget(_playerTransform);
+        }
+
+        // スポーンイベントを発火
+        GameEvents.RaiseEnemySpawned(enemy);
     }
 
     /// <summary>
@@ -123,45 +169,34 @@ public class EnemySpawner : MonoBehaviour
     /// <returns>一番近いエネミーのGameObject、存在しない場合はnull</returns>
     public GameObject FindNearestEnemy(Vector3 position, bool onlyVisible = false)
     {
-        // リストから破棄されたエネミーを削除
-        _enemies.RemoveAll(enemy => enemy == null);
+        CleanupNullEnemies();
 
-        // エネミーが存在しない場合
         if (_enemies.Count == 0)
         {
             return null;
         }
 
-        GameObject nearestEnemy = null;
-        float nearestDistance = float.MaxValue;
-
-        // カメラの取得（可視判定が必要な場合）
         Camera mainCamera = onlyVisible ? Camera.main : null;
 
-        // 全てのエネミーとの距離を計算
-        // TODO 全件検索のため数が多くなると重たくなる
-        foreach (GameObject enemy in _enemies)
+        int maxSteps = Mathf.Max(1, _maxGridSearchSteps);
+        for (int step = 1; step <= maxSteps; step++)
         {
-            // 可視判定が有効な場合、カメラに写っているかチェック
-            if (onlyVisible && mainCamera != null)
+            float radius = step * _spatialGrid.CellSize;
+            _spatialGrid.GetNearbyObjects(position, radius, _nearbyCandidatesBuffer);
+            GameObject nearestInRange = FindNearestFromCandidates(_nearbyCandidatesBuffer, position, onlyVisible, mainCamera);
+            if (nearestInRange != null)
             {
-                if (!IsVisibleFromCamera(enemy, mainCamera))
-                {
-                    continue;
-                }
+                return nearestInRange;
             }
 
-            float distance = Vector3.Distance(position, enemy.transform.position);
-
-            // より近いエネミーが見つかった場合
-            if (distance < nearestDistance)
+            if (_nearbyCandidatesBuffer.Count >= _enemies.Count)
             {
-                nearestDistance = distance;
-                nearestEnemy = enemy;
+                return null;
             }
         }
 
-        return nearestEnemy;
+        // 念のためのフォールバック（探索上限を超える距離に敵がいる場合）
+        return FindNearestFromCandidates(_enemies, position, onlyVisible, mainCamera);
     }
 
     /// <summary>
@@ -172,10 +207,7 @@ public class EnemySpawner : MonoBehaviour
     /// <returns>カメラに写っている場合はtrue</returns>
     bool IsVisibleFromCamera(GameObject enemy, Camera camera)
     {
-        // エネミーの位置をビューポート座標に変換
         Vector3 viewportPoint = camera.WorldToViewportPoint(enemy.transform.position);
-
-        // ビューポート座標が0～1の範囲内かつ、カメラの前方にあるかチェック
         return viewportPoint.x >= 0f && viewportPoint.x <= 1f &&
                viewportPoint.y >= 0f && viewportPoint.y <= 1f &&
                viewportPoint.z > 0f;
@@ -188,34 +220,112 @@ public class EnemySpawner : MonoBehaviour
     public void RemoveEnemy(GameObject enemy)
     {
         _enemies.Remove(enemy);
+        _spatialGrid.Unregister(enemy);
     }
 
     /// <summary>
-    /// プレイヤーの周囲のランダムな位置を計算します
+    /// 破棄済みのエネミー参照を管理リストから除外します。
+    /// </summary>
+    void CleanupNullEnemies()
+    {
+        for (int i = _enemies.Count - 1; i >= 0; i--)
+        {
+            GameObject enemy = _enemies[i];
+            if (enemy == null)
+            {
+                _enemies.RemoveAt(i);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 追跡中エネミーの現在位置を空間グリッドへ反映します。
+    /// </summary>
+    void RefreshEnemyGridPositions()
+    {
+        foreach (GameObject enemy in _enemies)
+        {
+            _spatialGrid.UpdateObjectPosition(enemy);
+        }
+    }
+
+    /// <summary>
+    /// 候補群から最短距離のエネミーを検索します。
+    /// </summary>
+    /// <param name="candidates">探索対象の候補リスト</param>
+    /// <param name="position">距離計算の基準位置</param>
+    /// <param name="onlyVisible">可視エネミーのみを対象にするか</param>
+    /// <param name="mainCamera">可視判定に使用するカメラ</param>
+    /// <returns>最短距離のエネミー。候補が無効な場合はnull</returns>
+    GameObject FindNearestFromCandidates(List<GameObject> candidates, Vector3 position, bool onlyVisible, Camera mainCamera)
+    {
+        GameObject nearestEnemy = null;
+        float nearestDistance = float.MaxValue;
+
+        foreach (GameObject enemy in candidates)
+        {
+            if (enemy == null)
+            {
+                continue;
+            }
+
+            if (onlyVisible && mainCamera != null && !IsVisibleFromCamera(enemy, mainCamera))
+            {
+                continue;
+            }
+
+            float distance = Vector3.Distance(position, enemy.transform.position);
+            if (distance < nearestDistance)
+            {
+                nearestDistance = distance;
+                nearestEnemy = enemy;
+            }
+        }
+
+        return nearestEnemy;
+    }
+
+    /// <summary>
+    /// ターゲットの周囲のランダムな位置を計算します
     /// </summary>
     /// <returns>スポーン位置</returns>
     Vector3 CalculateSpawnPosition()
     {
-        // プレイヤーの位置を取得
-        Vector3 playerPosition = PlayerController.Instance.transform.position;
+        if (_playerTransform == null)
+        {
+            return Vector3.zero;
+        }
 
-        // ランダムな角度を生成（0～360度）
+        Vector3 targetPosition = _playerTransform.position;
         float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-
-        // ランダムな距離を生成
         float distance = Random.Range(_spawnDistanceMin, _spawnDistanceMax);
-
-        // 極座標から直交座標に変換
         float x = Mathf.Cos(angle) * distance;
         float z = Mathf.Sin(angle) * distance;
 
-        // スポーン位置を計算（Y座標はプレイヤーと同じ）
-        Vector3 spawnPosition = new Vector3(
-            playerPosition.x + x,
-            playerPosition.y,
-            playerPosition.z + z
+        return new Vector3(
+            targetPosition.x + x,
+            targetPosition.y,
+            targetPosition.z + z
         );
+    }
 
-        return spawnPosition;
+    /// <summary>
+    /// エネミープールを初期化します
+    /// </summary>
+    void InitializePool()
+    {
+        if (_enemyPrefab == null)
+        {
+            return;
+        }
+
+        EnemyController prefabController = _enemyPrefab.GetComponent<EnemyController>();
+        if (prefabController == null)
+        {
+            Debug.LogWarning("エネミープレハブにEnemyControllerがアタッチされていません");
+            return;
+        }
+
+        _enemyPool = new ObjectPool<EnemyController>(prefabController, _initialPoolSize, transform);
     }
 }
