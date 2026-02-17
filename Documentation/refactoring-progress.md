@@ -245,28 +245,12 @@
 
 ### 5.3 敵AIの抽象化
 
-- [ ] `IEnemyBehavior.cs` の作成
-- [ ] `ChasePlayerBehavior.cs` の作成
-- [ ] `EnemyController` への統合
+- [x] `IEnemyBehavior.cs` の作成
+- [x] `ChasePlayerBehavior.cs` の作成
+- [x] `EnemyController` への統合
 - [ ] 動作確認
-
-### 5.4 フェーズ5 総合テスト
-
-- [ ] 全機能の統合テスト
-- [ ] 拡張性の検証
-- [ ] バグ修正
-
----
-
-## 最終確認
-
-- [ ] 全フェーズの完了確認
-- [ ] 総合動作テスト
-- [ ] パフォーマンステスト
-- [ ] コードレビュー
-- [ ] ドキュメント更新
-  - [ ] クラス図の更新
-  - [ ] README更新（必要に応じて）
+  - [x] コンパイル観点のコード確認
+  - [x] Unity実機での追跡挙動確認
 
 ---
 

@@ -15,6 +15,7 @@ public class EnemyController : MonoBehaviour
     KnockbackComponent _knockbackComponent;
     SpriteDirectionController _spriteDirectionController;
     Transform _targetTransform;
+    IEnemyBehavior _enemyBehavior;
 
     /// <summary>
     /// 移動速度を取得または設定します
@@ -31,6 +32,11 @@ public class EnemyController : MonoBehaviour
     public int CurrentHp => _healthComponent != null ? _healthComponent.CurrentHp : 0;
 
     /// <summary>
+    /// 現在の追跡ターゲットを取得します
+    /// </summary>
+    public Transform TargetTransform => _targetTransform;
+
+    /// <summary>
     /// 追跡するターゲットを設定します
     /// </summary>
     /// <param name="target">追跡対象のTransform</param>
@@ -39,11 +45,33 @@ public class EnemyController : MonoBehaviour
         _targetTransform = target;
     }
 
+    /// <summary>
+    /// エネミーの行動ロジックを設定します
+    /// </summary>
+    /// <param name="behavior">設定する行動ロジック</param>
+    public void SetBehavior(IEnemyBehavior behavior)
+    {
+        if (behavior != null)
+        {
+            _enemyBehavior = behavior;
+        }
+    }
+
+    /// <summary>
+    /// 指定方向へ移動します
+    /// </summary>
+    /// <param name="direction">移動方向（正規化済み）</param>
+    public void MoveInDirection(Vector3 direction)
+    {
+        transform.position += direction * _moveSpeed * Time.deltaTime;
+    }
+
     void Awake()
     {
         _healthComponent = GetComponent<HealthComponent>();
         _knockbackComponent = GetComponent<KnockbackComponent>();
         _spriteDirectionController = GetComponent<SpriteDirectionController>();
+        _enemyBehavior = new ChasePlayerBehavior();
 
         if (_healthComponent != null)
         {
@@ -108,23 +136,11 @@ public class EnemyController : MonoBehaviour
         {
             if (_knockbackComponent == null || !_knockbackComponent.IsKnockedBack)
             {
-                MoveTowardsTarget();
+                _enemyBehavior?.Execute(this);
             }
-            
+
             UpdateSprite();
         }
-    }
-
-    /// <summary>
-    /// ターゲットに向かって移動します
-    /// </summary>
-    void MoveTowardsTarget()
-    {
-        if (_targetTransform == null) return;
-
-        Vector3 direction = (_targetTransform.position - transform.position).normalized;
-        direction.y = 0f;
-        transform.position += direction * _moveSpeed * Time.deltaTime;
     }
 
     /// <summary>
