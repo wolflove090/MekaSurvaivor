@@ -1,0 +1,227 @@
+classDiagram
+    class PlayerController {
+        -float _moveSpeed
+        -Sprite _leftSprite
+        -Sprite _rightSprite
+        -PlayerInputActions _inputActions
+        -Vector2 _moveInput
+        -SpriteRenderer _spriteRenderer
+        -static PlayerController _instance
+        +static PlayerController Instance
+        +float MoveSpeed
+        +GetMoveInput() Vector2
+        +GetFacingDirection() Vector3
+        -Awake() void
+        -OnEnable() void
+        -OnDisable() void
+        -OnDestroy() void
+        -OnMove(InputAction.CallbackContext context) void
+        -Update() void
+        -UpdateSprite() void
+    }
+
+    class EnemyController {
+        -float _moveSpeed
+        -Sprite _leftSprite
+        -Sprite _rightSprite
+        -SpriteRenderer _spriteRenderer
+        +float MoveSpeed
+        -Awake() void
+        -Update() void
+        -MoveTowardsPlayer() void
+        -UpdateSprite() void
+    }
+
+    class EnemySpawner {
+        -GameObject _enemyPrefab
+        -float _spawnDistanceMin
+        -float _spawnDistanceMax
+        -float _spawnInterval
+        -int _maxEnemyCount
+        -float _spawnTimer
+        -int _currentEnemyCount
+        +float SpawnInterval
+        +int MaxEnemyCount
+        +int CurrentEnemyCount
+        -Start() void
+        -Update() void
+        -TrySpawnEnemy() void
+        -CalculateSpawnPosition() Vector3
+        +OnEnemyDestroyed() void
+    }
+
+    class EnemyDestroyNotifier {
+        -EnemySpawner _spawner
+        +Initialize(EnemySpawner spawner) void
+        -OnDestroy() void
+    }
+
+    class GameManager {
+        -float _timeLimit
+        -float _elapsedTime
+        -bool _isGameClear
+        -static GameManager _instance
+        +static GameManager Instance
+        +float RemainingTime
+        +bool IsGameClear
+        -Awake() void
+        -OnDestroy() void
+        -Update() void
+        -GameClear() void
+    }
+
+    class PlayerInputActions {
+        +InputActionAsset asset
+        -InputActionMap m_Player
+        -List~IPlayerActions~ m_PlayerActionsCallbackInterfaces
+        -InputAction m_Player_Move
+        +InputBinding? bindingMask
+        +ReadOnlyArray~InputDevice~? devices
+        +ReadOnlyArray~InputControlScheme~ controlSchemes
+        +IEnumerable~InputBinding~ bindings
+        +PlayerActions Player
+        +PlayerInputActions()
+        +Dispose() void
+        +Contains(InputAction action) bool
+        +GetEnumerator() IEnumerator~InputAction~
+        +Enable() void
+        +Disable() void
+        +FindAction(string actionNameOrId, bool throwIfNotFound) InputAction
+        +FindBinding(InputBinding bindingMask, out InputAction action) int
+    }
+
+    class PlayerActions {
+        -PlayerInputActions m_Wrapper
+        +InputAction Move
+        +PlayerActions(PlayerInputActions wrapper)
+        +Get() InputActionMap
+        +Enable() void
+        +Disable() void
+        +bool enabled
+        +AddCallbacks(IPlayerActions instance) void
+        +RemoveCallbacks(IPlayerActions instance) void
+        -UnregisterCallbacks(IPlayerActions instance) void
+        +SetCallbacks(IPlayerActions instance) void
+    }
+
+    class IPlayerActions {
+        <<interface>>
+        +OnMove(InputAction.CallbackContext context) void
+    }
+
+    class MonoBehaviour {
+        <<Unity>>
+    }
+
+    class IInputActionCollection2 {
+        <<interface>>
+    }
+
+    class IDisposable {
+        <<interface>>
+    }
+
+    class BulletShooter {
+        -GameObject _bulletPrefab
+        -float _shootInterval
+        -Vector3 _shootOffset
+        -float _shootTimer
+        +float ShootInterval
+        -Start() void
+        -Update() void
+        -TryShoot() void
+    }
+
+    class BulletController {
+        -float _speed
+        -float _lifetime
+        -Vector3 _direction
+        +float Speed
+        +SetDirection(Vector3 direction) void
+        -Start() void
+        -Update() void
+        -OnTriggerEnter(Collider other) void
+    }
+
+    class ThrowingBulletShooter {
+        -GameObject _throwingBulletPrefab
+        -float _shootInterval
+        -Vector3 _shootOffset
+        -float _shootTimer
+        -Vector3 _lastDirection
+        -PlayerController _playerController
+        +float ShootInterval
+        -Start() void
+        -Update() void
+        -UpdatePlayerDirection() void
+        -TryShoot() void
+    }
+
+    class ThrowingBulletController {
+        -float _speed
+        -float _lifetime
+        -Vector3 _direction
+        +float Speed
+        +SetDirection(Vector3 direction) void
+        -Start() void
+        -Update() void
+        -OnTriggerEnter(Collider other) void
+    }
+
+    class DamageFieldSpawner {
+        -GameObject _damageFieldPrefab
+        -float _spawnInterval
+        -Vector3 _spawnOffset
+        -float _spawnTimer
+        +float SpawnInterval
+        -Start() void
+        -Update() void
+        -SpawnDamageField() void
+    }
+
+    class DamageFieldController {
+        -int _damage
+        -float _damageInterval
+        -float _duration
+        -Dictionary~GameObject, float~ _enemiesInField
+        +int Damage
+        +float DamageInterval
+        +float Duration
+        -Start() void
+        -Update() void
+        -ApplyDamageToEnemy(GameObject enemy) void
+        -OnTriggerEnter(Collider other) void
+        -OnTriggerExit(Collider other) void
+    }
+
+    MonoBehaviour <|-- PlayerController
+    MonoBehaviour <|-- BulletShooter
+    MonoBehaviour <|-- BulletController
+    MonoBehaviour <|-- ThrowingBulletShooter
+    MonoBehaviour <|-- ThrowingBulletController
+    MonoBehaviour <|-- DamageFieldSpawner
+    MonoBehaviour <|-- DamageFieldController
+    MonoBehaviour <|-- EnemyController
+    MonoBehaviour <|-- EnemySpawner
+    MonoBehaviour <|-- EnemyDestroyNotifier
+    MonoBehaviour <|-- GameManager
+    IInputActionCollection2 <|.. PlayerInputActions
+    IDisposable <|.. PlayerInputActions
+    PlayerInputActions *-- PlayerActions : contains
+    PlayerInputActions ..> IPlayerActions : uses
+    PlayerActions ..> IPlayerActions : callback interface
+    PlayerController --> PlayerInputActions : uses
+    PlayerController ..> IPlayerActions : implements callback
+    EnemyController --> PlayerController : references
+    EnemySpawner --> PlayerController : references
+    EnemySpawner --> EnemyController : spawns
+    EnemyDestroyNotifier --> EnemySpawner : notifies
+    GameManager --> PlayerController : references
+    BulletShooter --> EnemySpawner : uses
+    BulletShooter --> BulletController : spawns
+    ThrowingBulletShooter --> PlayerController : references
+    ThrowingBulletShooter --> ThrowingBulletController : spawns
+    DamageFieldSpawner --> DamageFieldController : spawns
+    BulletController --> EnemyController : damages
+    ThrowingBulletController --> EnemyController : damages
+    DamageFieldController --> EnemyController : damages
