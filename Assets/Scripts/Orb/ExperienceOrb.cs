@@ -76,8 +76,12 @@ public class ExperienceOrb : MonoBehaviour
     /// </summary>
     void CollectOrb()
     {
-        // TODO: プレイヤーに経験値を付与する処理
-        // 例: _playerTransform.GetComponent<PlayerExperience>()?.AddExperience(_experienceValue);
+        // プレイヤーに経験値を付与
+        PlayerExperience playerExperience = _playerTransform.GetComponent<PlayerExperience>();
+        if (playerExperience != null)
+        {
+            playerExperience.AddExperience(_experienceValue);
+        }
 
         ReturnToPool();
     }

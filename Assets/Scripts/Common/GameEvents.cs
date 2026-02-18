@@ -22,6 +22,16 @@ public static class GameEvents
     /// </summary>
     public static event System.Action OnPlayerDied;
 
+    /// <summary>
+    /// プレイヤーが経験値を獲得した時に発火するイベント
+    /// </summary>
+    public static event System.Action<int, int, int> OnExperienceGained;
+
+    /// <summary>
+    /// プレイヤーがレベルアップした時に発火するイベント
+    /// </summary>
+    public static event System.Action<int> OnPlayerLevelUp;
+
     // 敵関連イベント
 
     /// <summary>
@@ -70,6 +80,26 @@ public static class GameEvents
     }
 
     /// <summary>
+    /// 経験値獲得イベントを発火します
+    /// </summary>
+    /// <param name="gainedAmount">獲得した経験値量</param>
+    /// <param name="currentExperience">現在の経験値</param>
+    /// <param name="experienceToNextLevel">次のレベルまでに必要な経験値</param>
+    public static void RaiseExperienceGained(int gainedAmount, int currentExperience, int experienceToNextLevel)
+    {
+        OnExperienceGained?.Invoke(gainedAmount, currentExperience, experienceToNextLevel);
+    }
+
+    /// <summary>
+    /// プレイヤーレベルアップイベントを発火します
+    /// </summary>
+    /// <param name="newLevel">新しいレベル</param>
+    public static void RaisePlayerLevelUp(int newLevel)
+    {
+        OnPlayerLevelUp?.Invoke(newLevel);
+    }
+
+    /// <summary>
     /// 敵スポーンイベントを発火します
     /// </summary>
     /// <param name="enemy">スポーンした敵のGameObject</param>
@@ -103,6 +133,8 @@ public static class GameEvents
         OnPlayerMoved = null;
         OnPlayerDamaged = null;
         OnPlayerDied = null;
+        OnExperienceGained = null;
+        OnPlayerLevelUp = null;
         OnEnemySpawned = null;
         OnEnemyDied = null;
         OnGameOver = null;
