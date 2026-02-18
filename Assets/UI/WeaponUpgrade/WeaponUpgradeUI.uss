@@ -1,0 +1,61 @@
+.weapon-upgrade-root {
+    flex-grow: 1;
+    justify-content: center;
+    align-items: center;
+    padding-left: 56px;
+    padding-right: 56px;
+    background-color: rgba(0, 0, 0, 0.35);
+}
+
+.upgrade-cards-container {
+    width: 100%;
+    max-width: 1280px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 28px;
+}
+
+.upgrade-card {
+    flex-grow: 1;
+    min-width: 230px;
+    max-width: 340px;
+    min-height: 420px;
+    padding: 24px;
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    border-bottom-left-radius: 14px;
+    border-bottom-right-radius: 14px;
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: rgba(255, 255, 255, 0.3);
+    border-right-color: rgba(255, 255, 255, 0.3);
+    border-top-color: rgba(255, 255, 255, 0.3);
+    border-bottom-color: rgba(255, 255, 255, 0.3);
+    background-color: rgba(20, 24, 30, 0.92);
+    color: rgb(240, 244, 250);
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.upgrade-card:hover {
+    border-left-color: rgb(255, 209, 102);
+    border-right-color: rgb(255, 209, 102);
+    border-top-color: rgb(255, 209, 102);
+    border-bottom-color: rgb(255, 209, 102);
+    background-color: rgba(28, 34, 44, 0.95);
+}
+
+.upgrade-card-title {
+    -unity-font-style: bold;
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.upgrade-card-description {
+    font-size: 14px;
+    color: rgba(230, 236, 245, 0.85);
+    white-space: normal;
+}

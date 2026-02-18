@@ -1,0 +1,18 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="weapon-upgrade-root" class="weapon-upgrade-root">
+        <ui:VisualElement name="upgrade-cards-container" class="upgrade-cards-container">
+            <ui:Button name="upgrade-card-1" class="upgrade-card">
+                <ui:Label name="upgrade-card-1-title" class="upgrade-card-title" text="ショット強化" />
+                <ui:Label name="upgrade-card-1-description" class="upgrade-card-description" text="弾の発射数を1増加" />
+            </ui:Button>
+            <ui:Button name="upgrade-card-2" class="upgrade-card">
+                <ui:Label name="upgrade-card-2-title" class="upgrade-card-title" text="威力強化" />
+                <ui:Label name="upgrade-card-2-description" class="upgrade-card-description" text="武器ダメージを20%増加" />
+            </ui:Button>
+            <ui:Button name="upgrade-card-3" class="upgrade-card">
+                <ui:Label name="upgrade-card-3-title" class="upgrade-card-title" text="速度強化" />
+                <ui:Label name="upgrade-card-3-description" class="upgrade-card-description" text="攻撃間隔を15%短縮" />
+            </ui:Button>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
