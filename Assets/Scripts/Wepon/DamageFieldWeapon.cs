@@ -15,6 +15,10 @@ public class DamageFieldWeapon : WeaponBase
     float _spawnInterval = 3f;
 
     [SerializeField]
+    [Tooltip("強化1段階ごとのダメージエリア拡大率")]
+    float _areaScaleGrowthPerLevel = 0.25f;
+
+    [SerializeField]
     [Tooltip("生成位置のオフセット")]
     Vector3 _spawnOffset = Vector3.zero;
 
@@ -23,6 +27,8 @@ public class DamageFieldWeapon : WeaponBase
     int _initialPoolSize = 8;
 
     ObjectPool<DamageFieldController> _damageFieldPool;
+    const float DEFAULT_AREA_SCALE = 3f;
+    float _currentAreaScale = DEFAULT_AREA_SCALE;
 
     /// <summary>
     /// 生成間隔を取得または設定します
@@ -70,7 +76,19 @@ public class DamageFieldWeapon : WeaponBase
         if (damageFieldController != null)
         {
             damageFieldController.SetFollowTarget(transform);
+            damageFieldController.SetAreaScale(_currentAreaScale);
         }
+    }
+
+    /// <summary>
+    /// 武器を1段階強化し、ダメージエリアを拡大します
+    /// </summary>
+    public override void LevelUp()
+    {
+        UpgradeLevel++;
+        _currentAreaScale = DEFAULT_AREA_SCALE + _areaScaleGrowthPerLevel * (UpgradeLevel - 1);
+
+        Debug.Log($"DamageFieldWeapon: レベル {UpgradeLevel} に強化。エリア倍率: {_currentAreaScale:0.00}x");
     }
 
     /// <summary>

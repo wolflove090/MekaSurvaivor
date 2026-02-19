@@ -70,6 +70,15 @@ public class DamageFieldController : MonoBehaviour
     }
 
     /// <summary>
+    /// ダメージエリアの拡大率を設定します
+    /// </summary>
+    /// <param name="areaScale">拡大率（1.0が等倍）</param>
+    public void SetAreaScale(float areaScale)
+    {
+        transform.localScale = Vector3.one * Mathf.Max(0.1f, areaScale);
+    }
+
+    /// <summary>
     /// 有効化時に寿命タイマーと内部状態を初期化します
     /// </summary>
     void OnEnable()

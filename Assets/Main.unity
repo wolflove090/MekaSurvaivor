@@ -337,6 +337,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ThrowingWeapon
   _throwingBulletPrefab: {fileID: 4081888370426802533, guid: b828ad8ff900547aa8907fa261f49f25, type: 3}
   _shootInterval: 1
+  _intervalReductionPerLevel: 0.15
+  _minShootInterval: 0.25
   _shootOffset: {x: 0, y: 0, z: 0}
   _initialPoolSize: 12
 --- !u!114 &153723289
@@ -353,6 +355,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BulletWeapon
   _bulletPrefab: {fileID: 4081888370426802533, guid: 7ea5a00f6225f490b81c817497f90dcc, type: 3}
   _shootInterval: 1
+  _intervalReductionPerLevel: 0.15
+  _minShootInterval: 0.2
   _shootOffset: {x: 0, y: 0, z: 0}
   _initialPoolSize: 20
 --- !u!114 &153723290
@@ -369,6 +373,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DamageFieldWeapon
   _damageFieldPrefab: {fileID: 4081888370426802533, guid: 0de497e01b829453d8ed97563749aeab, type: 3}
   _spawnInterval: 3
+  _areaScaleGrowthPerLevel: 1
   _spawnOffset: {x: 0, y: 0, z: 0}
   _initialPoolSize: 8
 --- !u!114 &153723291
@@ -623,6 +628,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponUpgradeUiController
   _layoutAsset: {fileID: 9197481963319205126, guid: d94e67f8435964a2a8b90d0168277cdd, type: 3}
   _styleSheet: {fileID: 7433441132597879392, guid: 9147c165db3b14e77b8a9b0ffce545f1, type: 3}
+  _shooterWeapon: {fileID: 0}
+  _throwingWeapon: {fileID: 0}
+  _damageFieldWeapon: {fileID: 0}
 --- !u!114 &469418916
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -855,7 +863,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  _timeLimit: 30
+  _timeLimit: 120
 --- !u!4 &1960855177
 Transform:
   m_ObjectHideFlags: 0
