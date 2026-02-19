@@ -1,0 +1,1 @@
+.kiro/steering/structure.md の情報に従ってください。

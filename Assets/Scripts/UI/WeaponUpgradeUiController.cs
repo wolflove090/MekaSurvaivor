@@ -19,6 +19,8 @@ public class WeaponUpgradeUiController : MonoBehaviour
     UIDocument _uiDocument;
     Button[] _upgradeCards;
     Action[] _cardClickHandlers;
+    bool _isUpgradeUiOpen;
+    float _timeScaleBeforePause;
 
     /// <summary>
     /// 強化カードが押下された時に発火するイベント。
@@ -34,6 +36,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
         BuildUi();
         CacheElements();
         BuildCardClickHandlers();
+        SetUpgradeUiVisible(false);
     }
 
     /// <summary>
@@ -42,6 +45,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
     void OnEnable()
     {
         RegisterCallbacks();
+        GameEvents.OnPlayerLevelUp += OnPlayerLevelUp;
     }
 
     /// <summary>
@@ -49,7 +53,13 @@ public class WeaponUpgradeUiController : MonoBehaviour
     /// </summary>
     void OnDisable()
     {
+        if (_isUpgradeUiOpen)
+        {
+            CloseUpgradeUi();
+        }
+
         UnregisterCallbacks();
+        GameEvents.OnPlayerLevelUp -= OnPlayerLevelUp;
     }
 
     /// <summary>
@@ -152,7 +162,69 @@ public class WeaponUpgradeUiController : MonoBehaviour
     /// <param name="cardIndex">押下されたカードのインデックス（0始まり）</param>
     void OnCardClicked(int cardIndex)
     {
+        if (!_isUpgradeUiOpen)
+        {
+            return;
+        }
+
         Debug.Log($"WeaponUpgradeUiController: 強化カード {cardIndex + 1} が選択されました。");
         OnUpgradeCardSelected?.Invoke(cardIndex);
+        CloseUpgradeUi();
+    }
+
+    /// <summary>
+    /// レベルアップ時に武器強化UIを開いてゲームを停止します。
+    /// </summary>
+    /// <param name="newLevel">レベルアップ後のレベル</param>
+    void OnPlayerLevelUp(int newLevel)
+    {
+        Debug.Log($"WeaponUpgradeUiController: レベル {newLevel} 到達。武器強化UIを表示します。");
+        OpenUpgradeUi();
+    }
+
+    /// <summary>
+    /// 武器強化UIを表示し、ゲーム進行を一時停止します。
+    /// </summary>
+    void OpenUpgradeUi()
+    {
+        if (_isUpgradeUiOpen)
+        {
+            return;
+        }
+
+        _isUpgradeUiOpen = true;
+        _timeScaleBeforePause = Time.timeScale;
+        Time.timeScale = 0f;
+        SetUpgradeUiVisible(true);
+    }
+
+    /// <summary>
+    /// 武器強化UIを非表示にし、ゲーム進行を再開します。
+    /// </summary>
+    void CloseUpgradeUi()
+    {
+        if (!_isUpgradeUiOpen)
+        {
+            return;
+        }
+
+        _isUpgradeUiOpen = false;
+        SetUpgradeUiVisible(false);
+        Time.timeScale = _timeScaleBeforePause > 0f ? _timeScaleBeforePause : 1f;
+    }
+
+    /// <summary>
+    /// 武器強化UIの表示状態を切り替えます。
+    /// </summary>
+    /// <param name="isVisible">表示する場合はtrue</param>
+    void SetUpgradeUiVisible(bool isVisible)
+    {
+        VisualElement root = _uiDocument?.rootVisualElement;
+        if (root == null)
+        {
+            return;
+        }
+
+        root.style.display = isVisible ? DisplayStyle.Flex : DisplayStyle.None;
     }
 }
