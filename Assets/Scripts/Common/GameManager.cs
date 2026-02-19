@@ -8,6 +8,11 @@ public class GameManager : MonoBehaviour
 {
     static GameManager _instance;
 
+    /// <summary>
+    /// エディタ再生時に制限時間を一時上書きするためのEditorPrefsキーです
+    /// </summary>
+    public const string EditorTimeLimitOverrideKey = "MekaSurvaivor.GameManager.TimeLimitOverride";
+
     [Header("ゲーム設定")]
     [SerializeField]
     [Tooltip("制限時間（秒）")]
@@ -44,6 +49,8 @@ public class GameManager : MonoBehaviour
             return;
         }
         _instance = this;
+
+        ApplyEditorTimeLimitOverride();
 
         _elapsedTime = 0f;
         _isGameClear = false;
@@ -95,5 +102,21 @@ public class GameManager : MonoBehaviour
         _isGameClear = true;
         Debug.Log("ゲームクリア");
         Time.timeScale = 0f;
+    }
+
+    /// <summary>
+    /// エディタ上の一時設定が存在する場合に制限時間へ反映します
+    /// </summary>
+    void ApplyEditorTimeLimitOverride()
+    {
+#if UNITY_EDITOR
+        if (!UnityEditor.EditorPrefs.HasKey(EditorTimeLimitOverrideKey))
+        {
+            return;
+        }
+
+        _timeLimit = UnityEditor.EditorPrefs.GetFloat(EditorTimeLimitOverrideKey, _timeLimit);
+        UnityEditor.EditorPrefs.DeleteKey(EditorTimeLimitOverrideKey);
+#endif
     }
 }
