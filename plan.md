@@ -85,3 +85,14 @@
 - `.kiro/steering/structure.md` の規約を順守（暗黙 private、`_camelCase`、ドキュメントコメント）。
 - 既存の public API 変更は最小限にして、他コンポーネントへの影響を局所化する。
 - 初期値未設定時のフェイルセーフ（null 時のデフォルト値）を入れて実行時エラーを防ぐ。
+
+## 進捗メモ（2026-02-20）
+- 完了:
+  - `CharacterStatsData` / `CharacterStats` を追加。
+  - `HealthComponent` を `CharacterStats` 参照へ移行し、`DEF` を考慮した受ダメ計算へ更新。
+  - `PlayerController` / `EnemyController` で `SPD` 反映を追加。
+  - `ProjectileController` / `DamageFieldController` でプレイヤー `POW` 反映を追加。
+  - `Assets/GameResources/Player/PlayerStatsData.asset` と `Assets/GameResources/Enemy/EnemyStatsData.asset` を追加。
+- 未完了:
+  - Player/Enemy プレハブ（またはシーン上の実体）への `CharacterStatsData` 割り当て。
+  - 手動プレイ確認（ダメージ最小値、SPD反映、死亡時挙動確認）。

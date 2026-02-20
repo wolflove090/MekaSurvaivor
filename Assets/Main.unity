@@ -139,6 +139,7 @@ GameObject:
   - component: {fileID: 153723285}
   - component: {fileID: 153723284}
   - component: {fileID: 153723291}
+  - component: {fileID: 153723292}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -322,7 +323,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c20abe31478a044f59a43438d08539a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
-  _maxHp: 10
 --- !u!114 &153723288
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -391,6 +391,19 @@ MonoBehaviour:
   _startLevel: 1
   _baseExperienceRequired: 5
   _experienceScaling: 1.5
+--- !u!114 &153723292
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 153723275}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d5bd153627f4aa6bd8b774c54a407b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
+  _statsData: {fileID: 11400000, guid: 36d3e91a22a34f75b55a456879ef0a9b, type: 2}
 --- !u!1 &161327160
 GameObject:
   m_ObjectHideFlags: 0
