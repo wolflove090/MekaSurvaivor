@@ -1,0 +1,37 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="player-status-root" class="player-status-root">
+        <ui:VisualElement name="player-status-panel" class="player-status-panel">
+            <ui:Label name="player-status-title" class="player-status-title" text="PLAYER STATUS" />
+
+            <ui:VisualElement class="player-status-row">
+                <ui:Label class="player-status-key" text="LV" />
+                <ui:Label name="status-level-value" class="player-status-value" text="1" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="player-status-row">
+                <ui:Label class="player-status-key" text="HP" />
+                <ui:Label name="status-hp-value" class="player-status-value" text="0/0" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="player-status-row">
+                <ui:Label class="player-status-key" text="EXP" />
+                <ui:Label name="status-exp-value" class="player-status-value" text="0/0" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="player-status-row">
+                <ui:Label class="player-status-key" text="POW" />
+                <ui:Label name="status-pow-value" class="player-status-value" text="0" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="player-status-row">
+                <ui:Label class="player-status-key" text="DEF" />
+                <ui:Label name="status-def-value" class="player-status-value" text="0" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="player-status-row">
+                <ui:Label class="player-status-key" text="SPD" />
+                <ui:Label name="status-spd-value" class="player-status-value" text="0.0" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

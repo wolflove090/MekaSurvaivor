@@ -35,11 +35,16 @@ public class WeaponUpgradeUiController : MonoBehaviour
     [Tooltip("DamageField強化対象の武器")]
     DamageFieldWeapon _damageFieldWeapon;
 
+    [SerializeField]
+    [Tooltip("武器強化UI表示中に適用するUIDocumentのSort Order")]
+    float _sortOrderWhileOpen = 100f;
+
     UIDocument _uiDocument;
     Button[] _upgradeCards;
     Action[] _cardClickHandlers;
     bool _isUpgradeUiOpen;
     float _timeScaleBeforePause;
+    float _defaultSortOrder;
 
     /// <summary>
     /// 強化カードが押下された時に発火するイベント。
@@ -53,6 +58,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
     {
         ResolveWeaponReferences();
         _uiDocument = GetComponent<UIDocument>();
+        _defaultSortOrder = _uiDocument.sortingOrder;
         BuildUi();
         CacheElements();
         BuildCardClickHandlers();
@@ -260,6 +266,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
         _isUpgradeUiOpen = true;
         _timeScaleBeforePause = Time.timeScale;
         Time.timeScale = 0f;
+        ApplyFrontmostSortOrder();
         SetUpgradeUiVisible(true);
     }
 
@@ -275,6 +282,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
 
         _isUpgradeUiOpen = false;
         SetUpgradeUiVisible(false);
+        RestoreDefaultSortOrder();
         Time.timeScale = _timeScaleBeforePause > 0f ? _timeScaleBeforePause : 1f;
     }
 
@@ -291,5 +299,32 @@ public class WeaponUpgradeUiController : MonoBehaviour
         }
 
         root.style.display = isVisible ? DisplayStyle.Flex : DisplayStyle.None;
+    }
+
+    /// <summary>
+    /// 武器強化UI表示中の描画順を最前面へ引き上げます。
+    /// </summary>
+    void ApplyFrontmostSortOrder()
+    {
+        if (_uiDocument == null)
+        {
+            return;
+        }
+
+        _uiDocument.sortingOrder = Mathf.Max(_defaultSortOrder, _sortOrderWhileOpen);
+        _uiDocument.rootVisualElement?.BringToFront();
+    }
+
+    /// <summary>
+    /// 武器強化UI非表示時に描画順を初期値へ戻します。
+    /// </summary>
+    void RestoreDefaultSortOrder()
+    {
+        if (_uiDocument == null)
+        {
+            return;
+        }
+
+        _uiDocument.sortingOrder = _defaultSortOrder;
     }
 }
