@@ -249,7 +249,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
     /// <param name="newLevel">レベルアップ後のレベル</param>
     void OnPlayerLevelUp(int newLevel)
     {
-        if (newLevel <= 0 || newLevel % 3 == 0)
+        if (!LevelUpUiDisplayRule.ShouldOpenWeaponUpgradeUi(newLevel))
         {
             return;
         }
@@ -332,4 +332,5 @@ public class WeaponUpgradeUiController : MonoBehaviour
 
         _uiDocument.sortingOrder = _defaultSortOrder;
     }
+
 }

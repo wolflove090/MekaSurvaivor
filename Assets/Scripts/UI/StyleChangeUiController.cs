@@ -299,12 +299,12 @@ public class StyleChangeUiController : MonoBehaviour
     }
 
     /// <summary>
-    /// レベルアップ時に3の倍数レベルのみスタイル変更UIを開きます。
+    /// レベルアップ時に4,7,10...でスタイル変更UIを開きます。
     /// </summary>
     /// <param name="newLevel">レベルアップ後のレベル</param>
     void OnPlayerLevelUp(int newLevel)
     {
-        if (newLevel <= 0 || newLevel % 3 != 0)
+        if (!LevelUpUiDisplayRule.ShouldOpenStyleUi(newLevel))
         {
             return;
         }
@@ -426,4 +426,5 @@ public class StyleChangeUiController : MonoBehaviour
                 return null;
         }
     }
+
 }
