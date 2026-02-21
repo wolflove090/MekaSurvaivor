@@ -48,6 +48,34 @@ public class HealthComponent : MonoBehaviour, IDamageable
     }
 
     /// <summary>
+    /// ステータスデータを差し替え、消費HPを維持したまま現在HPを再計算します
+    /// </summary>
+    /// <param name="newStatsData">適用する新しいステータスデータ</param>
+    public void ApplyStatsDataAndKeepConsumedHp(CharacterStatsData newStatsData)
+    {
+        if (_characterStats == null)
+        {
+            Debug.LogWarning("HealthComponent: CharacterStatsが見つからないためステータスを適用できません。");
+            return;
+        }
+
+        if (newStatsData == null)
+        {
+            Debug.LogWarning("HealthComponent: 適用するCharacterStatsDataがnullです。");
+            return;
+        }
+
+        int previousCurrentHp = _currentHp;
+        int previousMaxHp = MaxHp;
+        int consumedHp = Mathf.Max(0, previousMaxHp - previousCurrentHp);
+
+        _characterStats.ApplyStatsData(newStatsData);
+
+        int recalculatedHp = Mathf.Max(1, MaxHp - consumedHp);
+        _currentHp = Mathf.Min(recalculatedHp, MaxHp);
+    }
+
+    /// <summary>
     /// ダメージを受けます
     /// </summary>
     /// <param name="damage">受けるダメージ量</param>

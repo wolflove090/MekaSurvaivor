@@ -101,6 +101,11 @@ public class PlayerController : MonoBehaviour
             _healthComponent.OnDied += GameOver;
             _healthComponent.OnDamaged += OnDamaged;
         }
+
+        if (_characterStats != null)
+        {
+            _characterStats.OnStatsDataChanged += OnStatsDataChanged;
+        }
         
         if (_playerMovement != null)
         {
@@ -155,6 +160,11 @@ public class PlayerController : MonoBehaviour
             _playerMovement.OnMoved -= OnMoved;
         }
 
+        if (_characterStats != null)
+        {
+            _characterStats.OnStatsDataChanged -= OnStatsDataChanged;
+        }
+
         if (_instance == this)
         {
             _instance = null;
@@ -204,5 +214,13 @@ public class PlayerController : MonoBehaviour
         {
             _playerMovement.MoveSpeed = _characterStats.Spd;
         }
+    }
+
+    /// <summary>
+    /// ステータス変更時に移動速度を再反映します
+    /// </summary>
+    void OnStatsDataChanged()
+    {
+        ApplyMoveSpeedFromStats();
     }
 }

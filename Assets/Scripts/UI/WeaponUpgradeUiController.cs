@@ -249,6 +249,11 @@ public class WeaponUpgradeUiController : MonoBehaviour
     /// <param name="newLevel">レベルアップ後のレベル</param>
     void OnPlayerLevelUp(int newLevel)
     {
+        if (newLevel <= 0 || newLevel % 3 == 0)
+        {
+            return;
+        }
+
         Debug.Log($"WeaponUpgradeUiController: レベル {newLevel} 到達。武器強化UIを表示します。");
         OpenUpgradeUi();
     }
