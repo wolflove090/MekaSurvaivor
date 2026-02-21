@@ -644,6 +644,7 @@ MonoBehaviour:
   _shooterWeapon: {fileID: 0}
   _throwingWeapon: {fileID: 0}
   _damageFieldWeapon: {fileID: 0}
+  _sortOrderWhileOpen: 100
 --- !u!114 &469418916
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -918,7 +919,7 @@ GameObject:
   - component: {fileID: 2050010001}
   - component: {fileID: 2050010002}
   m_Layer: 0
-  m_Name: PlayerStatusUI
+  m_Name: GameScreenUI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -935,7 +936,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a6c7e19d55f047b78354e81cc67af8e3, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerStatusUiController
+  m_EditorClassIdentifier: Assembly-CSharp::GameScreenUiController
   _layoutAsset: {fileID: 9197481963319205126, guid: bda26db23a8d4b10b081f857c4de9997, type: 3}
   _styleSheet: {fileID: 7433441132597879392, guid: 8ed0dc2eb5be4caf83f3713f6e92e9f5, type: 3}
   _playerController: {fileID: 0}

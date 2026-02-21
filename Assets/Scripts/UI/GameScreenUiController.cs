@@ -5,7 +5,7 @@ using UnityEngine.UIElements;
 /// プレイヤーステータス表示UIの構築と更新を管理するコンポーネント。
 /// </summary>
 [RequireComponent(typeof(UIDocument))]
-public class PlayerStatusUiController : MonoBehaviour
+public class GameScreenUiController : MonoBehaviour
 {
     const string UnknownGameTimeText = "--:--";
 
@@ -104,7 +104,7 @@ public class PlayerStatusUiController : MonoBehaviour
             return;
         }
 
-        Debug.LogWarning("PlayerStatusUiController: Layout Assetが未設定です。");
+        Debug.LogWarning("GameScreenUiController: Layout Assetが未設定です。");
     }
 
     /// <summary>

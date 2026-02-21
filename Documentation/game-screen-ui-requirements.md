@@ -6,7 +6,7 @@
 
 ## 2. 対象範囲
 - UI Toolkit（UXML / USS / C#）で構築するゲーム画面UI。
-- 既存プレイヤーステータスUI（`PlayerStatusUiController`）への統合。
+- 既存プレイヤーステータスUI（`GameScreenUiController`）への統合。
 
 ## 3. 機能要件
 1. 残り時間表示
