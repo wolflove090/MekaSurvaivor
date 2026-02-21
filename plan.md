@@ -1,98 +1,85 @@
-# ステータス実装計画（Player / Enemy）
+# ゲーム画面UI実装プラン（クリア残り時間表示統合）
 
-## 目的
-- プレイヤーとエネミーに `HP / POW / DEF / SPD` のステータスを導入する。
-- ステータス値は ScriptableObject で管理し、各キャラクターが参照して適用する。
-- ダメージ計算は `受けるダメージ = max(1, 攻撃力 - 防御力)` を満たすように統一する。
+## 1. 目的
+- 画面中央上部にゲームクリアまでの残り時間を表示する。
+- 既存プレイヤーステータスUIと統合し、単一のゲーム画面UIとして運用する。
 
-## 仕様整理（実装に落とす内容）
-- HP: 0 で死亡。プレイヤーはゲームオーバー、エネミーは破壊（またはプール返却）。
-- POW: 通常攻撃（武器）と接触ダメージに適用。
-- DEF: 受けたダメージを軽減。最終ダメージは 1 未満にならない。
-- SPD: 移動速度として適用。
+## 2. 前提と実装方針
+- 残り時間のデータソースは `GameManager.RemainingTime` を利用する。
+- UIは既存 `PlayerStatusUiController` を拡張し、別UIドキュメントへ分離しない。
+- レイアウト定義は `PlayerStatusUI.uxml`、スタイル定義は `PlayerStatusUI.uss` を更新する。
+- 値更新は既存ステータス同様、差分更新（表示値が変わった時のみラベル更新）で実装する。
 
-## 実装ステップ
-1. ステータス定義データを追加
-- `Assets/Scripts/Character/Stats/CharacterStatsData.cs` を新規作成。
-- ScriptableObject に `maxHp`, `pow`, `def`, `spd` を定義（Inspectorで編集可能）。
-- `CreateAssetMenu` を付与して Player/Enemy 用アセットを作成しやすくする。
-- 必要に応じて値の下限を `OnValidate` で保証（例: HP/POW/DEF/SPD の最低値）。
+## 3. 実装ステップ
+1. UIレイアウト拡張（UXML）
+- 対象: `Assets/UI/PlayerStatus/PlayerStatusUI.uxml`
+- 追加内容:
+  - ゲーム画面全体を内包できるルートレイアウトを維持。
+  - 画面中央上部用のコンテナ（例: `game-time-root`）を追加。
+  - 残り時間表示ラベル（例: `game-time-value`）を追加。
+- 注意点:
+  - 既存プレイヤーステータス領域の構造と `name` は変更しない。
 
-2. ランタイム用ステータス参照コンポーネントを追加
-- `Assets/Scripts/Character/Stats/CharacterStats.cs` を新規作成。
-- 役割:
-  - `CharacterStatsData` の参照保持。
-  - 現在値取得 API（`MaxHp`, `Pow`, `Def`, `Spd`）提供。
-  - 将来バフ対応を見据えた拡張点を用意（初期は基礎値のみ）。
+2. UIスタイル追加（USS）
+- 対象: `Assets/UI/PlayerStatus/PlayerStatusUI.uss`
+- 追加内容:
+  - `game-time-root` を「上寄せ + 水平中央」に配置するスタイル。
+  - `game-time-value` の視認性を担保するスタイル（文字サイズ・色・背景・余白）。
+  - プレイヤーステータスパネルの既存配置（右上寄り）を維持。
+- 注意点:
+  - `pointer-events: none` を維持してゲーム操作を阻害しない。
+  - 複数解像度で崩れにくい相対レイアウトを使う。
 
-3. HealthComponent を防御考慮の受ダメ構造へ更新
-- 対象: `Assets/Scripts/Character/HealthComponent.cs`
-- 変更方針:
-  - 既存 `_maxHp` 直持ちを廃止し、`CharacterStats` から `MaxHp` を読む構造へ移行。
-  - `TakeDamage(int damage, ...)` で `DEF` を反映して最終ダメージを計算。
-  - 最終ダメージ `max(1, damage - def)` を適用。
-  - `OnDamaged` には最終ダメージを通知（UI/ログ整合）。
-  - 初期化・リセット時に `MaxHp` を再反映。
+3. コントローラー拡張（C#）
+- 対象: `Assets/Scripts/UI/PlayerStatusUiController.cs`
+- 追加内容:
+  - ラベル参照 `Label _gameTimeValueLabel` を追加。
+  - `GameManager` 参照キャッシュ（例: `GameManager _gameManager`）を追加。
+  - `CacheElements()` で `game-time-value` を取得。
+  - `ResolvePlayerReferences()` と同等の参照解決で `GameManager.Instance` を取得。
+  - `RefreshStatusUi(bool force)` に残り時間更新処理を統合。
+  - 表示フォーマット関数（`MM:SS`）を追加。
+  - 未取得時の初期表示 `--:--` を反映。
+- 注意点:
+  - `.kiro/steering/structure.md` に従い、公開メンバーとメソッドへドキュメントコメントを維持。
+  - 既存イベント購読/解除ロジックは壊さない。
 
-4. 移動速度（SPD）の適用
-- 対象: `Assets/Scripts/Character/Player/PlayerController.cs`
-- 対象: `Assets/Scripts/Character/Enemy/EnemyController.cs`
-- 変更方針:
-  - 起動時（`Awake`/`OnEnable`）に `CharacterStats.Spd` を移動コンポーネントへ適用。
-  - Enemy は既存 `_moveSpeed` をステータスで上書きする流れへ統一。
+4. 時間表示仕様の実装
+- フォーマット:
+  - `remainingTime >= 0` のとき `MM:SS` 表示。
+  - 0秒未満は `00:00` 扱い（`Mathf.Max` で下限固定）。
+- 更新最適化:
+  - 秒単位文字列をキャッシュし、文字列が変化した時のみラベル更新。
 
-5. 攻撃力（POW）の適用経路を追加
-- プレイヤー -> エネミー:
-  - 対象: `Assets/Scripts/Wepon/ProjectileController.cs`
-  - 対象: `Assets/Scripts/Wepon/DamageFieldController.cs`
-  - 変更方針: 武器固有ダメージ値にプレイヤー `POW` を反映して与ダメージ化。
-- エネミー -> プレイヤー（接触）:
-  - 対象: `Assets/Scripts/Character/Player/PlayerController.cs`
-  - 変更方針: 固定値 `1` ダメージを廃止し、接触したエネミーの `POW` を参照して渡す。
+5. シーン適用確認
+- 対象: ゲーム画面で使用中の `UIDocument` 設定
+- 確認内容:
+  - `PlayerStatusUiController` が参照する UXML/USS が更新版を向いていること。
+  - 既存 `PanelSettings`（`Assets/UI/PanelSettings.asset`）で意図通り表示されること。
 
-6. ScriptableObject アセット作成と参照接続
-- `Assets/GameResources/Player/` にプレイヤー用ステータスアセットを作成。
-- `Assets/GameResources/Enemy/` にエネミー用ステータスアセットを作成。
-- プレイヤープレハブ/エネミープレハブへ `CharacterStatsData` を割り当て。
+## 4. テスト計画（手動）
+1. 表示確認
+- プレイ開始直後に画面中央上部へ残り時間が表示される。
+- プレイヤーステータスUI（LV/HP/EXP/POW/DEF/SPD）が従来どおり表示される。
 
-7. 既存挙動との整合確認
-- 死亡時処理:
-  - プレイヤー: 既存ゲームオーバーイベントが継続発火すること。
-  - エネミー: 既存のプール返却/Destroy 分岐が維持されること。
-- ノックバック: 既存処理がダメージ適用後も維持されること。
+2. 更新確認
+- 残り時間が進行に合わせて 1 秒単位で減少表示される。
+- `GameManager` が未解決の状況で `--:--` が表示され、例外が発生しない。
 
-8. テスト観点（手動確認）
-- `POW <= DEF` でも 1 ダメージ入ること。
-- Player/Enemy の SPD 変更で移動速度が反映されること。
-- Player HP 0 で GameOver、Enemy HP 0 で除去されること。
-- 武器ダメージと接触ダメージの双方で POW/DEF 計算が効くこと。
+3. レイアウト確認
+- 16:9 と縦横比が異なる解像度で時間表示が中央上部を維持する。
+- 他UI（ステータス/アップグレードUI）との重なりが許容範囲である。
 
-## 影響ファイル（予定）
-- 新規:
-  - `Assets/Scripts/Character/Stats/CharacterStatsData.cs`
-  - `Assets/Scripts/Character/Stats/CharacterStats.cs`
+4. 回帰確認
+- ダメージ、経験値、レベルアップ時の既存ステータス更新が継続する。
+- クリック/キー入力などゲーム操作にUIが干渉しない。
+
+## 5. 影響ファイル（予定）
 - 更新:
-  - `Assets/Scripts/Character/HealthComponent.cs`
-  - `Assets/Scripts/Character/Player/PlayerController.cs`
-  - `Assets/Scripts/Character/Enemy/EnemyController.cs`
-  - `Assets/Scripts/Wepon/ProjectileController.cs`
-  - `Assets/Scripts/Wepon/DamageFieldController.cs`
-- アセット追加（予定）:
-  - `Assets/GameResources/Player/*Stats*.asset`
-  - `Assets/GameResources/Enemy/*Stats*.asset`
+  - `Assets/UI/PlayerStatus/PlayerStatusUI.uxml`
+  - `Assets/UI/PlayerStatus/PlayerStatusUI.uss`
+  - `Assets/Scripts/UI/PlayerStatusUiController.cs`
 
-## 実装時の注意
-- `.kiro/steering/structure.md` の規約を順守（暗黙 private、`_camelCase`、ドキュメントコメント）。
-- 既存の public API 変更は最小限にして、他コンポーネントへの影響を局所化する。
-- 初期値未設定時のフェイルセーフ（null 時のデフォルト値）を入れて実行時エラーを防ぐ。
-
-## 進捗メモ（2026-02-20）
-- 完了:
-  - `CharacterStatsData` / `CharacterStats` を追加。
-  - `HealthComponent` を `CharacterStats` 参照へ移行し、`DEF` を考慮した受ダメ計算へ更新。
-  - `PlayerController` / `EnemyController` で `SPD` 反映を追加。
-  - `ProjectileController` / `DamageFieldController` でプレイヤー `POW` 反映を追加。
-  - `Assets/GameResources/Player/PlayerStatsData.asset` と `Assets/GameResources/Enemy/EnemyStatsData.asset` を追加。
-- 未完了:
-  - Player/Enemy プレハブ（またはシーン上の実体）への `CharacterStatsData` 割り当て。
-  - 手動プレイ確認（ダメージ最小値、SPD反映、死亡時挙動確認）。
+## 6. 完了条件
+- 要件書 `Documentation/game-screen-ui-requirements.md` の受け入れ基準 1-5 を満たす。
+- エラー/警告なくプレイ可能で、既存プレイヤーステータス表示に回帰がない。
