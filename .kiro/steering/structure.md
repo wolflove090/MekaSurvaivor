@@ -20,3 +20,15 @@
 - 句点(。)区切りで段落(< br>)をつける
 	- 感嘆符(！,？）や3点リード(…)の後の段落は不要。文章が長いときは段落をつける
 - 3点リードは「...」を使用します
+
+## Unity CLI コマンド
+
+| コマンド                         | 用途                      |
+| -------------------------------- | ------------------------- |
+| `u state`                        | エディタ状態の取得        |
+| `u play` / `u stop`              | Play/Stopモード制御       |
+| `u refresh`                      | AssetDatabaseリフレッシュ |
+| `u console get -l E`             | エラーログの取得          |
+| `u tests run edit`               | EditModeテスト実行        |
+| `u uitree dump -p <panel>`       | UIツリーのダンプ          |
+| `u screenshot -s game -p <path>` | スクリーンショット撮影    |
