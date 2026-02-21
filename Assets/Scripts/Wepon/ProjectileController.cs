@@ -17,6 +17,10 @@ public abstract class ProjectileController : MonoBehaviour
     [Tooltip("与えるダメージ量")]
     int _damage = 1;
 
+    [SerializeField]
+    [Tooltip("破壊可能オブジェクトのタグ名")]
+    string _breakableObjectTag = "BreakableObject";
+
     protected Vector3 _direction;
     float _lifetimeTimer;
 
@@ -64,7 +68,7 @@ public abstract class ProjectileController : MonoBehaviour
 
     protected virtual void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Enemy"))
+        if (IsDamageTarget(other))
         {
             IDamageable damageable = other.GetComponent<IDamageable>();
             if (damageable != null && !damageable.IsDead)
@@ -73,9 +77,19 @@ public abstract class ProjectileController : MonoBehaviour
                 knockbackDirection.y = 0f;
                 damageable.TakeDamage(CalculateDamage(), knockbackDirection);
             }
-            
+
             ReturnToPoolOrDestroy();
         }
+    }
+
+    /// <summary>
+    /// 衝突対象がダメージ適用対象かを判定します
+    /// </summary>
+    /// <param name="other">衝突したCollider</param>
+    /// <returns>対象タグに一致する場合はtrue</returns>
+    bool IsDamageTarget(Collider other)
+    {
+        return other.CompareTag("Enemy") || other.CompareTag(_breakableObjectTag);
     }
 
     /// <summary>

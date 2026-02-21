@@ -61,20 +61,25 @@ public class BulletWeapon : WeaponBase
             return;
         }
 
-        if (EnemySpawner.Instance == null)
-        {
-            return;
-        }
-
         Vector3 shootPosition = transform.position + _shootOffset;
-        GameObject nearestEnemy = EnemySpawner.Instance.FindNearestEnemy(shootPosition, onlyVisible: true);
+        GameObject target = null;
 
-        if (nearestEnemy == null)
+        if (EnemySpawner.Instance != null)
+        {
+            target = EnemySpawner.Instance.FindNearestEnemy(shootPosition, onlyVisible: true);
+        }
+
+        if (target == null && BreakableObjectSpawner.Instance != null)
+        {
+            target = BreakableObjectSpawner.Instance.FindNearestBreakableObject(shootPosition, onlyVisible: true);
+        }
+
+        if (target == null)
         {
             return;
         }
 
-        Vector3 direction = (nearestEnemy.transform.position - shootPosition).normalized;
+        Vector3 direction = (target.transform.position - shootPosition).normalized;
         direction.y = 0f;
 
         BulletController bulletController = null;
