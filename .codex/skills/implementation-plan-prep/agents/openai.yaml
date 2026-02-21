@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implementation Plan Prep"
+  short_description: "仕様から要件・計画・ToDoを段階的に作成"
+  default_prompt: "Use $implementation-plan-prep to convert this spec into a reviewed requirements doc, then update Documentation/plan.md and Documentation/todo.md."
