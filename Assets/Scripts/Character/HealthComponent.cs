@@ -5,10 +5,7 @@ using UnityEngine;
 /// </summary>
 public class HealthComponent : MonoBehaviour, IDamageable
 {
-    [SerializeField]
-    [Tooltip("最大HP")]
-    int _maxHp = 10;
-
+    CharacterStats _characterStats;
     int _currentHp;
 
     /// <summary>
@@ -19,7 +16,7 @@ public class HealthComponent : MonoBehaviour, IDamageable
     /// <summary>
     /// 最大HPを取得します
     /// </summary>
-    public int MaxHp => _maxHp;
+    public int MaxHp => _characterStats != null ? _characterStats.MaxHp : 10;
 
     /// <summary>
     /// 死亡状態かどうかを取得します
@@ -38,7 +35,8 @@ public class HealthComponent : MonoBehaviour, IDamageable
 
     void Awake()
     {
-        _currentHp = _maxHp;
+        _characterStats = GetComponent<CharacterStats>();
+        _currentHp = MaxHp;
     }
 
     /// <summary>
@@ -46,7 +44,35 @@ public class HealthComponent : MonoBehaviour, IDamageable
     /// </summary>
     public void ResetToMaxHp()
     {
-        _currentHp = _maxHp;
+        _currentHp = MaxHp;
+    }
+
+    /// <summary>
+    /// ステータスデータを差し替え、消費HPを維持したまま現在HPを再計算します
+    /// </summary>
+    /// <param name="newStatsData">適用する新しいステータスデータ</param>
+    public void ApplyStatsDataAndKeepConsumedHp(CharacterStatsData newStatsData)
+    {
+        if (_characterStats == null)
+        {
+            Debug.LogWarning("HealthComponent: CharacterStatsが見つからないためステータスを適用できません。");
+            return;
+        }
+
+        if (newStatsData == null)
+        {
+            Debug.LogWarning("HealthComponent: 適用するCharacterStatsDataがnullです。");
+            return;
+        }
+
+        int previousCurrentHp = _currentHp;
+        int previousMaxHp = MaxHp;
+        int consumedHp = Mathf.Max(0, previousMaxHp - previousCurrentHp);
+
+        _characterStats.ApplyStatsData(newStatsData);
+
+        int recalculatedHp = Mathf.Max(1, MaxHp - consumedHp);
+        _currentHp = Mathf.Min(recalculatedHp, MaxHp);
     }
 
     /// <summary>
@@ -61,10 +87,14 @@ public class HealthComponent : MonoBehaviour, IDamageable
             return;
         }
 
-        _currentHp -= damage;
+        int baseDamage = Mathf.Max(0, damage);
+        int defense = _characterStats != null ? _characterStats.Def : 0;
+        int finalDamage = Mathf.Max(1, baseDamage - defense);
+
+        _currentHp -= finalDamage;
         _currentHp = Mathf.Max(_currentHp, 0);
 
-        OnDamaged?.Invoke(damage);
+        OnDamaged?.Invoke(finalDamage);
 
         // ノックバック方向が指定されている場合、KnockbackComponentに適用
         if (knockbackDirection != Vector3.zero)
@@ -94,6 +124,6 @@ public class HealthComponent : MonoBehaviour, IDamageable
         }
 
         _currentHp += amount;
-        _currentHp = Mathf.Min(_currentHp, _maxHp);
+        _currentHp = Mathf.Min(_currentHp, MaxHp);
     }
 }

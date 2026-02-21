@@ -11,6 +11,7 @@ public class PlayerController : MonoBehaviour
 
     HealthComponent _healthComponent;
     PlayerMovement _playerMovement;
+    CharacterStats _characterStats;
 
     /// <summary>
     /// PlayerControllerのシングルトンインスタンスを取得します
@@ -39,6 +40,11 @@ public class PlayerController : MonoBehaviour
     /// 現在のHPを取得します
     /// </summary>
     public int CurrentHp => _healthComponent != null ? _healthComponent.CurrentHp : 0;
+
+    /// <summary>
+    /// プレイヤーの攻撃力を取得します
+    /// </summary>
+    public int Pow => _characterStats != null ? _characterStats.Pow : 1;
 
     /// <summary>
     /// ゲームオーバー状態かどうかを取得します
@@ -76,6 +82,13 @@ public class PlayerController : MonoBehaviour
 
         _healthComponent = GetComponent<HealthComponent>();
         _playerMovement = GetComponent<PlayerMovement>();
+        _characterStats = GetComponent<CharacterStats>();
+
+        if (_characterStats == null)
+        {
+            _characterStats = gameObject.AddComponent<CharacterStats>();
+        }
+
         if (_playerMovement == null)
         {
             _playerMovement = gameObject.AddComponent<PlayerMovement>();
@@ -88,11 +101,23 @@ public class PlayerController : MonoBehaviour
             _healthComponent.OnDied += GameOver;
             _healthComponent.OnDamaged += OnDamaged;
         }
+
+        if (_characterStats != null)
+        {
+            _characterStats.OnStatsDataChanged += OnStatsDataChanged;
+        }
         
         if (_playerMovement != null)
         {
             _playerMovement.OnMoved += OnMoved;
         }
+
+        ApplyMoveSpeedFromStats();
+    }
+
+    void OnEnable()
+    {
+        ApplyMoveSpeedFromStats();
     }
 
     /// <summary>
@@ -135,6 +160,11 @@ public class PlayerController : MonoBehaviour
             _playerMovement.OnMoved -= OnMoved;
         }
 
+        if (_characterStats != null)
+        {
+            _characterStats.OnStatsDataChanged -= OnStatsDataChanged;
+        }
+
         if (_instance == this)
         {
             _instance = null;
@@ -165,11 +195,32 @@ public class PlayerController : MonoBehaviour
         {
             Vector3 knockbackDirection = transform.position - other.transform.position;
             knockbackDirection.y = 0f;
+            CharacterStats enemyStats = other.GetComponent<CharacterStats>();
+            int enemyPow = enemyStats != null ? enemyStats.Pow : 1;
 
             if (_healthComponent != null)
             {
-                _healthComponent.TakeDamage(1, knockbackDirection);
+                _healthComponent.TakeDamage(enemyPow, knockbackDirection);
             }
         }
+    }
+
+    /// <summary>
+    /// ステータスから移動速度を反映します
+    /// </summary>
+    void ApplyMoveSpeedFromStats()
+    {
+        if (_playerMovement != null && _characterStats != null)
+        {
+            _playerMovement.MoveSpeed = _characterStats.Spd;
+        }
+    }
+
+    /// <summary>
+    /// ステータス変更時に移動速度を再反映します
+    /// </summary>
+    void OnStatsDataChanged()
+    {
+        ApplyMoveSpeedFromStats();
     }
 }

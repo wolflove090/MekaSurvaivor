@@ -153,7 +153,7 @@ public class DamageFieldController : MonoBehaviour
         {
             Vector3 knockbackDirection = enemy.transform.position - transform.position;
             knockbackDirection.y = 0f;
-            damageable.TakeDamage(_damage, knockbackDirection);
+            damageable.TakeDamage(CalculateDamage(), knockbackDirection);
         }
     }
 
@@ -201,5 +201,15 @@ public class DamageFieldController : MonoBehaviour
         }
 
         Destroy(gameObject);
+    }
+
+    /// <summary>
+    /// プレイヤーの攻撃力を反映したダメージ値を計算します
+    /// </summary>
+    /// <returns>適用する最終ダメージ値</returns>
+    int CalculateDamage()
+    {
+        int playerPow = PlayerController.Instance != null ? PlayerController.Instance.Pow : 1;
+        return Mathf.Max(1, _damage + (playerPow - 1));
     }
 }

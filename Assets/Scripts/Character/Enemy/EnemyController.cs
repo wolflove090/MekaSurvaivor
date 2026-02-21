@@ -14,6 +14,7 @@ public class EnemyController : MonoBehaviour
     HealthComponent _healthComponent;
     KnockbackComponent _knockbackComponent;
     SpriteDirectionController _spriteDirectionController;
+    CharacterStats _characterStats;
     Transform _targetTransform;
     IEnemyBehavior _enemyBehavior;
 
@@ -30,6 +31,11 @@ public class EnemyController : MonoBehaviour
     /// 現在のHPを取得します
     /// </summary>
     public int CurrentHp => _healthComponent != null ? _healthComponent.CurrentHp : 0;
+
+    /// <summary>
+    /// 接触時の攻撃力を取得します
+    /// </summary>
+    public int Pow => _characterStats != null ? _characterStats.Pow : 1;
 
     /// <summary>
     /// 現在の追跡ターゲットを取得します
@@ -71,12 +77,19 @@ public class EnemyController : MonoBehaviour
         _healthComponent = GetComponent<HealthComponent>();
         _knockbackComponent = GetComponent<KnockbackComponent>();
         _spriteDirectionController = GetComponent<SpriteDirectionController>();
+        _characterStats = GetComponent<CharacterStats>();
+        if (_characterStats == null)
+        {
+            _characterStats = gameObject.AddComponent<CharacterStats>();
+        }
         _enemyBehavior = new ChasePlayerBehavior();
 
         if (_healthComponent != null)
         {
             _healthComponent.OnDied += OnDied;
         }
+
+        ApplyMoveSpeedFromStats();
     }
 
     /// <summary>
@@ -93,6 +106,8 @@ public class EnemyController : MonoBehaviour
         {
             _knockbackComponent.ResetState();
         }
+
+        ApplyMoveSpeedFromStats();
     }
 
     /// <summary>
@@ -152,5 +167,16 @@ public class EnemyController : MonoBehaviour
 
         float directionX = _targetTransform.position.x - transform.position.x;
         _spriteDirectionController.UpdateDirection(directionX);
+    }
+
+    /// <summary>
+    /// ステータスから移動速度を反映します
+    /// </summary>
+    void ApplyMoveSpeedFromStats()
+    {
+        if (_characterStats != null)
+        {
+            _moveSpeed = _characterStats.Spd;
+        }
     }
 }

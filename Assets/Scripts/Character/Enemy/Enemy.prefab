@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 2899765676826519106}
   - component: {fileID: 2534054713831358609}
   - component: {fileID: 7068088921647536090}
+  - component: {fileID: 2008527063541314173}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -172,7 +173,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c20abe31478a044f59a43438d08539a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
-  _maxHp: 3
 --- !u!114 &2534054713831358609
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -201,3 +201,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpriteDirectionController
   _leftSprite: {fileID: 21300000, guid: d92181cb835d840878892d6f90c94d5d, type: 3}
   _rightSprite: {fileID: 21300000, guid: 223de6ce286d94431b5a28cdb211a53c, type: 3}
+--- !u!114 &2008527063541314173
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1537823984827019364}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d5bd153627f4aa6bd8b774c54a407b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
+  _statsData: {fileID: 11400000, guid: 7fc47d5078e24101aab4a7f447445a12, type: 2}
