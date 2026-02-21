@@ -1,13 +1,44 @@
 .player-status-root {
+    position: relative;
     flex-grow: 1;
     justify-content: flex-start;
-    align-items: flex-end;
-    padding-top: 6px;
-    padding-right: 6px;
+    align-items: stretch;
     pointer-events: none;
 }
 
+.game-time-root {
+    position: absolute;
+    left: 0;
+    top: 8px;
+    right: 0;
+    align-items: center;
+}
+
+.game-time-value {
+    padding: 2px 8px;
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: rgb(255, 248, 222);
+    background-color: rgba(20, 27, 38, 0.86);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(255, 255, 255, 0.22);
+    border-right-color: rgba(255, 255, 255, 0.22);
+    border-top-color: rgba(255, 255, 255, 0.22);
+    border-bottom-color: rgba(255, 255, 255, 0.22);
+    -unity-text-align: middle-center;
+}
+
 .player-status-panel {
+    position: absolute;
+    top: 6px;
+    right: 6px;
     min-width: 110px;
     padding: 3px 6px;
     border-top-left-radius: 2.5px;

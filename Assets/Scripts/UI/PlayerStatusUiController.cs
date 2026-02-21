@@ -7,6 +7,8 @@ using UnityEngine.UIElements;
 [RequireComponent(typeof(UIDocument))]
 public class PlayerStatusUiController : MonoBehaviour
 {
+    const string UnknownGameTimeText = "--:--";
+
     [SerializeField]
     [Tooltip("プレイヤーステータスUIのUXMLアセット")]
     VisualTreeAsset _layoutAsset;
@@ -26,7 +28,9 @@ public class PlayerStatusUiController : MonoBehaviour
     UIDocument _uiDocument;
     HealthComponent _healthComponent;
     CharacterStats _characterStats;
+    GameManager _gameManager;
 
+    Label _gameTimeValueLabel;
     Label _levelValueLabel;
     Label _hpValueLabel;
     Label _expValueLabel;
@@ -42,6 +46,7 @@ public class PlayerStatusUiController : MonoBehaviour
     int _cachedPow = int.MinValue;
     int _cachedDef = int.MinValue;
     float _cachedSpd = float.MinValue;
+    string _cachedGameTimeText;
 
     /// <summary>
     /// 初期化時にUI構築と参照解決を実行します。
@@ -108,6 +113,7 @@ public class PlayerStatusUiController : MonoBehaviour
     void CacheElements()
     {
         VisualElement root = _uiDocument.rootVisualElement;
+        _gameTimeValueLabel = root.Q<Label>("game-time-value");
         _levelValueLabel = root.Q<Label>("status-level-value");
         _hpValueLabel = root.Q<Label>("status-hp-value");
         _expValueLabel = root.Q<Label>("status-exp-value");
@@ -145,6 +151,19 @@ public class PlayerStatusUiController : MonoBehaviour
 
         _healthComponent = _playerController.GetComponent<HealthComponent>();
         _characterStats = _playerController.GetComponent<CharacterStats>();
+    }
+
+    /// <summary>
+    /// ゲーム進行管理コンポーネント参照を解決します。
+    /// </summary>
+    void ResolveGameManagerReference()
+    {
+        if (_gameManager == null)
+        {
+            _gameManager = GameManager.Instance != null
+                ? GameManager.Instance
+                : FindFirstObjectByType<GameManager>();
+        }
     }
 
     /// <summary>
@@ -213,6 +232,8 @@ public class PlayerStatusUiController : MonoBehaviour
     void RefreshStatusUi(bool force)
     {
         ResolvePlayerReferences();
+        ResolveGameManagerReference();
+        RefreshGameTimeUi(force);
 
         if (_playerController == null)
         {
@@ -259,6 +280,38 @@ public class PlayerStatusUiController : MonoBehaviour
         SetLabelText(_powValueLabel, pow.ToString());
         SetLabelText(_defValueLabel, def.ToString());
         SetLabelText(_spdValueLabel, spd.ToString("0.0"));
+    }
+
+    /// <summary>
+    /// 残り時間表示を差分更新で反映します。
+    /// </summary>
+    /// <param name="force">強制更新する場合はtrue</param>
+    void RefreshGameTimeUi(bool force)
+    {
+        string nextGameTimeText = _gameManager != null
+            ? FormatGameTime(_gameManager.RemainingTime)
+            : UnknownGameTimeText;
+
+        if (!force && _cachedGameTimeText == nextGameTimeText)
+        {
+            return;
+        }
+
+        _cachedGameTimeText = nextGameTimeText;
+        SetLabelText(_gameTimeValueLabel, nextGameTimeText);
+    }
+
+    /// <summary>
+    /// 残り時間（秒）をMM:SS形式へ変換します。
+    /// </summary>
+    /// <param name="remainingTime">残り時間（秒）</param>
+    /// <returns>MM:SS形式の文字列</returns>
+    string FormatGameTime(float remainingTime)
+    {
+        int totalSeconds = Mathf.FloorToInt(Mathf.Max(0f, remainingTime));
+        int minutes = totalSeconds / 60;
+        int seconds = totalSeconds % 60;
+        return $"{minutes:00}:{seconds:00}";
     }
 
     /// <summary>

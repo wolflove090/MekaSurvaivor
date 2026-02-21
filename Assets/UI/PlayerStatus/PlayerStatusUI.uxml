@@ -1,5 +1,9 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
     <ui:VisualElement name="player-status-root" class="player-status-root">
+        <ui:VisualElement name="game-time-root" class="game-time-root">
+            <ui:Label name="game-time-value" class="game-time-value" text="--:--" />
+        </ui:VisualElement>
+
         <ui:VisualElement name="player-status-panel" class="player-status-panel">
             <ui:Label name="player-status-title" class="player-status-title" text="PLAYER STATUS" />
 
