@@ -208,12 +208,12 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 523d8ba1b2f0f4fcc9bfac275c9ebb9a, type: 3}
+  m_Sprite: {fileID: 21300000, guid: e3146c7143f5f4a6585c4a6ad9cbbab0, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 2.56, y: 2.56}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -295,8 +295,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ca0865be60834812a21c0f4791845a8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpriteDirectionController
-  _leftSprite: {fileID: 21300000, guid: 523d8ba1b2f0f4fcc9bfac275c9ebb9a, type: 3}
-  _rightSprite: {fileID: 21300000, guid: e3146c7143f5f4a6585c4a6ad9cbbab0, type: 3}
+  _rightFacingSprite: {fileID: 0}
 --- !u!114 &153723285
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -715,9 +714,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StyleChangeUiController
   _layoutAsset: {fileID: 9197481963319205126, guid: d94e67f8435964a2a8b90d0168277cdd, type: 3}
   _styleSheet: {fileID: 7433441132597879392, guid: 9147c165db3b14e77b8a9b0ffce545f1, type: 3}
-  _mikoStyleStats: {fileID: 11400000, guid: 16149924735d4775ae3803e86cbe807e, type: 2}
-  _maidStyleStats: {fileID: 11400000, guid: 1eb7dd7901204ec98b64fec43c4fb918, type: 2}
+  _mikoStyleStats: {fileID: 11400000, guid: 1eb7dd7901204ec98b64fec43c4fb918, type: 2}
+  _idolStyleStats: {fileID: 11400000, guid: 16149924735d4775ae3803e86cbe807e, type: 2}
   _celebStyleStats: {fileID: 11400000, guid: 8c275de2ad3747d3bfcc902af2a90b53, type: 2}
+  _mikoRightSprite: {fileID: 21300000, guid: ac06f3df74fe34873ba623bab6758023, type: 3}
+  _idolRightSprite: {fileID: 21300000, guid: f7c5e08c6d00d4c6980e5532d1ba9ed3, type: 3}
+  _celebRightSprite: {fileID: 21300000, guid: 04bc42d1639ee45d799be297d1b60170, type: 3}
   _sortOrderWhileOpen: 100
 --- !u!114 &721230213
 MonoBehaviour:

@@ -11,15 +11,15 @@ public class StyleChangeUiController : MonoBehaviour
     enum StyleCardType
     {
         Miko = 0,
-        Maid = 1,
+        Idol = 1,
         Celeb = 2
     }
 
-    static readonly string[] CARD_TITLES = { "巫女", "メイド", "セレブ" };
+    static readonly string[] CARD_TITLES = { "巫女", "アイドル", "セレブ" };
     static readonly string[] CARD_DESCRIPTIONS =
     {
         "神秘の加護でバランスよく戦う",
-        "俊敏な所作で素早く立ち回る",
+        "華やかなパフォーマンスで素早く立ち回る",
         "豪華絢爛に攻撃力を押し上げる"
     };
 
@@ -36,12 +36,24 @@ public class StyleChangeUiController : MonoBehaviour
     CharacterStatsData _mikoStyleStats;
 
     [SerializeField]
-    [Tooltip("メイドスタイルのステータス")]
-    CharacterStatsData _maidStyleStats;
+    [Tooltip("アイドルスタイルのステータス")]
+    CharacterStatsData _idolStyleStats;
 
     [SerializeField]
     [Tooltip("セレブスタイルのステータス")]
     CharacterStatsData _celebStyleStats;
+
+    [SerializeField]
+    [Tooltip("巫女スタイルの右向き画像")]
+    Sprite _mikoRightSprite;
+
+    [SerializeField]
+    [Tooltip("アイドルスタイルの右向き画像")]
+    Sprite _idolRightSprite;
+
+    [SerializeField]
+    [Tooltip("セレブスタイルの右向き画像")]
+    Sprite _celebRightSprite;
 
     [SerializeField]
     [Tooltip("スタイル変更UI表示中に適用するUIDocumentのSort Order")]
@@ -53,6 +65,7 @@ public class StyleChangeUiController : MonoBehaviour
     Label[] _descriptionLabels;
     Action[] _cardClickHandlers;
     HealthComponent _playerHealthComponent;
+    SpriteDirectionController _spriteDirectionController;
     bool _isStyleUiOpen;
     float _timeScaleBeforePause;
     float _defaultSortOrder;
@@ -118,6 +131,7 @@ public class StyleChangeUiController : MonoBehaviour
         }
 
         _playerHealthComponent = player.GetComponent<HealthComponent>();
+        _spriteDirectionController = player.GetComponent<SpriteDirectionController>();
     }
 
     /// <summary>
@@ -287,6 +301,8 @@ public class StyleChangeUiController : MonoBehaviour
         }
 
         CharacterStatsData statsData = GetStyleStatsData((StyleCardType)cardIndex);
+        Sprite rightSprite = GetRightSprite((StyleCardType)cardIndex);
+
         if (statsData == null)
         {
             string styleName = GetStyleName((StyleCardType)cardIndex);
@@ -295,6 +311,21 @@ public class StyleChangeUiController : MonoBehaviour
         }
 
         _playerHealthComponent.ApplyStatsDataAndKeepConsumedHp(statsData);
+
+        if (rightSprite == null)
+        {
+            string styleName = GetStyleName((StyleCardType)cardIndex);
+            Debug.LogWarning($"StyleChangeUiController: {styleName}の右向き画像が未設定です。現在の画像を維持します。");
+            return true;
+        }
+
+        if (_spriteDirectionController == null)
+        {
+            Debug.LogWarning("StyleChangeUiController: SpriteDirectionControllerが見つからないため画像を更新できません。");
+            return true;
+        }
+
+        _spriteDirectionController.ApplyRightFacingSprite(rightSprite);
         return true;
     }
 
@@ -398,8 +429,8 @@ public class StyleChangeUiController : MonoBehaviour
         {
             case StyleCardType.Miko:
                 return "巫女";
-            case StyleCardType.Maid:
-                return "メイド";
+            case StyleCardType.Idol:
+                return "アイドル";
             case StyleCardType.Celeb:
                 return "セレブ";
             default:
@@ -418,10 +449,30 @@ public class StyleChangeUiController : MonoBehaviour
         {
             case StyleCardType.Miko:
                 return _mikoStyleStats;
-            case StyleCardType.Maid:
-                return _maidStyleStats;
+            case StyleCardType.Idol:
+                return _idolStyleStats;
             case StyleCardType.Celeb:
                 return _celebStyleStats;
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>
+    /// カード種別に対応する右向き画像を取得します。
+    /// </summary>
+    /// <param name="cardType">カード種別</param>
+    /// <returns>右向き画像</returns>
+    Sprite GetRightSprite(StyleCardType cardType)
+    {
+        switch (cardType)
+        {
+            case StyleCardType.Miko:
+                return _mikoRightSprite;
+            case StyleCardType.Idol:
+                return _idolRightSprite;
+            case StyleCardType.Celeb:
+                return _celebRightSprite;
             default:
                 return null;
         }
