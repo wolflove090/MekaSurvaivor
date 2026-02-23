@@ -1,0 +1,7 @@
+interface:
+  display_name: "Diff Understanding Share"
+  short_description: "origin/main差分を塊で要約し段階共有"
+  default_prompt: "Use $diff-understanding-share to analyze differences from origin/main, write the summary under output/, and explain each chunk only after user confirmation."
+
+policy:
+  allow_implicit_invocation: false
