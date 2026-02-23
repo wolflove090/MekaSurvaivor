@@ -1,33 +1,36 @@
-# スタイル変更 + 画像切り替え機能 ToDo
+# スタイル効果機能 ToDo
 
-## Phase 1: スタイル定義の整合
-- [x] `Assets/Scripts/UI/StyleChangeUiController.cs` のスタイル定義を「巫女 / アイドル / セレブ」に更新
-- [x] `StyleCardType.Maid` を `StyleCardType.Idol` に変更し、関連 `switch` と表示文言を修正
-- [x] スタイルステータス参照フィールド名を `_idolStyleStats` に統一
-- [x] カード説明テキストの命名整合（メイド表記の残存除去）
+## Phase 1: 効果オブジェクト基盤作成
+- [ ] `Assets/Scripts/Character/Player/PlayerStyleType.cs` を新規作成する
+- [ ] `Assets/Scripts/Character/Player/StyleEffects/IPlayerStyleEffect.cs` を作成する
+- [ ] `Assets/Scripts/Character/Player/StyleEffects/PlayerStyleEffectContext.cs` を作成する
+- [ ] `Assets/Scripts/Character/Player/StyleEffects/PlayerStyleEffectFactory.cs` を作成する
 
-## Phase 2: 画像適用ロジック追加
-- [x] `StyleChangeUiController` に右向き画像3種（巫女/アイドル/セレブ）の `SerializeField` を追加
-- [x] プレイヤー `SpriteDirectionController` 参照解決処理を追加
-- [x] スタイル適用処理で `CharacterStatsData` と右向き画像を同時解決する処理を実装
-- [x] 画像未設定時は警告ログのみ出して既存画像を維持するフォールバックを実装
+## Phase 2: スタイル別効果クラス実装
+- [ ] `MikoStyleEffect` を実装し、30秒回復タイマーを組み込む
+- [ ] `IdolStyleEffect` を実装し、移動速度倍率1.2の適用/解除を実装する
+- [ ] `CelebStyleEffect` を実装し、経験値倍率2.0の適用/解除を実装する
 
-## Phase 3: 向き制御の flipX 化
-- [x] `Assets/Scripts/Character/SpriteDirectionController.cs` を右向き基準 + `flipX` 制御へ変更
-- [x] `UpdateDirection(float)` を「画像差し替えなし」の実装へ変更
-- [x] 右向き画像適用と向きリセット（`flipX=false`）を行う公開メソッドを追加
-- [x] `GetFacingDirection()` の既存戻り値仕様（左/右）を維持
+## Phase 3: PlayerControllerへの統合
+- [ ] `PlayerController` に `_activeStyleEffect` と context を追加する
+- [ ] `ChangeStyle(PlayerStyleType styleType)` を実装する
+- [ ] `ChangeStyle` で `OnExit -> 生成差し替え -> OnEnter` を実行する
+- [ ] `Update` から `Tick` を委譲する
+- [ ] `SetMoveSpeedMultiplier(float)` を追加して `ApplyMoveSpeedFromStats` と連動させる
 
-## Phase 4: シーン参照更新
-- [x] `Assets/Main.unity` の `StyleChangeUiController` 参照キーを更新（`_maidStyleStats` -> `_idolStyleStats`）
-- [x] `Assets/Main.unity` に右向き画像3種（`miko.png`, `idol.png`, `celebrity.png`）を割り当て
-- [x] 必要に応じて `SpriteDirectionController` の旧フィールド参照を削除/再設定
+## Phase 4: PlayerExperience対応
+- [ ] `PlayerExperience` に経験値倍率フィールドを追加する
+- [ ] `SetExperienceMultiplier` / `ResetExperienceMultiplier` を追加する
+- [ ] `AddExperience` で倍率適用後の値を加算・通知する
 
-## Phase 5: 動作確認
-- [ ] レベル3でスタイルUIが開かず、レベル4で開くことを確認
-- [ ] UIカード文言が「巫女 / アイドル / セレブ」であることを確認
-- [ ] 各カード選択でステータス適用と画像切替が同時に実行されることを確認
-- [ ] スタイル変更直後が右向き表示（`flipX=false`）であることを確認
-- [ ] 左右移動時に `flipX` のみが変化し、画像再差し替えがないことを確認
-- [ ] 画像未設定時に例外なく継続し、警告ログのみ出ることを確認
-- [ ] HP消費量維持ロジック（`5/10 -> 10/15`）が維持されることを確認
+## Phase 5: StyleChangeUiController接続
+- [ ] スタイル適用成功後に `PlayerController.ChangeStyle` を呼び出す
+- [ ] カード種別から `PlayerStyleType` へ変換する処理を追加する
+- [ ] プレイヤー参照未解決時の警告ログを追加する
+
+## Phase 6: 動作確認
+- [ ] 巫女で30秒ごとにHPが1回復する
+- [ ] アイドルで移動速度が1.2倍になる
+- [ ] セレブで経験値獲得量が2倍になる
+- [ ] スタイル変更時に旧効果が解除される
+- [ ] 同一スタイル再選択で効果が再初期化される
