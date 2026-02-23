@@ -198,7 +198,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
     /// <param name="cardIndex">押下されたカードのインデックス（0始まり）</param>
     void ApplyWeaponUpgrade(int cardIndex)
     {
-        _player.AddWeapon((UpgradeCardType)cardIndex);
+        _player.ApplyWeaponUpgrade((UpgradeCardType)cardIndex);
     }
 
     /// <summary>
