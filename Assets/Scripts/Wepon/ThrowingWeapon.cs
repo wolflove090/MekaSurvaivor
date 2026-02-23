@@ -31,6 +31,22 @@ public class ThrowingWeapon : WeaponBase
     public ThrowingWeapon(Transform transform) : base(transform)
     {
         _playerController = _transform.GetComponent<PlayerController>();
+
+        BulletFactory bulletFactory = _transform.GetComponent<BulletFactory>();
+        if (bulletFactory == null)
+        {
+            Debug.LogWarning("BulletFactoryが見つかりません");
+            return;
+        }
+
+        _throwingBulletPrefab = bulletFactory.ThrowingBulletPrefab;
+        if (_throwingBulletPrefab == null)
+        {
+            Debug.LogWarning("BulletFactoryのThrowingBulletPrefabが設定されていません");
+            return;
+        }
+
+        InitializePool();
     }
 
     /// <summary>
@@ -40,21 +56,7 @@ public class ThrowingWeapon : WeaponBase
     {
         if (_throwingBulletPrefab == null)
         {
-            BulletFactory bulletFactory = _transform.GetComponent<BulletFactory>();
-            if (bulletFactory == null)
-            {
-                Debug.LogWarning("BulletFactoryが見つかりません");
-                return;
-            }
-
-            _throwingBulletPrefab = bulletFactory.ThrowingBulletPrefab;
-            if (_throwingBulletPrefab == null)
-            {
-                Debug.LogWarning("BulletFactoryのThrowingBulletPrefabが設定されていません");
-                return;
-            }
-
-            InitializePool();
+            Debug.LogWarning("_throwingBulletPrefabがありません");
             return;
         }
 

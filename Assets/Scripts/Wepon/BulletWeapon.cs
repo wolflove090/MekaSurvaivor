@@ -37,6 +37,21 @@ public class BulletWeapon : WeaponBase
 
     public BulletWeapon(Transform transform) : base(transform)
     {
+        BulletFactory bulletFactory = _transform.GetComponent<BulletFactory>();
+        if (bulletFactory == null)
+        {
+            Debug.LogWarning("BulletFactoryが見つかりません");
+            return;
+        }
+
+        _bulletPrefab = bulletFactory.BulletPrefab;
+        if (_bulletPrefab == null)
+        {
+            Debug.LogWarning("BulletFactoryのBulletPrefabが設定されていません");
+            return;
+        }
+
+        InitializePool();
     }
 
     /// <summary>
@@ -46,21 +61,7 @@ public class BulletWeapon : WeaponBase
     {
         if (_bulletPrefab == null)
         {
-            BulletFactory bulletFactory = _transform.GetComponent<BulletFactory>();
-            if (bulletFactory == null)
-            {
-                Debug.LogWarning("BulletFactoryが見つかりません");
-                return;
-            }
-
-            _bulletPrefab = bulletFactory.BulletPrefab;
-            if (_bulletPrefab == null)
-            {
-                Debug.LogWarning("BulletFactoryのBulletPrefabが設定されていません");
-                return;
-            }
-
-            InitializePool();
+            Debug.LogWarning("_bulletPrefabがありません");
             return;
         }
 

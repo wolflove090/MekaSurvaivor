@@ -87,7 +87,7 @@ public class PlayerController : MonoBehaviour
             gameObject.AddComponent<PlayerInput>();
         }
 
-        _weapon = new ThrowingWeapon(transform);
+        _weapon = new DamageFieldWeapon(transform);
         _healthComponent = GetComponent<HealthComponent>();
         _playerMovement = GetComponent<PlayerMovement>();
         _characterStats = GetComponent<CharacterStats>();

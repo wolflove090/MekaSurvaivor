@@ -37,6 +37,21 @@ public class DamageFieldWeapon : WeaponBase
 
     public DamageFieldWeapon(Transform transform) : base(transform)
     {
+        BulletFactory bulletFactory = _transform.GetComponent<BulletFactory>();
+        if (bulletFactory == null)
+        {
+            Debug.LogWarning("BulletFactoryが見つかりません");
+            return;
+        }
+
+        _damageFieldPrefab = bulletFactory.DamageFieldPrefab;
+        if (_damageFieldPrefab == null)
+        {
+            Debug.LogWarning("BulletFactoryのDamageFieldPrefabが設定されていません");
+            return;
+        }
+
+        InitializePool();
     }
 
     /// <summary>
@@ -46,21 +61,7 @@ public class DamageFieldWeapon : WeaponBase
     {
         if (_damageFieldPrefab == null)
         {
-            BulletFactory bulletFactory = _transform.GetComponent<BulletFactory>();
-            if (bulletFactory == null)
-            {
-                Debug.LogWarning("BulletFactoryが見つかりません");
-                return;
-            }
-
-            _damageFieldPrefab = bulletFactory.DamageFieldPrefab;
-            if (_damageFieldPrefab == null)
-            {
-                Debug.LogWarning("BulletFactoryのDamageFieldPrefabが設定されていません");
-                return;
-            }
-
-            InitializePool();
+            Debug.LogWarning("_damageFieldPrefabがありません");
             return;
         }
 
