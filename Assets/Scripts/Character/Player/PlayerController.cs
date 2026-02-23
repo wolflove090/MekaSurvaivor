@@ -18,6 +18,8 @@ public class PlayerController : MonoBehaviour
     PlayerStyleEffectFactory _styleEffectFactory;
     float _moveSpeedMultiplier = 1f;
 
+    WeaponBase _weapon;
+
     /// <summary>
     /// PlayerControllerのシングルトンインスタンスを取得します
     /// </summary>
@@ -85,6 +87,7 @@ public class PlayerController : MonoBehaviour
             gameObject.AddComponent<PlayerInput>();
         }
 
+        _weapon = new ThrowingWeapon(transform);
         _healthComponent = GetComponent<HealthComponent>();
         _playerMovement = GetComponent<PlayerMovement>();
         _characterStats = GetComponent<CharacterStats>();
@@ -135,12 +138,17 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        if (_isGameOver || _activeStyleEffect == null || _styleEffectContext == null)
+        if (_isGameOver)
         {
             return;
         }
 
-        _activeStyleEffect.Tick(_styleEffectContext, Time.deltaTime);
+        _weapon.Update();
+
+        if(_activeStyleEffect != null && _styleEffectContext != null)
+        {
+            _activeStyleEffect.Tick(_styleEffectContext, Time.deltaTime);
+        }
     }
 
     /// <summary>

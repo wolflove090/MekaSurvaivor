@@ -3,8 +3,10 @@ using UnityEngine;
 /// <summary>
 /// 武器のクールダウン制御を提供する基底クラス
 /// </summary>
-public abstract class WeaponBase : MonoBehaviour
+public abstract class WeaponBase
 {
+    protected Transform _transform;
+
     float _cooldownTimer;
 
     /// <summary>
@@ -17,12 +19,14 @@ public abstract class WeaponBase : MonoBehaviour
     /// </summary>
     protected abstract float CooldownDuration { get; }
 
-    protected virtual void Start()
+
+    public WeaponBase(Transform transform)
     {
+        _transform = transform;
         _cooldownTimer = CooldownDuration;
     }
 
-    protected virtual void Update()
+    public virtual void Update()
     {
         _cooldownTimer -= Time.deltaTime;
         if (_cooldownTimer > 0f)

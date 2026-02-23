@@ -23,17 +23,17 @@ public class WeaponUpgradeUiController : MonoBehaviour
     [Tooltip("武器強化UIのUSSアセット")]
     StyleSheet _styleSheet;
 
-    [SerializeField]
-    [Tooltip("Shooter強化対象の武器")]
-    BulletWeapon _shooterWeapon;
+    // [SerializeField]
+    // [Tooltip("Shooter強化対象の武器")]
+    // BulletWeapon _shooterWeapon;
 
-    [SerializeField]
-    [Tooltip("Throwing強化対象の武器")]
-    ThrowingWeapon _throwingWeapon;
+    // [SerializeField]
+    // [Tooltip("Throwing強化対象の武器")]
+    // ThrowingWeapon _throwingWeapon;
 
-    [SerializeField]
-    [Tooltip("DamageField強化対象の武器")]
-    DamageFieldWeapon _damageFieldWeapon;
+    // [SerializeField]
+    // [Tooltip("DamageField強化対象の武器")]
+    // DamageFieldWeapon _damageFieldWeapon;
 
     [SerializeField]
     [Tooltip("武器強化UI表示中に適用するUIDocumentのSort Order")]
@@ -56,7 +56,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
     /// </summary>
     void Awake()
     {
-        ResolveWeaponReferences();
+        // ResolveWeaponReferences();
         _uiDocument = GetComponent<UIDocument>();
         _defaultSortOrder = _uiDocument.sortingOrder;
         BuildUi();
@@ -202,23 +202,23 @@ public class WeaponUpgradeUiController : MonoBehaviour
     /// <summary>
     /// 未設定の武器参照をシーンから補完します。
     /// </summary>
-    void ResolveWeaponReferences()
-    {
-        if (_shooterWeapon == null)
-        {
-            _shooterWeapon = FindFirstObjectByType<BulletWeapon>();
-        }
+    // void ResolveWeaponReferences()
+    // {
+    //     if (_shooterWeapon == null)
+    //     {
+    //         _shooterWeapon = FindFirstObjectByType<BulletWeapon>();
+    //     }
 
-        if (_throwingWeapon == null)
-        {
-            _throwingWeapon = FindFirstObjectByType<ThrowingWeapon>();
-        }
+    //     if (_throwingWeapon == null)
+    //     {
+    //         _throwingWeapon = FindFirstObjectByType<ThrowingWeapon>();
+    //     }
 
-        if (_damageFieldWeapon == null)
-        {
-            _damageFieldWeapon = FindFirstObjectByType<DamageFieldWeapon>();
-        }
-    }
+    //     if (_damageFieldWeapon == null)
+    //     {
+    //         _damageFieldWeapon = FindFirstObjectByType<DamageFieldWeapon>();
+    //     }
+    // }
 
     /// <summary>
     /// カード種別に応じた武器強化を適用します。
@@ -226,21 +226,21 @@ public class WeaponUpgradeUiController : MonoBehaviour
     /// <param name="cardIndex">押下されたカードのインデックス（0始まり）</param>
     void ApplyWeaponUpgrade(int cardIndex)
     {
-        switch ((UpgradeCardType)cardIndex)
-        {
-            case UpgradeCardType.Shooter:
-                _shooterWeapon?.LevelUp();
-                break;
-            case UpgradeCardType.Throwing:
-                _throwingWeapon?.LevelUp();
-                break;
-            case UpgradeCardType.DamageField:
-                _damageFieldWeapon?.LevelUp();
-                break;
-            default:
-                Debug.LogWarning($"WeaponUpgradeUiController: 未対応のカードインデックスです。 index={cardIndex}");
-                break;
-        }
+        // switch ((UpgradeCardType)cardIndex)
+        // {
+        //     case UpgradeCardType.Shooter:
+        //         _shooterWeapon?.LevelUp();
+        //         break;
+        //     case UpgradeCardType.Throwing:
+        //         _throwingWeapon?.LevelUp();
+        //         break;
+        //     case UpgradeCardType.DamageField:
+        //         _damageFieldWeapon?.LevelUp();
+        //         break;
+        //     default:
+        //         Debug.LogWarning($"WeaponUpgradeUiController: 未対応のカードインデックスです。 index={cardIndex}");
+        //         break;
+        // }
     }
 
     /// <summary>
