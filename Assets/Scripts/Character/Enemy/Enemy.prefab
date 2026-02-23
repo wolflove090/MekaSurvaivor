@@ -199,8 +199,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ca0865be60834812a21c0f4791845a8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpriteDirectionController
-  _leftSprite: {fileID: 21300000, guid: d92181cb835d840878892d6f90c94d5d, type: 3}
-  _rightSprite: {fileID: 21300000, guid: 223de6ce286d94431b5a28cdb211a53c, type: 3}
+  _rightFacingSprite: {fileID: 21300000, guid: 223de6ce286d94431b5a28cdb211a53c, type: 3}
 --- !u!114 &2008527063541314173
 MonoBehaviour:
   m_ObjectHideFlags: 0
