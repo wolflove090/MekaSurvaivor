@@ -35,7 +35,7 @@ public class DamageFieldWeapon : WeaponBase
 
     protected override float CooldownDuration => _spawnInterval;
 
-    public DamageFieldWeapon(Transform transform) : base(transform)
+    public DamageFieldWeapon(Transform transform , WeaponBase rideWeapon) : base(transform, rideWeapon)
     {
         BulletFactory bulletFactory = _transform.GetComponent<BulletFactory>();
         if (bulletFactory == null)

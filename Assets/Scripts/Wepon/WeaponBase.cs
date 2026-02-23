@@ -9,6 +9,9 @@ public abstract class WeaponBase
 
     float _cooldownTimer;
 
+    // デコレーションパターンで武器を増やす
+    WeaponBase _rideWeapon;
+
     /// <summary>
     /// 現在の強化レベルを取得します
     /// </summary>
@@ -19,15 +22,21 @@ public abstract class WeaponBase
     /// </summary>
     protected abstract float CooldownDuration { get; }
 
-
-    public WeaponBase(Transform transform)
+    public WeaponBase(Transform transform, WeaponBase rideWeapon)
     {
         _transform = transform;
         _cooldownTimer = CooldownDuration;
+        _rideWeapon = rideWeapon;
     }
 
     public virtual void Update()
     {
+        if(_rideWeapon != null)
+        {
+            // 別の武器が存在している場合はその処理も実行
+            _rideWeapon.Update();
+        }
+
         _cooldownTimer -= Time.deltaTime;
         if (_cooldownTimer > 0f)
         {

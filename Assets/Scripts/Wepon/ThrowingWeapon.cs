@@ -28,7 +28,7 @@ public class ThrowingWeapon : WeaponBase
 
     protected override float CooldownDuration => _shootInterval;
 
-    public ThrowingWeapon(Transform transform) : base(transform)
+    public ThrowingWeapon(Transform transform , WeaponBase rideWeapon) : base(transform, rideWeapon)
     {
         _playerController = _transform.GetComponent<PlayerController>();
 

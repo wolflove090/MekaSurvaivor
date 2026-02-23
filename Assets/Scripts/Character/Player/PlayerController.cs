@@ -87,7 +87,7 @@ public class PlayerController : MonoBehaviour
             gameObject.AddComponent<PlayerInput>();
         }
 
-        _weapon = new DamageFieldWeapon(transform);
+        _weapon = new BulletWeapon(transform, null);
         _healthComponent = GetComponent<HealthComponent>();
         _playerMovement = GetComponent<PlayerMovement>();
         _characterStats = GetComponent<CharacterStats>();
@@ -148,6 +148,25 @@ public class PlayerController : MonoBehaviour
         if(_activeStyleEffect != null && _styleEffectContext != null)
         {
             _activeStyleEffect.Tick(_styleEffectContext, Time.deltaTime);
+        }
+    }
+
+    public void AddWeapon(WeaponUpgradeUiController.UpgradeCardType type)
+    {
+        switch (type)
+        {
+            case WeaponUpgradeUiController.UpgradeCardType.Shooter:
+                _weapon = new BulletWeapon(transform, _weapon);
+                break;
+            case WeaponUpgradeUiController.UpgradeCardType.Throwing:
+                _weapon = new ThrowingWeapon(transform, _weapon);
+                break;
+            case WeaponUpgradeUiController.UpgradeCardType.DamageField:
+                _weapon = new DamageFieldWeapon(transform, _weapon);
+                break;
+            default:
+                Debug.LogWarning($"PlayerController: 未対応のタイプです。 type={type}");
+                break;
         }
     }
 

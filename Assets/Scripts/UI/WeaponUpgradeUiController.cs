@@ -8,7 +8,8 @@ using UnityEngine.UIElements;
 [RequireComponent(typeof(UIDocument))]
 public class WeaponUpgradeUiController : MonoBehaviour
 {
-    enum UpgradeCardType
+    // TODO 別ファイルとして定義する
+    public enum UpgradeCardType
     {
         Shooter = 0,
         Throwing = 1,
@@ -23,17 +24,9 @@ public class WeaponUpgradeUiController : MonoBehaviour
     [Tooltip("武器強化UIのUSSアセット")]
     StyleSheet _styleSheet;
 
-    // [SerializeField]
-    // [Tooltip("Shooter強化対象の武器")]
-    // BulletWeapon _shooterWeapon;
-
-    // [SerializeField]
-    // [Tooltip("Throwing強化対象の武器")]
-    // ThrowingWeapon _throwingWeapon;
-
-    // [SerializeField]
-    // [Tooltip("DamageField強化対象の武器")]
-    // DamageFieldWeapon _damageFieldWeapon;
+    [SerializeField]
+    [Tooltip("強化対象")]
+    PlayerController _player;
 
     [SerializeField]
     [Tooltip("武器強化UI表示中に適用するUIDocumentのSort Order")]
@@ -200,47 +193,12 @@ public class WeaponUpgradeUiController : MonoBehaviour
     }
 
     /// <summary>
-    /// 未設定の武器参照をシーンから補完します。
-    /// </summary>
-    // void ResolveWeaponReferences()
-    // {
-    //     if (_shooterWeapon == null)
-    //     {
-    //         _shooterWeapon = FindFirstObjectByType<BulletWeapon>();
-    //     }
-
-    //     if (_throwingWeapon == null)
-    //     {
-    //         _throwingWeapon = FindFirstObjectByType<ThrowingWeapon>();
-    //     }
-
-    //     if (_damageFieldWeapon == null)
-    //     {
-    //         _damageFieldWeapon = FindFirstObjectByType<DamageFieldWeapon>();
-    //     }
-    // }
-
-    /// <summary>
-    /// カード種別に応じた武器強化を適用します。
+    /// カード種別に応じた武器強化を適用、または武器の獲得を行います
     /// </summary>
     /// <param name="cardIndex">押下されたカードのインデックス（0始まり）</param>
     void ApplyWeaponUpgrade(int cardIndex)
     {
-        // switch ((UpgradeCardType)cardIndex)
-        // {
-        //     case UpgradeCardType.Shooter:
-        //         _shooterWeapon?.LevelUp();
-        //         break;
-        //     case UpgradeCardType.Throwing:
-        //         _throwingWeapon?.LevelUp();
-        //         break;
-        //     case UpgradeCardType.DamageField:
-        //         _damageFieldWeapon?.LevelUp();
-        //         break;
-        //     default:
-        //         Debug.LogWarning($"WeaponUpgradeUiController: 未対応のカードインデックスです。 index={cardIndex}");
-        //         break;
-        // }
+        _player.AddWeapon((UpgradeCardType)cardIndex);
     }
 
     /// <summary>

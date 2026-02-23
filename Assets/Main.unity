@@ -600,6 +600,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponUpgradeUiController
   _layoutAsset: {fileID: 9197481963319205126, guid: d94e67f8435964a2a8b90d0168277cdd, type: 3}
   _styleSheet: {fileID: 7433441132597879392, guid: 9147c165db3b14e77b8a9b0ffce545f1, type: 3}
+  _player: {fileID: 153723276}
   _sortOrderWhileOpen: 100
 --- !u!114 &469418916
 MonoBehaviour:
