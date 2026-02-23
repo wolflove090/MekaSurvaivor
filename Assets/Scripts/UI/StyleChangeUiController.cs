@@ -64,6 +64,7 @@ public class StyleChangeUiController : MonoBehaviour
     Label[] _titleLabels;
     Label[] _descriptionLabels;
     Action[] _cardClickHandlers;
+    PlayerController _playerController;
     HealthComponent _playerHealthComponent;
     SpriteDirectionController _spriteDirectionController;
     bool _isStyleUiOpen;
@@ -130,6 +131,7 @@ public class StyleChangeUiController : MonoBehaviour
             return;
         }
 
+        _playerController = player;
         _playerHealthComponent = player.GetComponent<HealthComponent>();
         _spriteDirectionController = player.GetComponent<SpriteDirectionController>();
     }
@@ -277,6 +279,7 @@ public class StyleChangeUiController : MonoBehaviour
             return;
         }
 
+        TryChangePlayerStyle(cardIndex);
         OnStyleCardSelected?.Invoke(cardIndex);
         CloseStyleUi();
     }
@@ -327,6 +330,52 @@ public class StyleChangeUiController : MonoBehaviour
 
         _spriteDirectionController.ApplyRightFacingSprite(rightSprite);
         return true;
+    }
+
+    /// <summary>
+    /// カード選択に対応するスタイル効果をプレイヤーへ適用します。
+    /// </summary>
+    /// <param name="cardIndex">押下されたカードのインデックス（0始まり）</param>
+    void TryChangePlayerStyle(int cardIndex)
+    {
+        if (_playerController == null)
+        {
+            Debug.LogWarning("StyleChangeUiController: PlayerController参照が未解決のためスタイル効果を適用できません。");
+            return;
+        }
+
+        if (!TryConvertToPlayerStyleType(cardIndex, out PlayerStyleType styleType))
+        {
+            Debug.LogWarning($"StyleChangeUiController: PlayerStyleTypeへ変換できないカードインデックスです。 index={cardIndex}");
+            return;
+        }
+
+        _playerController.ChangeStyle(styleType);
+    }
+
+    /// <summary>
+    /// カードインデックスをプレイヤースタイル種別へ変換します。
+    /// </summary>
+    /// <param name="cardIndex">カードのインデックス</param>
+    /// <param name="styleType">変換後のスタイル種別</param>
+    /// <returns>変換に成功した場合はtrue</returns>
+    bool TryConvertToPlayerStyleType(int cardIndex, out PlayerStyleType styleType)
+    {
+        switch ((StyleCardType)cardIndex)
+        {
+            case StyleCardType.Miko:
+                styleType = PlayerStyleType.Miko;
+                return true;
+            case StyleCardType.Idol:
+                styleType = PlayerStyleType.Idol;
+                return true;
+            case StyleCardType.Celeb:
+                styleType = PlayerStyleType.Celeb;
+                return true;
+            default:
+                styleType = default;
+                return false;
+        }
     }
 
     /// <summary>

@@ -389,7 +389,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerExperience
   _startLevel: 1
   _baseExperienceRequired: 1
-  _experienceScaling: 1.5
+  _experienceScaling: 1
 --- !u!114 &153723292
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -12,6 +12,11 @@ public class PlayerController : MonoBehaviour
     HealthComponent _healthComponent;
     PlayerMovement _playerMovement;
     CharacterStats _characterStats;
+    PlayerExperience _playerExperience;
+    IPlayerStyleEffect _activeStyleEffect;
+    PlayerStyleEffectContext _styleEffectContext;
+    PlayerStyleEffectFactory _styleEffectFactory;
+    float _moveSpeedMultiplier = 1f;
 
     /// <summary>
     /// PlayerControllerのシングルトンインスタンスを取得します
@@ -83,6 +88,8 @@ public class PlayerController : MonoBehaviour
         _healthComponent = GetComponent<HealthComponent>();
         _playerMovement = GetComponent<PlayerMovement>();
         _characterStats = GetComponent<CharacterStats>();
+        _playerExperience = GetComponent<PlayerExperience>();
+        _styleEffectFactory = new PlayerStyleEffectFactory();
 
         if (_characterStats == null)
         {
@@ -94,7 +101,13 @@ public class PlayerController : MonoBehaviour
             _playerMovement = gameObject.AddComponent<PlayerMovement>();
         }
 
+        if (_playerExperience == null)
+        {
+            Debug.LogWarning("PlayerController: PlayerExperienceが見つからないため、スタイル効果の経験値倍率は適用されません。");
+        }
+
         _isGameOver = false;
+        BuildStyleEffectContext();
 
         if (_healthComponent != null)
         {
@@ -117,6 +130,56 @@ public class PlayerController : MonoBehaviour
 
     void OnEnable()
     {
+        ApplyMoveSpeedFromStats();
+    }
+
+    void Update()
+    {
+        if (_isGameOver || _activeStyleEffect == null || _styleEffectContext == null)
+        {
+            return;
+        }
+
+        _activeStyleEffect.Tick(_styleEffectContext, Time.deltaTime);
+    }
+
+    /// <summary>
+    /// プレイヤーのスタイル効果を切り替えます
+    /// </summary>
+    /// <param name="styleType">適用するスタイル種別</param>
+    public void ChangeStyle(PlayerStyleType styleType)
+    {
+        if (_styleEffectContext == null)
+        {
+            BuildStyleEffectContext();
+            if (_styleEffectContext == null)
+            {
+                Debug.LogWarning("PlayerController: スタイル効果コンテキストが未初期化のためスタイル変更できません。");
+                return;
+            }
+        }
+
+        ResetStyleParameters();
+
+        try
+        {
+            _activeStyleEffect = _styleEffectFactory.Create(styleType);
+            _activeStyleEffect.ApplyParameters(_styleEffectContext);
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"PlayerController: スタイル変更中にエラーが発生しました。 styleType={styleType}, message={ex.Message}");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 移動速度倍率を設定します
+    /// </summary>
+    /// <param name="multiplier">移動速度倍率</param>
+    public void SetMoveSpeedMultiplier(float multiplier)
+    {
+        _moveSpeedMultiplier = Mathf.Max(0f, multiplier);
         ApplyMoveSpeedFromStats();
     }
 
@@ -149,6 +212,9 @@ public class PlayerController : MonoBehaviour
 
     void OnDestroy()
     {
+        ResetStyleParameters();
+        _activeStyleEffect = null;
+
         if (_healthComponent != null)
         {
             _healthComponent.OnDied -= GameOver;
@@ -212,7 +278,7 @@ public class PlayerController : MonoBehaviour
     {
         if (_playerMovement != null && _characterStats != null)
         {
-            _playerMovement.MoveSpeed = _characterStats.Spd;
+            _playerMovement.MoveSpeed = _characterStats.Spd * _moveSpeedMultiplier;
         }
     }
 
@@ -222,5 +288,28 @@ public class PlayerController : MonoBehaviour
     void OnStatsDataChanged()
     {
         ApplyMoveSpeedFromStats();
+    }
+
+    /// <summary>
+    /// スタイル効果で変更されるパラメータを基準値へ戻します
+    /// </summary>
+    void ResetStyleParameters()
+    {
+        SetMoveSpeedMultiplier(1f);
+        _playerExperience?.ResetExperienceMultiplier();
+    }
+
+    /// <summary>
+    /// スタイル効果に必要な参照コンテキストを構築します
+    /// </summary>
+    void BuildStyleEffectContext()
+    {
+        if (_healthComponent == null || _playerExperience == null)
+        {
+            _styleEffectContext = null;
+            return;
+        }
+
+        _styleEffectContext = new PlayerStyleEffectContext(_healthComponent, _playerExperience, this);
     }
 }
