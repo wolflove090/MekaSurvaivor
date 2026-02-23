@@ -21,6 +21,7 @@ public class PlayerExperience : MonoBehaviour
     int _currentLevel;
     int _currentExperience;
     int _experienceToNextLevel;
+    float _experienceMultiplier = 1f;
 
     /// <summary>
     /// 現在のレベルを取得します
@@ -37,6 +38,11 @@ public class PlayerExperience : MonoBehaviour
     /// </summary>
     public int ExperienceToNextLevel => _experienceToNextLevel;
 
+    /// <summary>
+    /// 経験値倍率を取得します
+    /// </summary>
+    public float ExperienceMultiplier => _experienceMultiplier;
+
     void Awake()
     {
         _currentLevel = _startLevel;
@@ -52,14 +58,34 @@ public class PlayerExperience : MonoBehaviour
     {
         if (amount <= 0) return;
 
-        _currentExperience += amount;
-        GameEvents.RaiseExperienceGained(amount, _currentExperience, _experienceToNextLevel);
+        int adjustedAmount = Mathf.RoundToInt(amount * _experienceMultiplier);
+        if (adjustedAmount <= 0) return;
+
+        _currentExperience += adjustedAmount;
+        GameEvents.RaiseExperienceGained(adjustedAmount, _currentExperience, _experienceToNextLevel);
 
         // レベルアップ判定
         while (_currentExperience >= _experienceToNextLevel)
         {
             LevelUp();
         }
+    }
+
+    /// <summary>
+    /// 経験値倍率を設定します
+    /// </summary>
+    /// <param name="multiplier">設定する倍率</param>
+    public void SetExperienceMultiplier(float multiplier)
+    {
+        _experienceMultiplier = Mathf.Max(0f, multiplier);
+    }
+
+    /// <summary>
+    /// 経験値倍率を初期値へ戻します
+    /// </summary>
+    public void ResetExperienceMultiplier()
+    {
+        _experienceMultiplier = 1f;
     }
 
     /// <summary>
