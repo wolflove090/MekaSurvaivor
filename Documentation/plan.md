@@ -1,69 +1,100 @@
-# スタイル変更機能 実装計画
+# 回復アイテム生成機能 実装計画
 
 ## 実装方針
-- 既存の `WeaponUpgradeUiController`（通常レベルの武器強化）に対して、3の倍数レベル専用の `StyleChangeUiController` を追加する。
-- どちらも同一UXML/USS（3カード）を使い回し、カード文言だけを用途別に設定する。
-- プレイヤーステータス差し替えを可能にするため、`CharacterStats` に `CharacterStatsData` 適用APIを追加する。
-- スタイル適用時に `HealthComponent` で「消費HP維持」の再計算を実行し、`PlayerController` で移動速度を再同期する。
+- 破壊可能オブジェクト、回復アイテム、生成管理をそれぞれ独立コンポーネントとして追加し、責務を分離する。
+- 回復アイテムの追従/取得ロジックは `ExperienceOrb` と同じ形式（接近で追従、接触距離で取得）で実装する。
+- 既存の `ObjectPool<T>` / `PooledObject` を利用し、破壊可能オブジェクトと回復アイテムの生成/回収をプール運用に統一する。
+- オートロック優先度は `BulletWeapon` のターゲット探索順を変更し、敵検索がヒットしない場合のみオブジェクト検索へフォールバックする。
+- 攻撃ヒット判定は `ProjectileController` の対象判定を拡張し、エネミーに加えて破壊可能オブジェクトにも `IDamageable` 経由でダメージを通す。
+- オブジェクトのスポーン位置はカメラ外縁10px外側を基準にし、10pxオフセット方向をXZ平面ランダムで付与する。
 
 ## 変更対象ファイル一覧
-- `Assets/Scripts/UI/StyleChangeUiController.cs`（新規）
-  - レベル3ごとの表示制御
-  - 巫女/メイド/セレブ文言の設定
-  - 選択時のステータス適用
-- `Assets/Scripts/UI/WeaponUpgradeUiController.cs`
-  - 3の倍数レベルではUIを開かない分岐追加（通常レベルのみ表示）
-- `Assets/Scripts/Character/Stats/CharacterStats.cs`
-  - `CharacterStatsData` 差し替えAPI追加
-  - ステータス更新イベント追加
-- `Assets/Scripts/Character/HealthComponent.cs`
-  - スタイル変更時のHP再計算API追加（消費HP維持）
-- `Assets/Scripts/Character/Player/PlayerController.cs`
-  - ステータス変更イベント購読
-  - 移動速度再反映処理追加
+- `Assets/Scripts/Item/BreakableObject.cs`（新規）
+  - `IDamageable` 実装、HP1固定、死亡時に回復アイテム生成、スポーナーへの登録解除通知
+- `Assets/Scripts/Item/BreakableObjectSpawner.cs`（新規）
+  - 30秒インターバル、同時存在3個制限、カメラ外縁10px条件でのスポーン位置算出、検索API提供
+- `Assets/Scripts/Item/HealPickup.cs`（新規）
+  - 経験値オーブ同等の追従/取得挙動、取得時 `HealthComponent.Heal(3)` 呼び出し
+- `Assets/Scripts/Item/HealPickupSpawner.cs`（新規）
+  - 回復アイテムのプール管理とスポーン窓口
+- `Assets/Scripts/Wepon/BulletWeapon.cs`
+  - ターゲット探索順を「敵優先、見つからなければ破壊可能オブジェクト」に変更
+- `Assets/Scripts/Wepon/ProjectileController.cs`
+  - 衝突対象判定を拡張し、破壊可能オブジェクトにもダメージ適用
+- `Assets/Scripts/Character/Enemy/EnemySpawner.cs`
+  - 既存の敵検索APIは維持（優先度制御の第一段として継続利用）
+- `Assets/Scripts/Item/Prefabs/*.prefab`（新規想定）
+  - 破壊可能オブジェクト用プレハブ、回復アイテム用プレハブ、必要なCollider/Tag設定
 
-## 処理フロー
-1. `GameEvents.OnPlayerLevelUp(newLevel)` を `WeaponUpgradeUiController` と `StyleChangeUiController` が受信。
-2. `newLevel % 3 != 0` の場合は武器強化UIのみ開く。`newLevel % 3 == 0` の場合はスタイル変更UIのみ開く。
-3. スタイル変更UIカード押下でスタイル種別（巫女/メイド/セレブ）を決定。
-4. 対応する `CharacterStatsData` を `CharacterStats.ApplyStatsData(data)` でプレイヤーへ適用。
-5. 適用直前の `previousCurrentHp` / `previousMaxHp` と新 `newMaxHp` から消費HP維持で現在HPを再計算。
-6. `PlayerController` がステータス変更イベントを受けて移動速度を再反映。
-7. UIを閉じてゲーム進行を再開。
+## データフロー / 処理フロー
+1. `BreakableObjectSpawner` が30秒ごとに生成判定を実行する。
+2. 現在の生存オブジェクト数が3未満の場合のみ、カメラ外縁10px外側の候補位置を計算してスポーンする。
+3. プレイヤー武器（弾）が衝突すると `ProjectileController` が `IDamageable` へダメージを適用する。
+4. `BreakableObject` のHPが0以下になると破壊処理を実行し、`HealPickupSpawner` に生成要求を送る。
+5. `HealPickup` は待機し、プレイヤーが近づくと追従を開始、取得距離で回収される。
+6. 回収時にプレイヤーの `HealthComponent.Heal(3)` を実行し、自身をプールへ返却する。
+7. `BulletWeapon` は発射ごとに `EnemySpawner.FindNearestEnemy(..., onlyVisible: true)` を先に呼び、未検出時のみ `BreakableObjectSpawner.FindNearestBreakableObject(..., onlyVisible: true)` を呼ぶ。
+
+## カメラ外縁10px位置の算出方針
+- `Camera.main` とプレイヤー高度（XZ平面）を基準に、スクリーン境界外の点をサンプリングする。
+- 画面端のランダム辺を選択し、画面外へ10pxオフセットしたスクリーン座標を作る。
+- さらにXZ平面ランダム方向ベクトルで「10px相当のワールド距離」分だけ補正する。
+- `Camera.ScreenPointToRay` と生成平面（Y固定Plane）の交点をワールド生成位置として採用する。
+- 有効候補を一定回数試行して見つからない場合は、その周期の生成をスキップする。
 
 ## リスクと対策
-- リスク: スタイルアセット未設定で適用不能。
-  - 対策: Inspector参照未設定時は警告を出して適用を中断する。
-- リスク: MaxHP変更時の現在HP再計算ミス。
-  - 対策: `currentHp = max(1, newMaxHp - (previousMaxHp - previousCurrentHp))` を共通APIで計算する。
-- リスク: 既存武器強化文言との混在。
-  - 対策: 武器強化UIとスタイル変更UIを別コンポーネントとして分離し、責務を固定する。
+- リスク: カメラ投影方式（Perspective/Orthographic）差で10pxのワールド換算誤差が出る。
+  - 対策: 生成平面上で `ScreenPointToRay` 交点を用いて都度換算し、固定値のワールド距離を直接使わない。
+- リスク: タグ依存の衝突判定が崩れると既存の敵ダメージ処理に影響。
+  - 対策: `IDamageable` とタグ条件を併用し、敵処理の既存分岐を後方互換で残す。
+- リスク: 破壊済みオブジェクト参照が残り、最大数制御が不正になる。
+  - 対策: スポーナー側で `null` クリーンアップを毎周期実行し、破壊時に明示的な解除APIも呼ぶ。
+- リスク: 回復アイテムがプレイヤー未取得で増殖し続ける。
+  - 対策: 回復アイテム側に寿命タイマー（必要なら）を持たせる余地を残し、初期実装はプール返却経路を監視ログで確認する。
 
 ## 検証方針
-- Play Modeでレベルを上げ、2→3→4の順にUI表示条件を確認。
-- 各スタイルを1回ずつ選択し、GameScreen UIのHP/POW/SPD値反映を確認。
-- HP再計算の確認: `5/10` から巫女選択後に `10/15` になることを確認。
-- UI表示時の停止と、選択後の再開を確認。
+- 30秒経過ごとにオブジェクト生成判定が行われることをPlay Modeで確認する。
+- オブジェクトが3個存在する状態で、4個目が生成されないことを確認する。
+- 生成位置がカメラ画面外であり、外縁近傍（約10px）に出現することを確認する。
+- 弾でオブジェクトを攻撃し、1ヒットで破壊され回復アイテムが1つ生成されることを確認する。
+- 回復アイテム取得でHPが3回復し、`MaxHp` を超えないことを確認する。
+- 敵とオブジェクトが同時に可視範囲にいる状況で、弾が敵を優先して狙うことを確認する。
+- 敵不在時にのみオブジェクトへ自動照準することを確認する。
 
-## コードスニペット（変更イメージ）
+## コードスニペット（主要変更イメージ）
 ```csharp
-void OnPlayerLevelUp(int newLevel)
+protected override void Fire()
 {
-    if (newLevel <= 0 || newLevel % 3 == 0)
+    Vector3 shootPosition = transform.position + _shootOffset;
+
+    GameObject target = EnemySpawner.Instance != null
+        ? EnemySpawner.Instance.FindNearestEnemy(shootPosition, onlyVisible: true)
+        : null;
+
+    if (target == null && BreakableObjectSpawner.Instance != null)
+    {
+        target = BreakableObjectSpawner.Instance.FindNearestBreakableObject(shootPosition, onlyVisible: true);
+    }
+
+    if (target == null)
     {
         return;
     }
 
-    OpenUpgradeUi();
+    Vector3 direction = (target.transform.position - shootPosition).normalized;
+    direction.y = 0f;
+    SpawnBullet(shootPosition, direction);
 }
 
-public void ApplyStyleAndKeepConsumedHp(CharacterStatsData newStatsData)
+Vector3 CalculateOffscreenSpawnPosition(Camera camera)
 {
-    int previousCurrentHp = _currentHp;
-    int previousMaxHp = MaxHp;
+    Vector2 edgePoint = PickRandomOffscreenEdgePoint(camera.pixelWidth, camera.pixelHeight, 10f);
+    Vector3 worldPoint = ScreenPointToGround(camera, edgePoint, _spawnPlaneY);
 
-    _characterStats.ApplyStatsData(newStatsData);
-    int consumedHp = Mathf.Max(0, previousMaxHp - previousCurrentHp);
-    _currentHp = Mathf.Max(1, MaxHp - consumedHp);
+    Vector2 randomDir2D = Random.insideUnitCircle.normalized;
+    Vector3 randomDir = new Vector3(randomDir2D.x, 0f, randomDir2D.y);
+    float worldOffset = ConvertPixelToWorldDistance(camera, 10f, _spawnPlaneY);
+
+    return worldPoint + randomDir * worldOffset;
 }
 ```
