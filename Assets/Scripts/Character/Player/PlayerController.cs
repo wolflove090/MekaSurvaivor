@@ -159,9 +159,18 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        _activeStyleEffect?.OnExit(_styleEffectContext);
-        _activeStyleEffect = _styleEffectFactory.Create(styleType);
-        _activeStyleEffect.OnEnter(_styleEffectContext);
+        ResetStyleParameters();
+
+        try
+        {
+            _activeStyleEffect = _styleEffectFactory.Create(styleType);
+            _activeStyleEffect.ApplyParameters(_styleEffectContext);
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"PlayerController: スタイル変更中にエラーが発生しました。 styleType={styleType}, message={ex.Message}");
+            throw;
+        }
     }
 
     /// <summary>
@@ -203,11 +212,8 @@ public class PlayerController : MonoBehaviour
 
     void OnDestroy()
     {
-        if (_activeStyleEffect != null && _styleEffectContext != null)
-        {
-            _activeStyleEffect.OnExit(_styleEffectContext);
-            _activeStyleEffect = null;
-        }
+        ResetStyleParameters();
+        _activeStyleEffect = null;
 
         if (_healthComponent != null)
         {
@@ -282,6 +288,15 @@ public class PlayerController : MonoBehaviour
     void OnStatsDataChanged()
     {
         ApplyMoveSpeedFromStats();
+    }
+
+    /// <summary>
+    /// スタイル効果で変更されるパラメータを基準値へ戻します
+    /// </summary>
+    void ResetStyleParameters()
+    {
+        SetMoveSpeedMultiplier(1f);
+        _playerExperience?.ResetExperienceMultiplier();
     }
 
     /// <summary>

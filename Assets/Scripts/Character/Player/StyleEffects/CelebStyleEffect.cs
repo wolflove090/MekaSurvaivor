@@ -11,21 +11,12 @@ public class CelebStyleEffect : IPlayerStyleEffect
     public PlayerStyleType StyleType => PlayerStyleType.Celeb;
 
     /// <summary>
-    /// 効果適用開始時に経験値倍率を設定します
+    /// 効果パラメータ適用時に経験値倍率を設定します
     /// </summary>
     /// <param name="context">スタイル効果コンテキスト</param>
-    public void OnEnter(PlayerStyleEffectContext context)
+    public void ApplyParameters(PlayerStyleEffectContext context)
     {
         context?.PlayerExperience?.SetExperienceMultiplier(EXPERIENCE_MULTIPLIER);
-    }
-
-    /// <summary>
-    /// 効果解除時に経験値倍率を初期値へ戻します
-    /// </summary>
-    /// <param name="context">スタイル効果コンテキスト</param>
-    public void OnExit(PlayerStyleEffectContext context)
-    {
-        context?.PlayerExperience?.ResetExperienceMultiplier();
     }
 
     /// <summary>

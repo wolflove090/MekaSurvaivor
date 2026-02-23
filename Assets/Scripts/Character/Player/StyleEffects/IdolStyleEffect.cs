@@ -11,21 +11,12 @@ public class IdolStyleEffect : IPlayerStyleEffect
     public PlayerStyleType StyleType => PlayerStyleType.Idol;
 
     /// <summary>
-    /// 効果適用開始時に移動速度倍率を設定します
+    /// 効果パラメータ適用時に移動速度倍率を設定します
     /// </summary>
     /// <param name="context">スタイル効果コンテキスト</param>
-    public void OnEnter(PlayerStyleEffectContext context)
+    public void ApplyParameters(PlayerStyleEffectContext context)
     {
         context?.PlayerController?.SetMoveSpeedMultiplier(MOVE_SPEED_MULTIPLIER);
-    }
-
-    /// <summary>
-    /// 効果解除時に移動速度倍率を初期値へ戻します
-    /// </summary>
-    /// <param name="context">スタイル効果コンテキスト</param>
-    public void OnExit(PlayerStyleEffectContext context)
-    {
-        context?.PlayerController?.SetMoveSpeedMultiplier(1f);
     }
 
     /// <summary>

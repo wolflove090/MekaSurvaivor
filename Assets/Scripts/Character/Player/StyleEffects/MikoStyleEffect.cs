@@ -14,19 +14,10 @@ public class MikoStyleEffect : IPlayerStyleEffect
     public PlayerStyleType StyleType => PlayerStyleType.Miko;
 
     /// <summary>
-    /// 効果適用開始時に内部タイマーを初期化します
+    /// 効果パラメータ適用時に内部タイマーを初期化します
     /// </summary>
     /// <param name="context">スタイル効果コンテキスト</param>
-    public void OnEnter(PlayerStyleEffectContext context)
-    {
-        _timer = 0f;
-    }
-
-    /// <summary>
-    /// 効果解除時に内部タイマーをリセットします
-    /// </summary>
-    /// <param name="context">スタイル効果コンテキスト</param>
-    public void OnExit(PlayerStyleEffectContext context)
+    public void ApplyParameters(PlayerStyleEffectContext context)
     {
         _timer = 0f;
     }

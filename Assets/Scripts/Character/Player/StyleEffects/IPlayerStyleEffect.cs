@@ -9,16 +9,10 @@ public interface IPlayerStyleEffect
     PlayerStyleType StyleType { get; }
 
     /// <summary>
-    /// 効果適用開始時の処理を実行します
+    /// 効果パラメータを適用します
     /// </summary>
     /// <param name="context">スタイル効果コンテキスト</param>
-    void OnEnter(PlayerStyleEffectContext context);
-
-    /// <summary>
-    /// 効果解除時の処理を実行します
-    /// </summary>
-    /// <param name="context">スタイル効果コンテキスト</param>
-    void OnExit(PlayerStyleEffectContext context);
+    void ApplyParameters(PlayerStyleEffectContext context);
 
     /// <summary>
     /// 毎フレームの効果更新処理を実行します
