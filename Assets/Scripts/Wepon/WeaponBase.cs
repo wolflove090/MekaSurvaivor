@@ -3,9 +3,14 @@ using UnityEngine;
 /// <summary>
 /// 武器のクールダウン制御を提供する基底クラス
 /// </summary>
-public abstract class WeaponBase : MonoBehaviour
+public abstract class WeaponBase
 {
+    protected Transform _transform;
+
     float _cooldownTimer;
+
+    // デコレーションパターンで武器を増やす
+    WeaponBase _rideWeapon;
 
     /// <summary>
     /// 現在の強化レベルを取得します
@@ -17,13 +22,21 @@ public abstract class WeaponBase : MonoBehaviour
     /// </summary>
     protected abstract float CooldownDuration { get; }
 
-    protected virtual void Start()
+    public WeaponBase(Transform transform, WeaponBase rideWeapon)
     {
+        _transform = transform;
         _cooldownTimer = CooldownDuration;
+        _rideWeapon = rideWeapon;
     }
 
-    protected virtual void Update()
+    public virtual void Update()
     {
+        if(_rideWeapon != null)
+        {
+            // 別の武器が存在している場合はその処理も実行
+            _rideWeapon.Update();
+        }
+
         _cooldownTimer -= Time.deltaTime;
         if (_cooldownTimer > 0f)
         {

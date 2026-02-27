@@ -6,25 +6,19 @@ using UnityEngine;
 public class DamageFieldWeapon : WeaponBase
 {
     [Header("生成設定")]
-    [SerializeField]
-    [Tooltip("ダメージフィールドのプレハブ")]
     GameObject _damageFieldPrefab;
 
-    [SerializeField]
     [Tooltip("生成間隔（秒）")]
     float _spawnInterval = 3f;
 
-    [SerializeField]
     [Tooltip("強化1段階ごとのダメージエリア拡大率")]
-    float _areaScaleGrowthPerLevel = 0.25f;
+    float _areaScaleGrowthPerLevel = 1f;
 
-    [SerializeField]
     [Tooltip("生成位置のオフセット")]
     Vector3 _spawnOffset = Vector3.zero;
 
-    [SerializeField]
     [Tooltip("ダメージフィールドプールの初期サイズ")]
-    int _initialPoolSize = 8;
+    int _initialPoolSize = 2;
 
     ObjectPool<DamageFieldController> _damageFieldPool;
     const float DEFAULT_AREA_SCALE = 3f;
@@ -41,9 +35,22 @@ public class DamageFieldWeapon : WeaponBase
 
     protected override float CooldownDuration => _spawnInterval;
 
-    protected override void Start()
+    public DamageFieldWeapon(Transform transform , WeaponBase rideWeapon) : base(transform, rideWeapon)
     {
-        base.Start();
+        BulletFactory bulletFactory = _transform.GetComponent<BulletFactory>();
+        if (bulletFactory == null)
+        {
+            Debug.LogWarning("BulletFactoryが見つかりません");
+            return;
+        }
+
+        _damageFieldPrefab = bulletFactory.DamageFieldPrefab;
+        if (_damageFieldPrefab == null)
+        {
+            Debug.LogWarning("BulletFactoryのDamageFieldPrefabが設定されていません");
+            return;
+        }
+
         InitializePool();
     }
 
@@ -54,11 +61,11 @@ public class DamageFieldWeapon : WeaponBase
     {
         if (_damageFieldPrefab == null)
         {
-            Debug.LogWarning("ダメージフィールドのプレハブが設定されていません");
+            Debug.LogWarning("_damageFieldPrefabがありません");
             return;
         }
 
-        Vector3 spawnPosition = transform.position + _spawnOffset;
+        Vector3 spawnPosition = _transform.position + _spawnOffset;
         DamageFieldController damageFieldController = null;
 
         if (_damageFieldPool != null)
@@ -69,13 +76,13 @@ public class DamageFieldWeapon : WeaponBase
         }
         else
         {
-            GameObject damageField = Instantiate(_damageFieldPrefab, spawnPosition, Quaternion.identity);
+            GameObject damageField = GameObject.Instantiate(_damageFieldPrefab, spawnPosition, Quaternion.identity);
             damageFieldController = damageField.GetComponent<DamageFieldController>();
         }
 
         if (damageFieldController != null)
         {
-            damageFieldController.SetFollowTarget(transform);
+            damageFieldController.SetFollowTarget(_transform);
             damageFieldController.SetAreaScale(_currentAreaScale);
         }
     }
@@ -108,6 +115,6 @@ public class DamageFieldWeapon : WeaponBase
             return;
         }
 
-        _damageFieldPool = new ObjectPool<DamageFieldController>(prefabController, _initialPoolSize, transform);
+        _damageFieldPool = new ObjectPool<DamageFieldController>(prefabController, _initialPoolSize, _transform);
     }
 }

@@ -5,29 +5,20 @@ using UnityEngine;
 /// </summary>
 public class BulletWeapon : WeaponBase
 {
-    [Header("発射設定")]
-    [SerializeField]
-    [Tooltip("弾のプレハブ")]
     GameObject _bulletPrefab;
 
-    [SerializeField]
     [Tooltip("発射間隔（秒）")]
     float _shootInterval = 1f;
 
-    [SerializeField]
     [Tooltip("強化1段階ごとの発射間隔短縮率")]
-    [Range(0f, 0.9f)]
     float _intervalReductionPerLevel = 0.15f;
 
-    [SerializeField]
     [Tooltip("発射間隔の最小値（秒）")]
     float _minShootInterval = 0.2f;
 
-    [SerializeField]
     [Tooltip("弾の発射位置のオフセット")]
     Vector3 _shootOffset = Vector3.zero;
 
-    [SerializeField]
     [Tooltip("弾プールの初期サイズ")]
     int _initialPoolSize = 20;
 
@@ -44,9 +35,22 @@ public class BulletWeapon : WeaponBase
 
     protected override float CooldownDuration => _shootInterval;
 
-    protected override void Start()
+    public BulletWeapon(Transform transform , WeaponBase rideWeapon) : base(transform, rideWeapon)
     {
-        base.Start();
+        BulletFactory bulletFactory = _transform.GetComponent<BulletFactory>();
+        if (bulletFactory == null)
+        {
+            Debug.LogWarning("BulletFactoryが見つかりません");
+            return;
+        }
+
+        _bulletPrefab = bulletFactory.BulletPrefab;
+        if (_bulletPrefab == null)
+        {
+            Debug.LogWarning("BulletFactoryのBulletPrefabが設定されていません");
+            return;
+        }
+
         InitializePool();
     }
 
@@ -57,11 +61,11 @@ public class BulletWeapon : WeaponBase
     {
         if (_bulletPrefab == null)
         {
-            Debug.LogWarning("弾プレハブが設定されていません");
+            Debug.LogWarning("_bulletPrefabがありません");
             return;
         }
 
-        Vector3 shootPosition = transform.position + _shootOffset;
+        Vector3 shootPosition = _transform.position + _shootOffset;
         GameObject target = null;
 
         if (EnemySpawner.Instance != null)
@@ -91,7 +95,7 @@ public class BulletWeapon : WeaponBase
         }
         else
         {
-            GameObject bullet = Instantiate(_bulletPrefab, shootPosition, Quaternion.identity);
+            GameObject bullet = GameObject.Instantiate(_bulletPrefab, shootPosition, Quaternion.identity);
             bulletController = bullet.GetComponent<BulletController>();
         }
 
@@ -132,6 +136,6 @@ public class BulletWeapon : WeaponBase
             return;
         }
 
-        _bulletPool = new ObjectPool<BulletController>(bulletPrefabController, _initialPoolSize, transform);
+        _bulletPool = new ObjectPool<BulletController>(bulletPrefabController, _initialPoolSize, _transform);
     }
 }

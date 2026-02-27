@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -17,6 +19,9 @@ public class PlayerController : MonoBehaviour
     PlayerStyleEffectContext _styleEffectContext;
     PlayerStyleEffectFactory _styleEffectFactory;
     float _moveSpeedMultiplier = 1f;
+
+    WeaponBase _weapon;
+    Dictionary<Type, WeaponBase> _weapons = new Dictionary<Type, WeaponBase>();
 
     /// <summary>
     /// PlayerControllerのシングルトンインスタンスを取得します
@@ -85,6 +90,7 @@ public class PlayerController : MonoBehaviour
             gameObject.AddComponent<PlayerInput>();
         }
 
+        _weapon = new BulletWeapon(transform, null);
         _healthComponent = GetComponent<HealthComponent>();
         _playerMovement = GetComponent<PlayerMovement>();
         _characterStats = GetComponent<CharacterStats>();
@@ -135,12 +141,69 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        if (_isGameOver || _activeStyleEffect == null || _styleEffectContext == null)
+        if (_isGameOver)
         {
             return;
         }
 
-        _activeStyleEffect.Tick(_styleEffectContext, Time.deltaTime);
+        _weapon.Update();
+
+        if(_activeStyleEffect != null && _styleEffectContext != null)
+        {
+            _activeStyleEffect.Tick(_styleEffectContext, Time.deltaTime);
+        }
+    }
+
+    public void ApplyWeaponUpgrade(WeaponUpgradeUiController.UpgradeCardType type)
+    {
+        switch (type)
+        {
+            case WeaponUpgradeUiController.UpgradeCardType.Shooter:
+                {
+                    if(!_weapons.TryGetValue(typeof(BulletWeapon), out WeaponBase target))
+                    {
+                        var newWeapon = new BulletWeapon(transform, _weapon);
+                        _weapon = newWeapon;
+                        _weapons[typeof(BulletWeapon)] = newWeapon;
+                    }
+                    else
+                    {
+                        target.LevelUp();
+                    }
+                }
+                break;
+            case WeaponUpgradeUiController.UpgradeCardType.Throwing:
+                {
+                    if(!_weapons.TryGetValue(typeof(ThrowingWeapon), out WeaponBase target))
+                    {
+                        var newWeapon = new ThrowingWeapon(transform, _weapon);
+                        _weapon = newWeapon;
+                        _weapons[typeof(ThrowingWeapon)] = newWeapon;
+                    }
+                    else
+                    {
+                        target.LevelUp();
+                    }
+                }
+                break;
+            case WeaponUpgradeUiController.UpgradeCardType.DamageField:
+                {
+                    if(!_weapons.TryGetValue(typeof(DamageFieldWeapon), out WeaponBase target))
+                    {
+                        var newWeapon = new DamageFieldWeapon(transform, _weapon);
+                        _weapon = newWeapon;
+                        _weapons[typeof(DamageFieldWeapon)] = newWeapon;                        
+                    }
+                    else
+                    {
+                        target.LevelUp();
+                    }
+                }                
+                break;
+            default:
+                Debug.LogWarning($"PlayerController: 未対応のタイプです。 type={type}");
+                break;
+        }
     }
 
     /// <summary>
