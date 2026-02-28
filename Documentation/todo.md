@@ -1,36 +1,77 @@
-# スタイル効果機能 ToDo
+# プロジェクト再構築リファクタ ToDo
 
-## Phase 1: 効果オブジェクト基盤作成
-- [x] `Assets/Scripts/Character/Player/PlayerStyleType.cs` を新規作成する
-- [x] `Assets/Scripts/Character/Player/StyleEffects/IPlayerStyleEffect.cs` を作成する
-- [x] `Assets/Scripts/Character/Player/StyleEffects/PlayerStyleEffectContext.cs` を作成する
-- [x] `Assets/Scripts/Character/Player/StyleEffects/PlayerStyleEffectFactory.cs` を作成する
+## Phase 1: 事前整備と配置整理
+- [ ] `Assets/Scripts/Domain` を新規作成する
+- [ ] `Assets/Scripts/Application` を新規作成する
+- [ ] `Assets/Scripts/Infrastructure/Unity` を新規作成する
+- [ ] `Assets/Scripts/Presentation/UI` を新規作成する
+- [ ] `Assets/Scripts/Presentation/World` を新規作成する
+- [ ] 既存スクリプトの責務マッピング表を作成し、移行先レイヤーを明記する
 
-## Phase 2: スタイル別効果クラス実装
-- [x] `MikoStyleEffect` を実装し、30秒回復タイマーを組み込む
-- [x] `IdolStyleEffect` を実装し、移動速度倍率1.2の適用/解除を実装する
-- [x] `CelebStyleEffect` を実装し、経験値倍率2.0の適用/解除を実装する
+## Phase 2: ブートストラップと依存解決
+- [ ] `GameBootstrapper` を新規作成する
+- [ ] メインシーンで必要な参照を `GameBootstrapper` に集約する
+- [ ] `GameManager.Instance` への新規依存を止める
+- [ ] `PlayerController.Instance` への新規依存を止める
+- [ ] `EnemySpawner.Instance` への新規依存を止める
 
-## Phase 3: PlayerControllerへの統合
-- [x] `PlayerController` に `_activeStyleEffect` と context を追加する
-- [x] `ChangeStyle(PlayerStyleType styleType)` を実装する
-- [x] `ChangeStyle` で `OnExit -> 生成差し替え -> OnEnter` を実行する
-- [x] `Update` から `Tick` を委譲する
-- [x] `SetMoveSpeedMultiplier(float)` を追加して `ApplyMoveSpeedFromStats` と連動させる
+## Phase 3: ゲーム進行の純C#化
+- [ ] `GameSessionState` を作成する
+- [ ] `GameSessionService` を作成する
+- [ ] `GameManager` から時間進行ロジックを `GameSessionService` へ委譲する
+- [ ] ゲームクリア・ゲームオーバー状態の管理元を `GameSessionState` に一本化する
+- [ ] ゲーム進行イベントの通知方法を整理する
 
-## Phase 4: PlayerExperience対応
-- [x] `PlayerExperience` に経験値倍率フィールドを追加する
-- [x] `SetExperienceMultiplier` / `ResetExperienceMultiplier` を追加する
-- [x] `AddExperience` で倍率適用後の値を加算・通知する
+## Phase 4: プレイヤー進行の純C#化
+- [ ] `PlayerState` を作成する
+- [ ] `PlayerProgressionService` を作成する
+- [ ] `PlayerExperience` の経験値加算とレベルアップ計算をサービスへ委譲する
+- [ ] スタイル変更処理を `PlayerController` からサービスへ移す
+- [ ] プレイヤーの速度倍率・経験値倍率の保持先を `PlayerState` に集約する
+- [ ] `CharacterStats` の実計算責務を見直し、参照用責務へ縮小する
 
-## Phase 5: StyleChangeUiController接続
-- [x] スタイル適用成功後に `PlayerController.ChangeStyle` を呼び出す
-- [x] カード種別から `PlayerStyleType` へ変換する処理を追加する
-- [x] プレイヤー参照未解決時の警告ログを追加する
+## Phase 5: 武器システム再編
+- [ ] `WeaponState` を作成する
+- [ ] `WeaponService` を作成する
+- [ ] `WeaponBase` のクールダウン進行をサービス管理へ移す
+- [ ] `PlayerController.ApplyWeaponUpgrade` の分岐をサービスへ移す
+- [ ] 武器種別の管理方法を `enum + switch` から登録テーブル化する
+- [ ] 既存武器の発動挙動が維持されることを確認する
 
-## Phase 6: 動作確認
-- [x] 巫女で30秒ごとにHPが1回復する
-- [x] アイドルで移動速度が1.2倍になる
-- [x] セレブで経験値獲得量が2倍になる
-- [x] スタイル変更時に旧効果が解除される
-- [x] 同一スタイル再選択で効果が再初期化される
+## Phase 6: 敵生成システム再編
+- [ ] `EnemySpawnState` を作成する
+- [ ] `EnemySpawnService` を作成する
+- [ ] `EnemySpawner` のスポーンタイマー管理をサービスへ移す
+- [ ] スポーン位置決定ロジックをサービスへ移す
+- [ ] Unity側の `EnemySpawner` は生成とターゲット接続に責務を限定する
+- [ ] 近傍探索ロジックの互換性を確認する
+
+## Phase 7: UIのPresenter化
+- [ ] `GameScreenPresenter` を新規作成する
+- [ ] `WeaponUpgradePresenter` を新規作成する
+- [ ] `GameScreenUiController` から状態収集と差分判定を Presenter へ移す
+- [ ] `GameScreenUiController` の `FindFirstObjectByType` 依存を削減する
+- [ ] `WeaponUpgradeUiController` の `PlayerController` 直参照を削除し、選択通知に限定する
+- [ ] レベルアップ時のUI表示フローを Presenter 経由へ差し替える
+
+## Phase 8: 通知基盤の整理
+- [ ] `GameMessageBus` または同等の局所通知手段を実装する
+- [ ] 新規コードで `GameEvents` を使用しない
+- [ ] プレイヤー進行通知を `GameEvents` から新通知基盤へ移す
+- [ ] UI更新通知を `GameEvents` から新通知基盤へ移す
+- [ ] 旧 `GameEvents` の残存利用箇所を洗い出す
+
+## Phase 9: テスト整備
+- [ ] `Assets/Tests/EditMode` 配下のテスト配置方針を決める
+- [ ] `GameSessionService` の EditMode テストを追加する
+- [ ] `PlayerProgressionService` の EditMode テストを追加する
+- [ ] `WeaponService` の EditMode テストを追加する
+- [ ] `EnemySpawnService` の EditMode テストを追加する
+- [ ] スタイル変更と倍率解除の回帰テストを追加する
+
+## Phase 10: 旧実装の縮退と最終確認
+- [ ] 旧シングルトン依存を削減または撤去する
+- [ ] 不要になった `GameEvents` のイベントを削減する
+- [ ] 役割を失った旧メソッドを削除する
+- [ ] メインシーンで回帰確認を実施する
+- [ ] 必要に応じてドキュメントを更新し、保守ルールを明記する
