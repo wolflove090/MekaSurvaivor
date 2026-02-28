@@ -16,7 +16,7 @@ public class IdolStyleEffect : IPlayerStyleEffect
     /// <param name="context">スタイル効果コンテキスト</param>
     public void ApplyParameters(PlayerStyleEffectContext context)
     {
-        context?.PlayerController?.SetMoveSpeedMultiplier(MOVE_SPEED_MULTIPLIER);
+        context?.PlayerState?.SetMoveSpeedMultiplier(MOVE_SPEED_MULTIPLIER);
     }
 
     /// <summary>

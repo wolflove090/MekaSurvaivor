@@ -15,10 +15,9 @@ public class PlayerController : MonoBehaviour
     PlayerMovement _playerMovement;
     CharacterStats _characterStats;
     PlayerExperience _playerExperience;
-    IPlayerStyleEffect _activeStyleEffect;
+    PlayerState _playerState;
     PlayerStyleEffectContext _styleEffectContext;
-    PlayerStyleEffectFactory _styleEffectFactory;
-    float _moveSpeedMultiplier = 1f;
+    WeaponService _playerWeaponService;
 
     WeaponBase _weapon;
     Dictionary<Type, WeaponBase> _weapons = new Dictionary<Type, WeaponBase>();
@@ -90,12 +89,13 @@ public class PlayerController : MonoBehaviour
             gameObject.AddComponent<PlayerInput>();
         }
 
+        _playerWeaponService = new WeaponService(transform);
         _weapon = new BulletWeapon(transform, null);
         _healthComponent = GetComponent<HealthComponent>();
         _playerMovement = GetComponent<PlayerMovement>();
         _characterStats = GetComponent<CharacterStats>();
         _playerExperience = GetComponent<PlayerExperience>();
-        _styleEffectFactory = new PlayerStyleEffectFactory();
+        _playerState = _playerExperience != null ? _playerExperience.State : null;
 
         if (_characterStats == null)
         {
@@ -146,64 +146,24 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        _weapon.Update();
+        _weapon.Tick(Time.deltaTime);
 
-        if(_activeStyleEffect != null && _styleEffectContext != null)
-        {
-            _activeStyleEffect.Tick(_styleEffectContext, Time.deltaTime);
-        }
+        _playerExperience?.TickStyleEffect(_styleEffectContext, Time.deltaTime);
     }
 
+    /// <summary>
+    /// 武器強化または新規武器取得を適用します。
+    /// </summary>
+    /// <param name="type">適用する武器種別</param>
     public void ApplyWeaponUpgrade(WeaponUpgradeUiController.UpgradeCardType type)
     {
-        switch (type)
+        if (_playerWeaponService == null)
         {
-            case WeaponUpgradeUiController.UpgradeCardType.Shooter:
-                {
-                    if(!_weapons.TryGetValue(typeof(BulletWeapon), out WeaponBase target))
-                    {
-                        var newWeapon = new BulletWeapon(transform, _weapon);
-                        _weapon = newWeapon;
-                        _weapons[typeof(BulletWeapon)] = newWeapon;
-                    }
-                    else
-                    {
-                        target.LevelUp();
-                    }
-                }
-                break;
-            case WeaponUpgradeUiController.UpgradeCardType.Throwing:
-                {
-                    if(!_weapons.TryGetValue(typeof(ThrowingWeapon), out WeaponBase target))
-                    {
-                        var newWeapon = new ThrowingWeapon(transform, _weapon);
-                        _weapon = newWeapon;
-                        _weapons[typeof(ThrowingWeapon)] = newWeapon;
-                    }
-                    else
-                    {
-                        target.LevelUp();
-                    }
-                }
-                break;
-            case WeaponUpgradeUiController.UpgradeCardType.DamageField:
-                {
-                    if(!_weapons.TryGetValue(typeof(DamageFieldWeapon), out WeaponBase target))
-                    {
-                        var newWeapon = new DamageFieldWeapon(transform, _weapon);
-                        _weapon = newWeapon;
-                        _weapons[typeof(DamageFieldWeapon)] = newWeapon;                        
-                    }
-                    else
-                    {
-                        target.LevelUp();
-                    }
-                }                
-                break;
-            default:
-                Debug.LogWarning($"PlayerController: 未対応のタイプです。 type={type}");
-                break;
+            Debug.LogWarning("PlayerController: WeaponServiceが未初期化のため武器強化を適用できません。");
+            return;
         }
+
+        _weapon = _playerWeaponService.ApplyUpgrade(type, _weapon, _weapons);
     }
 
     /// <summary>
@@ -222,12 +182,10 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        ResetStyleParameters();
-
         try
         {
-            _activeStyleEffect = _styleEffectFactory.Create(styleType);
-            _activeStyleEffect.ApplyParameters(_styleEffectContext);
+            _playerExperience?.ChangeStyle(styleType, _styleEffectContext);
+            ApplyMoveSpeedFromStats();
         }
         catch (System.Exception ex)
         {
@@ -242,7 +200,7 @@ public class PlayerController : MonoBehaviour
     /// <param name="multiplier">移動速度倍率</param>
     public void SetMoveSpeedMultiplier(float multiplier)
     {
-        _moveSpeedMultiplier = Mathf.Max(0f, multiplier);
+        _playerState?.SetMoveSpeedMultiplier(multiplier);
         ApplyMoveSpeedFromStats();
     }
 
@@ -276,7 +234,6 @@ public class PlayerController : MonoBehaviour
     void OnDestroy()
     {
         ResetStyleParameters();
-        _activeStyleEffect = null;
 
         if (_healthComponent != null)
         {
@@ -341,7 +298,8 @@ public class PlayerController : MonoBehaviour
     {
         if (_playerMovement != null && _characterStats != null)
         {
-            _playerMovement.MoveSpeed = _characterStats.Spd * _moveSpeedMultiplier;
+            float moveSpeedMultiplier = _playerState != null ? _playerState.MoveSpeedMultiplier : 1f;
+            _playerMovement.MoveSpeed = _characterStats.Spd * moveSpeedMultiplier;
         }
     }
 
@@ -358,8 +316,8 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     void ResetStyleParameters()
     {
-        SetMoveSpeedMultiplier(1f);
-        _playerExperience?.ResetExperienceMultiplier();
+        _playerExperience?.ResetStyleParameters();
+        ApplyMoveSpeedFromStats();
     }
 
     /// <summary>
@@ -367,12 +325,12 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     void BuildStyleEffectContext()
     {
-        if (_healthComponent == null || _playerExperience == null)
+        if (_healthComponent == null || _playerState == null)
         {
             _styleEffectContext = null;
             return;
         }
 
-        _styleEffectContext = new PlayerStyleEffectContext(_healthComponent, _playerExperience, this);
+        _styleEffectContext = new PlayerStyleEffectContext(_healthComponent, _playerState);
     }
 }

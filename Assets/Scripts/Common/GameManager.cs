@@ -18,9 +18,7 @@ public class GameManager : MonoBehaviour
     [Tooltip("制限時間（秒）")]
     float _timeLimit = 30f;
 
-    float _elapsedTime;
-    bool _isGameClear;
-    bool _isGameOver;
+    GameSessionService _gameSessionService;
 
     /// <summary>
     /// GameManagerのシングルトンインスタンスを取得します
@@ -33,12 +31,12 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 残り時間を取得します
     /// </summary>
-    public float RemainingTime => Mathf.Max(0f, _timeLimit - _elapsedTime);
+    public float RemainingTime => _gameSessionService != null ? _gameSessionService.RemainingTime : _timeLimit;
 
     /// <summary>
     /// ゲームクリア状態かどうかを取得します
     /// </summary>
-    public bool IsGameClear => _isGameClear;
+    public bool IsGameClear => _gameSessionService != null && _gameSessionService.IsGameClear;
 
     void Awake()
     {
@@ -51,9 +49,7 @@ public class GameManager : MonoBehaviour
         _instance = this;
 
         ApplyEditorTimeLimitOverride();
-
-        _elapsedTime = 0f;
-        _isGameClear = false;
+        _gameSessionService = new GameSessionService(new GameSessionState(_timeLimit), HandleGameClear, HandleGameOver);
 
         // イベントを購読
         GameEvents.OnGameOver += OnGameOver;
@@ -75,33 +71,29 @@ public class GameManager : MonoBehaviour
     /// </summary>
     void OnGameOver()
     {
-        _isGameOver = true;
-        Debug.Log("GameManager: ゲームオーバーを検知しました");
+        _gameSessionService?.MarkGameOver();
     }
 
     void Update()
     {
-        if (_isGameClear || _isGameOver)
-        {
-            return;
-        }
-
-        _elapsedTime += Time.deltaTime;
-
-        if (_elapsedTime >= _timeLimit)
-        {
-            GameClear();
-        }
+        _gameSessionService?.Tick(Time.deltaTime);
     }
 
     /// <summary>
     /// ゲームクリア処理を実行します
     /// </summary>
-    void GameClear()
+    void HandleGameClear()
     {
-        _isGameClear = true;
         Debug.Log("ゲームクリア");
         Time.timeScale = 0f;
+    }
+
+    /// <summary>
+    /// ゲームオーバー通知を処理します
+    /// </summary>
+    void HandleGameOver()
+    {
+        Debug.Log("GameManager: ゲームオーバーを検知しました");
     }
 
     /// <summary>

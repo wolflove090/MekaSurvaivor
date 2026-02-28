@@ -9,28 +9,20 @@ public class PlayerStyleEffectContext
     public HealthComponent HealthComponent { get; }
 
     /// <summary>
-    /// 経験値管理コンポーネントを取得します
+    /// プレイヤー進行状態を取得します
     /// </summary>
-    public PlayerExperience PlayerExperience { get; }
-
-    /// <summary>
-    /// プレイヤー制御コンポーネントを取得します
-    /// </summary>
-    public PlayerController PlayerController { get; }
+    public PlayerState PlayerState { get; }
 
     /// <summary>
     /// コンテキストを初期化します
     /// </summary>
     /// <param name="healthComponent">HP管理コンポーネント</param>
-    /// <param name="playerExperience">経験値管理コンポーネント</param>
-    /// <param name="playerController">プレイヤー制御コンポーネント</param>
+    /// <param name="playerState">プレイヤー進行状態</param>
     public PlayerStyleEffectContext(
         HealthComponent healthComponent,
-        PlayerExperience playerExperience,
-        PlayerController playerController)
+        PlayerState playerState)
     {
         HealthComponent = healthComponent;
-        PlayerExperience = playerExperience;
-        PlayerController = playerController;
+        PlayerState = playerState;
     }
 }

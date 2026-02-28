@@ -88,7 +88,7 @@ public class ThrowingWeapon : WeaponBase
     /// </summary>
     public override void LevelUp()
     {
-        UpgradeLevel++;
+        _weaponState.IncrementUpgradeLevel();
 
         float reducedInterval = _shootInterval * (1f - _intervalReductionPerLevel);
         _shootInterval = Mathf.Max(_minShootInterval, reducedInterval);

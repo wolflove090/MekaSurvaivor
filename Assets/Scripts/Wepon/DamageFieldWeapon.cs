@@ -92,7 +92,7 @@ public class DamageFieldWeapon : WeaponBase
     /// </summary>
     public override void LevelUp()
     {
-        UpgradeLevel++;
+        _weaponState.IncrementUpgradeLevel();
         _currentAreaScale = DEFAULT_AREA_SCALE + _areaScaleGrowthPerLevel * (UpgradeLevel - 1);
 
         Debug.Log($"DamageFieldWeapon: レベル {UpgradeLevel} に強化。エリア倍率: {_currentAreaScale:0.00}x");

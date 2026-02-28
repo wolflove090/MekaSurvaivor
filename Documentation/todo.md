@@ -1,8 +1,8 @@
 # プロジェクト再構築リファクタ ToDo
 
 ## Phase 1: 事前整備と配置整理
-- [ ] `Assets/Scripts/Domain` を新規作成する
-- [ ] `Assets/Scripts/Application` を新規作成する
+- [x] `Assets/Scripts/Domain` を新規作成する
+- [x] `Assets/Scripts/Application` を新規作成する
 - [ ] `Assets/Scripts/Infrastructure/Unity` を新規作成する
 - [ ] `Assets/Scripts/Presentation/UI` を新規作成する
 - [ ] `Assets/Scripts/Presentation/World` を新規作成する
@@ -16,26 +16,26 @@
 - [ ] `EnemySpawner.Instance` への新規依存を止める
 
 ## Phase 3: ゲーム進行の純C#化
-- [ ] `GameSessionState` を作成する
-- [ ] `GameSessionService` を作成する
-- [ ] `GameManager` から時間進行ロジックを `GameSessionService` へ委譲する
+- [x] `GameSessionState` を作成する
+- [x] `GameSessionService` を作成する
+- [x] `GameManager` から時間進行ロジックを `GameSessionService` へ委譲する
 - [ ] ゲームクリア・ゲームオーバー状態の管理元を `GameSessionState` に一本化する
 - [ ] ゲーム進行イベントの通知方法を整理する
 
 ## Phase 4: プレイヤー進行の純C#化
-- [ ] `PlayerState` を作成する
-- [ ] `PlayerProgressionService` を作成する
-- [ ] `PlayerExperience` の経験値加算とレベルアップ計算をサービスへ委譲する
-- [ ] スタイル変更処理を `PlayerController` からサービスへ移す
-- [ ] プレイヤーの速度倍率・経験値倍率の保持先を `PlayerState` に集約する
+- [x] `PlayerState` を作成する
+- [x] `PlayerProgressionService` を作成する
+- [x] `PlayerExperience` の経験値加算とレベルアップ計算をサービスへ委譲する
+- [x] スタイル変更処理を `PlayerController` からサービスへ移す
+- [x] プレイヤーの速度倍率・経験値倍率の保持先を `PlayerState` に集約する
 - [ ] `CharacterStats` の実計算責務を見直し、参照用責務へ縮小する
 
 ## Phase 5: 武器システム再編
-- [ ] `WeaponState` を作成する
-- [ ] `WeaponService` を作成する
-- [ ] `WeaponBase` のクールダウン進行をサービス管理へ移す
-- [ ] `PlayerController.ApplyWeaponUpgrade` の分岐をサービスへ移す
-- [ ] 武器種別の管理方法を `enum + switch` から登録テーブル化する
+- [x] `WeaponState` を作成する
+- [x] `WeaponService` を作成する
+- [x] `WeaponBase` のクールダウン進行をサービス管理へ移す
+- [x] `PlayerController.ApplyWeaponUpgrade` の分岐をサービスへ移す
+- [x] 武器種別の管理方法を `enum + switch` から登録テーブル化する
 - [ ] 既存武器の発動挙動が維持されることを確認する
 
 ## Phase 6: 敵生成システム再編

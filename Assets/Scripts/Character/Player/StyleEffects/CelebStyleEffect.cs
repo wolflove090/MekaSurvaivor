@@ -16,7 +16,7 @@ public class CelebStyleEffect : IPlayerStyleEffect
     /// <param name="context">スタイル効果コンテキスト</param>
     public void ApplyParameters(PlayerStyleEffectContext context)
     {
-        context?.PlayerExperience?.SetExperienceMultiplier(EXPERIENCE_MULTIPLIER);
+        context?.PlayerState?.SetExperienceMultiplier(EXPERIENCE_MULTIPLIER);
     }
 
     /// <summary>

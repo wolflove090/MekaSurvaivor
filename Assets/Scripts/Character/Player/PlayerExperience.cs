@@ -18,36 +18,72 @@ public class PlayerExperience : MonoBehaviour
     [Tooltip("レベルごとの経験値増加率")]
     float _experienceScaling = 1.5f;
 
-    int _currentLevel;
-    int _currentExperience;
-    int _experienceToNextLevel;
-    float _experienceMultiplier = 1f;
+    PlayerState _playerState;
+    PlayerProgressionService _playerProgressionService;
+
+    /// <summary>
+    /// プレイヤー進行状態を取得します
+    /// </summary>
+    public PlayerState State
+    {
+        get
+        {
+            EnsureInitialized();
+            return _playerState;
+        }
+    }
 
     /// <summary>
     /// 現在のレベルを取得します
     /// </summary>
-    public int CurrentLevel => _currentLevel;
+    public int CurrentLevel
+    {
+        get
+        {
+            EnsureInitialized();
+            return _playerState != null ? _playerState.CurrentLevel : Mathf.Max(1, _startLevel);
+        }
+    }
 
     /// <summary>
     /// 現在の経験値を取得します
     /// </summary>
-    public int CurrentExperience => _currentExperience;
+    public int CurrentExperience
+    {
+        get
+        {
+            EnsureInitialized();
+            return _playerState != null ? _playerState.CurrentExperience : 0;
+        }
+    }
 
     /// <summary>
     /// 次のレベルまでに必要な経験値を取得します
     /// </summary>
-    public int ExperienceToNextLevel => _experienceToNextLevel;
+    public int ExperienceToNextLevel
+    {
+        get
+        {
+            EnsureInitialized();
+            return _playerState != null ? _playerState.ExperienceToNextLevel : 0;
+        }
+    }
 
     /// <summary>
     /// 経験値倍率を取得します
     /// </summary>
-    public float ExperienceMultiplier => _experienceMultiplier;
+    public float ExperienceMultiplier
+    {
+        get
+        {
+            EnsureInitialized();
+            return _playerState != null ? _playerState.ExperienceMultiplier : 1f;
+        }
+    }
 
     void Awake()
     {
-        _currentLevel = _startLevel;
-        _currentExperience = 0;
-        _experienceToNextLevel = CalculateExperienceForLevel(_currentLevel + 1);
+        EnsureInitialized();
     }
 
     /// <summary>
@@ -56,19 +92,8 @@ public class PlayerExperience : MonoBehaviour
     /// <param name="amount">追加する経験値量</param>
     public void AddExperience(int amount)
     {
-        if (amount <= 0) return;
-
-        int adjustedAmount = Mathf.RoundToInt(amount * _experienceMultiplier);
-        if (adjustedAmount <= 0) return;
-
-        _currentExperience += adjustedAmount;
-        GameEvents.RaiseExperienceGained(adjustedAmount, _currentExperience, _experienceToNextLevel);
-
-        // レベルアップ判定
-        while (_currentExperience >= _experienceToNextLevel)
-        {
-            LevelUp();
-        }
+        EnsureInitialized();
+        _playerProgressionService?.AddExperience(amount);
     }
 
     /// <summary>
@@ -77,7 +102,8 @@ public class PlayerExperience : MonoBehaviour
     /// <param name="multiplier">設定する倍率</param>
     public void SetExperienceMultiplier(float multiplier)
     {
-        _experienceMultiplier = Mathf.Max(0f, multiplier);
+        EnsureInitialized();
+        _playerProgressionService?.SetExperienceMultiplier(multiplier);
     }
 
     /// <summary>
@@ -85,34 +111,75 @@ public class PlayerExperience : MonoBehaviour
     /// </summary>
     public void ResetExperienceMultiplier()
     {
-        _experienceMultiplier = 1f;
+        EnsureInitialized();
+        _playerProgressionService?.ResetExperienceMultiplier();
     }
 
     /// <summary>
-    /// レベルアップ処理を実行します
+    /// プレイヤーのスタイルを変更します
     /// </summary>
-    void LevelUp()
+    /// <param name="styleType">適用するスタイル種別</param>
+    /// <param name="context">スタイル効果コンテキスト</param>
+    public void ChangeStyle(PlayerStyleType styleType, PlayerStyleEffectContext context)
     {
-        _currentExperience -= _experienceToNextLevel;
-        _currentLevel++;
-        _experienceToNextLevel = CalculateExperienceForLevel(_currentLevel + 1);
-
-        Debug.Log($"レベルアップ！ レベル {_currentLevel} に到達しました");
-        GameEvents.RaisePlayerLevelUp(_currentLevel);
+        EnsureInitialized();
+        _playerProgressionService?.ChangeStyle(styleType, context);
     }
 
     /// <summary>
-    /// 指定レベルに到達するために必要な経験値を計算します
+    /// 現在のスタイル効果を更新します
     /// </summary>
-    /// <param name="level">目標レベル</param>
-    /// <returns>必要な経験値</returns>
-    int CalculateExperienceForLevel(int level)
+    /// <param name="context">スタイル効果コンテキスト</param>
+    /// <param name="deltaTime">前フレームからの経過時間</param>
+    public void TickStyleEffect(PlayerStyleEffectContext context, float deltaTime)
     {
-        // 経験値カーブ: baseExp * (scaling ^ (level - 2))
-        // レベル2: 10, レベル3: 15, レベル4: 22, レベル5: 33...
-        if (level <= 1) return 0;
-        
-        float experience = _baseExperienceRequired * Mathf.Pow(_experienceScaling, level - 2);
-        return Mathf.RoundToInt(experience);
+        EnsureInitialized();
+        _playerProgressionService?.TickStyleEffect(context, deltaTime);
+    }
+
+    /// <summary>
+    /// スタイル効果で変更されるパラメータを基準値へ戻します
+    /// </summary>
+    public void ResetStyleParameters()
+    {
+        EnsureInitialized();
+        _playerProgressionService?.ResetStyleParameters();
+    }
+
+    /// <summary>
+    /// 経験値獲得イベントを通知します
+    /// </summary>
+    /// <param name="gainedAmount">加算後の経験値量</param>
+    /// <param name="currentExperience">現在経験値</param>
+    /// <param name="experienceToNextLevel">次のレベルまでに必要な経験値</param>
+    void OnExperienceGained(int gainedAmount, int currentExperience, int experienceToNextLevel)
+    {
+        GameEvents.RaiseExperienceGained(gainedAmount, currentExperience, experienceToNextLevel);
+    }
+
+    /// <summary>
+    /// レベルアップイベントを通知します
+    /// </summary>
+    /// <param name="currentLevel">現在レベル</param>
+    void OnLevelUp(int currentLevel)
+    {
+        Debug.Log($"レベルアップ！ レベル {currentLevel} に到達しました");
+        GameEvents.RaisePlayerLevelUp(currentLevel);
+    }
+
+    void EnsureInitialized()
+    {
+        if (_playerState != null && _playerProgressionService != null)
+        {
+            return;
+        }
+
+        _playerState = new PlayerState(_startLevel);
+        _playerProgressionService = new PlayerProgressionService(
+            _playerState,
+            _baseExperienceRequired,
+            _experienceScaling,
+            OnExperienceGained,
+            OnLevelUp);
     }
 }
