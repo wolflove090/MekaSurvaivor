@@ -19,6 +19,7 @@ public class GameManager : MonoBehaviour
     float _timeLimit = 30f;
 
     GameSessionService _gameSessionService;
+    GameMessageBus _gameMessageBus;
 
     /// <summary>
     /// GameManagerのシングルトンインスタンスを取得します
@@ -50,20 +51,36 @@ public class GameManager : MonoBehaviour
 
         ApplyEditorTimeLimitOverride();
         _gameSessionService = new GameSessionService(new GameSessionState(_timeLimit), HandleGameClear, HandleGameOver);
-
-        // イベントを購読
-        GameEvents.OnGameOver += OnGameOver;
     }
 
     void OnDestroy()
     {
+        UnregisterMessageBus();
+
         if (_instance == this)
         {
             _instance = null;
         }
+    }
 
-        // イベントの購読を解除
-        GameEvents.OnGameOver -= OnGameOver;
+    /// <summary>
+    /// シーン内通知に使用するメッセージバスを設定します。
+    /// </summary>
+    /// <param name="gameMessageBus">設定する通知バス</param>
+    public void SetMessageBus(GameMessageBus gameMessageBus)
+    {
+        if (_gameMessageBus == gameMessageBus)
+        {
+            return;
+        }
+
+        UnregisterMessageBus();
+        _gameMessageBus = gameMessageBus;
+
+        if (_gameMessageBus != null)
+        {
+            _gameMessageBus.GameOver += OnGameOver;
+        }
     }
 
     /// <summary>
@@ -72,6 +89,17 @@ public class GameManager : MonoBehaviour
     void OnGameOver()
     {
         _gameSessionService?.MarkGameOver();
+    }
+
+    /// <summary>
+    /// 現在のメッセージバス購読を解除します。
+    /// </summary>
+    void UnregisterMessageBus()
+    {
+        if (_gameMessageBus != null)
+        {
+            _gameMessageBus.GameOver -= OnGameOver;
+        }
     }
 
     void Update()

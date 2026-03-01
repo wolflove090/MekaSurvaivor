@@ -20,6 +20,7 @@ public class PlayerExperience : MonoBehaviour
 
     PlayerState _playerState;
     PlayerProgressionService _playerProgressionService;
+    GameMessageBus _gameMessageBus;
 
     /// <summary>
     /// プレイヤー進行状態を取得します
@@ -147,6 +148,15 @@ public class PlayerExperience : MonoBehaviour
     }
 
     /// <summary>
+    /// シーン内通知に使用するメッセージバスを設定します。
+    /// </summary>
+    /// <param name="gameMessageBus">設定する通知バス</param>
+    public void SetMessageBus(GameMessageBus gameMessageBus)
+    {
+        _gameMessageBus = gameMessageBus;
+    }
+
+    /// <summary>
     /// 経験値獲得イベントを通知します
     /// </summary>
     /// <param name="gainedAmount">加算後の経験値量</param>
@@ -154,6 +164,7 @@ public class PlayerExperience : MonoBehaviour
     /// <param name="experienceToNextLevel">次のレベルまでに必要な経験値</param>
     void OnExperienceGained(int gainedAmount, int currentExperience, int experienceToNextLevel)
     {
+        _gameMessageBus?.RaiseExperienceGained(gainedAmount, currentExperience, experienceToNextLevel);
         GameEvents.RaiseExperienceGained(gainedAmount, currentExperience, experienceToNextLevel);
     }
 
@@ -164,6 +175,7 @@ public class PlayerExperience : MonoBehaviour
     void OnLevelUp(int currentLevel)
     {
         Debug.Log($"レベルアップ！ レベル {currentLevel} に到達しました");
+        _gameMessageBus?.RaisePlayerLevelUp(currentLevel);
         GameEvents.RaisePlayerLevelUp(currentLevel);
     }
 

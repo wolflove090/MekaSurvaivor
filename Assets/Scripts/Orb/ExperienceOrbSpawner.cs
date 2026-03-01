@@ -17,6 +17,7 @@ public class ExperienceOrbSpawner : MonoBehaviour
 
     ObjectPool<ExperienceOrb> _orbPool;
     Transform _poolRoot;
+    GameMessageBus _gameMessageBus;
 
     static ExperienceOrbSpawner _instance;
 
@@ -53,14 +54,28 @@ public class ExperienceOrbSpawner : MonoBehaviour
 
     void OnEnable()
     {
-        // 敵死亡イベントを購読
-        GameEvents.OnEnemyDied += OnEnemyDied;
+        RegisterMessageBus();
     }
 
     void OnDisable()
     {
-        // イベント購読解除
-        GameEvents.OnEnemyDied -= OnEnemyDied;
+        UnregisterMessageBus();
+    }
+
+    /// <summary>
+    /// シーン内通知に使用するメッセージバスを設定します。
+    /// </summary>
+    /// <param name="gameMessageBus">設定する通知バス</param>
+    public void SetMessageBus(GameMessageBus gameMessageBus)
+    {
+        if (_gameMessageBus == gameMessageBus)
+        {
+            return;
+        }
+
+        UnregisterMessageBus();
+        _gameMessageBus = gameMessageBus;
+        RegisterMessageBus();
     }
 
     /// <summary>
@@ -72,6 +87,31 @@ public class ExperienceOrbSpawner : MonoBehaviour
         if (enemy != null)
         {
             SpawnOrb(enemy.transform.position);
+        }
+    }
+
+    /// <summary>
+    /// メッセージバスの購読を登録します。
+    /// </summary>
+    void RegisterMessageBus()
+    {
+        if (!isActiveAndEnabled || _gameMessageBus == null)
+        {
+            return;
+        }
+
+        _gameMessageBus.EnemyDied -= OnEnemyDied;
+        _gameMessageBus.EnemyDied += OnEnemyDied;
+    }
+
+    /// <summary>
+    /// メッセージバスの購読を解除します。
+    /// </summary>
+    void UnregisterMessageBus()
+    {
+        if (_gameMessageBus != null)
+        {
+            _gameMessageBus.EnemyDied -= OnEnemyDied;
         }
     }
 

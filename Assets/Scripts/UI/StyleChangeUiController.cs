@@ -64,6 +64,7 @@ public class StyleChangeUiController : MonoBehaviour
     Label[] _titleLabels;
     Label[] _descriptionLabels;
     Action[] _cardClickHandlers;
+    GameMessageBus _gameMessageBus;
     PlayerController _playerController;
     HealthComponent _playerHealthComponent;
     SpriteDirectionController _spriteDirectionController;
@@ -83,7 +84,6 @@ public class StyleChangeUiController : MonoBehaviour
     {
         _uiDocument = GetComponent<UIDocument>();
         _defaultSortOrder = _uiDocument.sortingOrder;
-        ResolvePlayerReferences();
         BuildUi();
         CacheElements();
         ApplyCardTexts();
@@ -97,7 +97,7 @@ public class StyleChangeUiController : MonoBehaviour
     void OnEnable()
     {
         RegisterCallbacks();
-        GameEvents.OnPlayerLevelUp += OnPlayerLevelUp;
+        RegisterMessageBus();
     }
 
     /// <summary>
@@ -111,36 +111,7 @@ public class StyleChangeUiController : MonoBehaviour
         }
 
         UnregisterCallbacks();
-        GameEvents.OnPlayerLevelUp -= OnPlayerLevelUp;
-    }
-
-    /// <summary>
-    /// プレイヤーの必要コンポーネント参照を解決します。
-    /// </summary>
-    void ResolvePlayerReferences()
-    {
-        if (_playerController != null)
-        {
-            _playerHealthComponent = _playerController.GetComponent<HealthComponent>();
-            _spriteDirectionController = _playerController.GetComponent<SpriteDirectionController>();
-            return;
-        }
-
-        PlayerController player = PlayerController.Instance;
-        if (player == null)
-        {
-            player = FindFirstObjectByType<PlayerController>();
-        }
-
-        if (player == null)
-        {
-            Debug.LogWarning("StyleChangeUiController: PlayerControllerが見つかりません。");
-            return;
-        }
-
-        _playerController = player;
-        _playerHealthComponent = player.GetComponent<HealthComponent>();
-        _spriteDirectionController = player.GetComponent<SpriteDirectionController>();
+        UnregisterMessageBus();
     }
 
     /// <summary>
@@ -152,6 +123,22 @@ public class StyleChangeUiController : MonoBehaviour
         _playerController = playerController;
         _playerHealthComponent = playerController != null ? playerController.GetComponent<HealthComponent>() : null;
         _spriteDirectionController = playerController != null ? playerController.GetComponent<SpriteDirectionController>() : null;
+    }
+
+    /// <summary>
+    /// シーン内通知に使用するメッセージバスを設定します。
+    /// </summary>
+    /// <param name="gameMessageBus">設定する通知バス</param>
+    public void SetMessageBus(GameMessageBus gameMessageBus)
+    {
+        if (_gameMessageBus == gameMessageBus)
+        {
+            return;
+        }
+
+        UnregisterMessageBus();
+        _gameMessageBus = gameMessageBus;
+        RegisterMessageBus();
     }
 
     /// <summary>
@@ -408,6 +395,31 @@ public class StyleChangeUiController : MonoBehaviour
         }
 
         OpenStyleUi();
+    }
+
+    /// <summary>
+    /// メッセージバスの購読を登録します。
+    /// </summary>
+    void RegisterMessageBus()
+    {
+        if (!isActiveAndEnabled || _gameMessageBus == null)
+        {
+            return;
+        }
+
+        _gameMessageBus.PlayerLevelUp -= OnPlayerLevelUp;
+        _gameMessageBus.PlayerLevelUp += OnPlayerLevelUp;
+    }
+
+    /// <summary>
+    /// メッセージバスの購読を解除します。
+    /// </summary>
+    void UnregisterMessageBus()
+    {
+        if (_gameMessageBus != null)
+        {
+            _gameMessageBus.PlayerLevelUp -= OnPlayerLevelUp;
+        }
     }
 
     /// <summary>

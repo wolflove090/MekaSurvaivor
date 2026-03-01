@@ -34,6 +34,7 @@ public class EnemySpawner : MonoBehaviour
     EnemySpawnState _enemySpawnState;
     EnemySpawnService _enemySpawnService;
     EnemyRegistry _enemyRegistry;
+    GameMessageBus _gameMessageBus;
 
     /// <summary>
     /// EnemySpawnerのシングルトンインスタンスを取得します
@@ -100,6 +101,15 @@ public class EnemySpawner : MonoBehaviour
         _playerTransform = target;
     }
 
+    /// <summary>
+    /// シーン内通知に使用するメッセージバスを設定します。
+    /// </summary>
+    /// <param name="gameMessageBus">設定する通知バス</param>
+    public void SetMessageBus(GameMessageBus gameMessageBus)
+    {
+        _gameMessageBus = gameMessageBus;
+    }
+
     void Update()
     {
         if (_playerTransform == null || _enemySpawnService == null)
@@ -149,6 +159,8 @@ public class EnemySpawner : MonoBehaviour
         {
             enemyController.SetTarget(_playerTransform);
         }
+
+        enemyController?.SetMessageBus(_gameMessageBus);
 
         // スポーンイベントを発火
         GameEvents.RaiseEnemySpawned(enemy);

@@ -17,6 +17,7 @@ public class EnemyController : MonoBehaviour
     CharacterStats _characterStats;
     Transform _targetTransform;
     IEnemyBehavior _enemyBehavior;
+    GameMessageBus _gameMessageBus;
 
     /// <summary>
     /// 移動速度を取得または設定します
@@ -61,6 +62,15 @@ public class EnemyController : MonoBehaviour
         {
             _enemyBehavior = behavior;
         }
+    }
+
+    /// <summary>
+    /// シーン内通知に使用するメッセージバスを設定します。
+    /// </summary>
+    /// <param name="gameMessageBus">設定する通知バス</param>
+    public void SetMessageBus(GameMessageBus gameMessageBus)
+    {
+        _gameMessageBus = gameMessageBus;
     }
 
     /// <summary>
@@ -128,6 +138,7 @@ public class EnemyController : MonoBehaviour
     /// </summary>
     void OnDied()
     {
+        _gameMessageBus?.RaiseEnemyDied(gameObject);
         GameEvents.RaiseEnemyDied(gameObject);
 
         EnemyRegistry.Instance?.UnregisterEnemy(gameObject);

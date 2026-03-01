@@ -5,6 +5,10 @@ using UnityEngine;
 /// </summary>
 public class GameBootstrapper : MonoBehaviour
 {
+    GameMessageBus _gameMessageBus;
+    GameScreenPresenter _gameScreenPresenter;
+    WeaponUpgradePresenter _weaponUpgradePresenter;
+
     [SerializeField]
     [Tooltip("参照を解決するプレイヤーコントローラー")]
     PlayerController _playerController;
@@ -20,6 +24,10 @@ public class GameBootstrapper : MonoBehaviour
     [SerializeField]
     [Tooltip("参照を解決する敵レジストリ")]
     EnemyRegistry _enemyRegistry;
+
+    [SerializeField]
+    [Tooltip("参照を解決する経験値オーブスポナー")]
+    ExperienceOrbSpawner _experienceOrbSpawner;
 
     [SerializeField]
     [Tooltip("参照を解決するHUDコントローラー")]
@@ -51,6 +59,7 @@ public class GameBootstrapper : MonoBehaviour
         _gameManager ??= FindFirstObjectByType<GameManager>();
         _enemySpawner ??= FindFirstObjectByType<EnemySpawner>();
         _enemyRegistry ??= FindFirstObjectByType<EnemyRegistry>();
+        _experienceOrbSpawner ??= FindFirstObjectByType<ExperienceOrbSpawner>();
         _gameScreenUiController ??= FindFirstObjectByType<GameScreenUiController>();
         _weaponUpgradeUiController ??= FindFirstObjectByType<WeaponUpgradeUiController>();
         _styleChangeUiController ??= FindFirstObjectByType<StyleChangeUiController>();
@@ -61,14 +70,41 @@ public class GameBootstrapper : MonoBehaviour
     /// </summary>
     void WireDependencies()
     {
+        _gameMessageBus ??= new GameMessageBus();
+        _gameManager?.SetMessageBus(_gameMessageBus);
+        _enemySpawner?.SetMessageBus(_gameMessageBus);
+        _experienceOrbSpawner?.SetMessageBus(_gameMessageBus);
+        _styleChangeUiController?.SetMessageBus(_gameMessageBus);
+
         if (_playerController != null)
         {
             PlayerExperience playerExperience = _playerController.GetComponent<PlayerExperience>();
 
+            _playerController.SetMessageBus(_gameMessageBus);
+            playerExperience?.SetMessageBus(_gameMessageBus);
+
             _enemySpawner?.SetSpawnTarget(_playerController.transform);
-            _weaponUpgradeUiController?.SetPlayer(_playerController);
             _styleChangeUiController?.SetPlayer(_playerController);
-            _gameScreenUiController?.SetReferences(_playerController, playerExperience, _gameManager);
+
+            if (_gameScreenUiController != null)
+            {
+                _gameScreenPresenter = new GameScreenPresenter(
+                    _gameScreenUiController,
+                    _playerController,
+                    playerExperience,
+                    _gameManager,
+                    _gameMessageBus);
+                _gameScreenUiController.SetPresenter(_gameScreenPresenter);
+            }
+
+            if (_weaponUpgradeUiController != null)
+            {
+                _weaponUpgradePresenter = new WeaponUpgradePresenter(
+                    _weaponUpgradeUiController,
+                    _playerController,
+                    _gameMessageBus);
+                _weaponUpgradeUiController.SetPresenter(_weaponUpgradePresenter);
+            }
         }
 
         if (_enemySpawner != null && _enemyRegistry == null)

@@ -8,7 +8,9 @@ using UnityEngine.UIElements;
 [RequireComponent(typeof(UIDocument))]
 public class WeaponUpgradeUiController : MonoBehaviour
 {
-    // TODO 別ファイルとして定義する
+    /// <summary>
+    /// 武器強化カード種別。
+    /// </summary>
     public enum UpgradeCardType
     {
         Shooter = 0,
@@ -25,14 +27,11 @@ public class WeaponUpgradeUiController : MonoBehaviour
     StyleSheet _styleSheet;
 
     [SerializeField]
-    [Tooltip("強化対象")]
-    PlayerController _player;
-
-    [SerializeField]
     [Tooltip("武器強化UI表示中に適用するUIDocumentのSort Order")]
     float _sortOrderWhileOpen = 100f;
 
     UIDocument _uiDocument;
+    WeaponUpgradePresenter _presenter;
     Button[] _upgradeCards;
     Action[] _cardClickHandlers;
     bool _isUpgradeUiOpen;
@@ -49,7 +48,6 @@ public class WeaponUpgradeUiController : MonoBehaviour
     /// </summary>
     void Awake()
     {
-        // ResolveWeaponReferences();
         _uiDocument = GetComponent<UIDocument>();
         _defaultSortOrder = _uiDocument.sortingOrder;
         BuildUi();
@@ -64,7 +62,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
     void OnEnable()
     {
         RegisterCallbacks();
-        GameEvents.OnPlayerLevelUp += OnPlayerLevelUp;
+        _presenter?.Activate();
     }
 
     /// <summary>
@@ -78,7 +76,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
         }
 
         UnregisterCallbacks();
-        GameEvents.OnPlayerLevelUp -= OnPlayerLevelUp;
+        _presenter?.Deactivate();
     }
 
     /// <summary>
@@ -187,45 +185,21 @@ public class WeaponUpgradeUiController : MonoBehaviour
         }
 
         Debug.Log($"WeaponUpgradeUiController: 強化カード {cardIndex + 1} が選択されました。");
-        ApplyWeaponUpgrade(cardIndex);
         OnUpgradeCardSelected?.Invoke(cardIndex);
         CloseUpgradeUi();
     }
 
     /// <summary>
-    /// カード種別に応じた武器強化を適用、または武器の獲得を行います
-    /// </summary>
-    /// <param name="cardIndex">押下されたカードのインデックス（0始まり）</param>
-    void ApplyWeaponUpgrade(int cardIndex)
-    {
-        _player.ApplyWeaponUpgrade((UpgradeCardType)cardIndex);
-    }
-
-    /// <summary>
-    /// レベルアップ時に武器強化UIを開いてゲームを停止します。
-    /// </summary>
-    /// <param name="newLevel">レベルアップ後のレベル</param>
-    void OnPlayerLevelUp(int newLevel)
-    {
-        if (!LevelUpUiDisplayRule.ShouldOpenWeaponUpgradeUi(newLevel))
-        {
-            return;
-        }
-
-        Debug.Log($"WeaponUpgradeUiController: レベル {newLevel} 到達。武器強化UIを表示します。");
-        OpenUpgradeUi();
-    }
-
-    /// <summary>
     /// 武器強化UIを表示し、ゲーム進行を一時停止します。
     /// </summary>
-    void OpenUpgradeUi()
+    public void OpenUpgradeUi()
     {
         if (_isUpgradeUiOpen)
         {
             return;
         }
 
+        Debug.Log("WeaponUpgradeUiController: 武器強化UIを表示します。");
         _isUpgradeUiOpen = true;
         _timeScaleBeforePause = Time.timeScale;
         Time.timeScale = 0f;
@@ -236,7 +210,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
     /// <summary>
     /// 武器強化UIを非表示にし、ゲーム進行を再開します。
     /// </summary>
-    void CloseUpgradeUi()
+    public void CloseUpgradeUi()
     {
         if (!_isUpgradeUiOpen)
         {
@@ -292,12 +266,26 @@ public class WeaponUpgradeUiController : MonoBehaviour
     }
 
     /// <summary>
-    /// ブートストラップから強化対象プレイヤーを設定します。
+    /// ブートストラップからPresenterを設定します。
     /// </summary>
-    /// <param name="player">強化対象のプレイヤー</param>
-    public void SetPlayer(PlayerController player)
+    /// <param name="presenter">UI制御を担当するPresenter</param>
+    public void SetPresenter(WeaponUpgradePresenter presenter)
     {
-        _player = player;
-    }
+        if (_presenter == presenter)
+        {
+            return;
+        }
 
+        if (isActiveAndEnabled)
+        {
+            _presenter?.Deactivate();
+        }
+
+        _presenter = presenter;
+
+        if (isActiveAndEnabled)
+        {
+            _presenter?.Activate();
+        }
+    }
 }

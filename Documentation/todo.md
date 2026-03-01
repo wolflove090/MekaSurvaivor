@@ -47,18 +47,18 @@
 - [x] 近傍探索ロジックの互換性を確認する
 
 ## Phase 7: UIのPresenter化
-- [ ] `GameScreenPresenter` を新規作成する
-- [ ] `WeaponUpgradePresenter` を新規作成する
-- [ ] `GameScreenUiController` から状態収集と差分判定を Presenter へ移す
-- [ ] `GameScreenUiController` の `FindFirstObjectByType` 依存を削減する
-- [ ] `WeaponUpgradeUiController` の `PlayerController` 直参照を削除し、選択通知に限定する
-- [ ] レベルアップ時のUI表示フローを Presenter 経由へ差し替える
+- [x] `GameScreenPresenter` を新規作成する
+- [x] `WeaponUpgradePresenter` を新規作成する
+- [x] `GameScreenUiController` から状態収集と差分判定を Presenter へ移す
+- [x] `GameScreenUiController` の `FindFirstObjectByType` 依存を削減する
+- [x] `WeaponUpgradeUiController` の `PlayerController` 直参照を削除し、選択通知に限定する
+- [x] レベルアップ時のUI表示フローを Presenter 経由へ差し替える
 
 ## Phase 8: 通知基盤の整理
-- [ ] `GameMessageBus` または同等の局所通知手段を実装する
-- [ ] 新規コードで `GameEvents` を使用しない
-- [ ] プレイヤー進行通知を `GameEvents` から新通知基盤へ移す
-- [ ] UI更新通知を `GameEvents` から新通知基盤へ移す
+- [x] `GameMessageBus` または同等の局所通知手段を実装する
+- [x] 新規コードで `GameEvents` を使用しない
+- [x] プレイヤー進行通知を `GameEvents` から新通知基盤へ移す
+- [x] UI更新通知を `GameEvents` から新通知基盤へ移す
 - [ ] 旧 `GameEvents` の残存利用箇所を洗い出す
 
 ## Phase 9: テスト整備

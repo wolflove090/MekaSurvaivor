@@ -18,6 +18,7 @@ public class PlayerController : MonoBehaviour
     PlayerState _playerState;
     PlayerStyleEffectContext _styleEffectContext;
     WeaponService _playerWeaponService;
+    GameMessageBus _gameMessageBus;
 
     WeaponBase _weapon;
     Dictionary<Type, WeaponBase> _weapons = new Dictionary<Type, WeaponBase>();
@@ -205,12 +206,22 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
+    /// シーン内通知に使用するメッセージバスを設定します。
+    /// </summary>
+    /// <param name="gameMessageBus">設定する通知バス</param>
+    public void SetMessageBus(GameMessageBus gameMessageBus)
+    {
+        _gameMessageBus = gameMessageBus;
+    }
+
+    /// <summary>
     /// ダメージを受けた時のコールバック
     /// </summary>
     /// <param name="damage">受けたダメージ量</param>
     void OnDamaged(int damage)
     {
         Debug.Log($"プレイヤーがダメージを受けました。残りHP: {CurrentHp}");
+        _gameMessageBus?.RaisePlayerDamaged(damage);
         GameEvents.RaisePlayerDamaged(damage);
     }
 
@@ -226,6 +237,8 @@ public class PlayerController : MonoBehaviour
         }
 
         Debug.Log("ゲームオーバー！");
+        _gameMessageBus?.RaisePlayerDied();
+        _gameMessageBus?.RaiseGameOver();
         GameEvents.RaisePlayerDied();
         GameEvents.RaiseGameOver();
         Time.timeScale = 0f;
