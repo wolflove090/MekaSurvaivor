@@ -1,0 +1,30 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="home-root" class="home-root">
+        <ui:VisualElement name="home-viewport" class="home-viewport">
+            <ui:VisualElement name="home-safe-area" class="home-safe-area">
+                <ui:VisualElement name="home-background" class="home-background" />
+                <ui:VisualElement name="home-background-shade" class="home-background-shade" />
+
+                <ui:VisualElement name="home-content" class="home-content">
+                    <ui:VisualElement name="home-left-stage" class="home-left-stage">
+                        <ui:VisualElement name="home-character-stage" class="home-character-stage">
+                            <ui:VisualElement name="home-character-glow" class="home-character-glow" />
+                            <ui:VisualElement name="home-character" class="home-character" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement name="home-dialog-panel" class="home-dialog-panel">
+                            <ui:Label name="home-dialog-text" class="home-dialog-text" text="今日は何をお話ししますか？" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                    <ui:VisualElement name="home-right-rail" class="home-right-rail">
+                        <ui:Button name="home-encyclopedia-button" class="home-menu-button home-menu-button--compact" text="図鑑" />
+                        <ui:Button name="home-change-style-button" class="home-menu-button home-menu-button--compact" text="着替え" />
+                        <ui:Button name="home-sortie-button" class="home-menu-button home-menu-button--large" text="出撃" />
+                        <ui:Button name="home-story-button" class="home-menu-button home-menu-button--large" text="物語" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
