@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 回復アイテムの生成とプール管理を行うシングルトンクラス
+/// 回復アイテムの生成とプール管理を行うコンポーネント
 /// </summary>
 public class HealPickupSpawner : MonoBehaviour
 {
@@ -19,12 +19,7 @@ public class HealPickupSpawner : MonoBehaviour
     static HealPickupSpawner _instance;
 
     /// <summary>
-    /// HealPickupSpawnerのシングルトンインスタンスを取得します
-    /// </summary>
-    public static HealPickupSpawner Instance => _instance;
-
-    /// <summary>
-    /// シングルトン設定とプール初期化を行います
+    /// 重複配置を防ぎつつプール初期化を行います
     /// </summary>
     void Awake()
     {

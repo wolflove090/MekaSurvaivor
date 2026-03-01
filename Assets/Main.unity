@@ -848,6 +848,8 @@ MonoBehaviour:
   _gameScreenUiController: {fileID: 2050010001}
   _weaponUpgradeUiController: {fileID: 469418915}
   _styleChangeUiController: {fileID: 721230212}
+  _breakableObjectSpawner: {fileID: 1929379175}
+  _healPickupSpawner: {fileID: 1929379174}
 --- !u!4 &1342434703
 Transform:
   m_ObjectHideFlags: 0

@@ -148,6 +148,7 @@ void OnDestroy()
 public class HealthUI : MonoBehaviour
 {
     [SerializeField] Text _healthText;
+    [SerializeField] PlayerController _playerController;
 
     void OnEnable()
     {
@@ -162,9 +163,9 @@ public class HealthUI : MonoBehaviour
     void UpdateHealthDisplay(int damage)
     {
         // プレイヤーのHPを取得して表示を更新
-        if (PlayerController.Instance != null)
+        if (_playerController != null)
         {
-            _healthText.text = $"HP: {PlayerController.Instance.CurrentHp}";
+            _healthText.text = $"HP: {_playerController.CurrentHp}";
         }
     }
 }

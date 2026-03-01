@@ -37,14 +37,6 @@ public class EnemySpawner : MonoBehaviour
     GameMessageBus _gameMessageBus;
 
     /// <summary>
-    /// EnemySpawnerのシングルトンインスタンスを取得します
-    /// </summary>
-    public static EnemySpawner Instance
-    {
-        get => _instance;
-    }
-
-    /// <summary>
     /// スポーン間隔を取得または設定します
     /// </summary>
     public float SpawnInterval
@@ -162,26 +154,6 @@ public class EnemySpawner : MonoBehaviour
 
         enemyController?.SetRegistry(_enemyRegistry);
         enemyController?.SetMessageBus(_gameMessageBus);
-    }
-
-    /// <summary>
-    /// 指定された位置から一番近いエネミーを検索します
-    /// </summary>
-    /// <param name="position">基準位置</param>
-    /// <param name="onlyVisible">カメラに写っているエネミーのみを対象にするか</param>
-    /// <returns>一番近いエネミーのGameObject、存在しない場合はnull</returns>
-    public GameObject FindNearestEnemy(Vector3 position, bool onlyVisible = false)
-    {
-        return _enemyRegistry != null ? _enemyRegistry.FindNearestEnemy(position, onlyVisible) : null;
-    }
-
-    /// <summary>
-    /// エネミーをリストから削除します
-    /// </summary>
-    /// <param name="enemy">削除するエネミー</param>
-    public void RemoveEnemy(GameObject enemy)
-    {
-        _enemyRegistry?.UnregisterEnemy(enemy);
     }
 
     /// <summary>

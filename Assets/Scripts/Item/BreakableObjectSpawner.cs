@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 破壊可能オブジェクトの生成と検索を管理するシングルトンクラス
+/// 破壊可能オブジェクトの生成と検索を管理するコンポーネント
 /// </summary>
 public class BreakableObjectSpawner : MonoBehaviour
 {
@@ -40,12 +40,7 @@ public class BreakableObjectSpawner : MonoBehaviour
     static BreakableObjectSpawner _instance;
 
     /// <summary>
-    /// BreakableObjectSpawnerのシングルトンインスタンスを取得します
-    /// </summary>
-    public static BreakableObjectSpawner Instance => _instance;
-
-    /// <summary>
-    /// シングルトン設定と内部状態の初期化を行います
+    /// 重複配置を防ぎつつ内部状態を初期化します
     /// </summary>
     void Awake()
     {

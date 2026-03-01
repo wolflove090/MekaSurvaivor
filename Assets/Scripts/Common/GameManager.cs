@@ -22,14 +22,6 @@ public class GameManager : MonoBehaviour
     GameMessageBus _gameMessageBus;
 
     /// <summary>
-    /// GameManagerのシングルトンインスタンスを取得します
-    /// </summary>
-    public static GameManager Instance
-    {
-        get => _instance;
-    }
-
-    /// <summary>
     /// 残り時間を取得します
     /// </summary>
     public float RemainingTime => _gameSessionService != null ? _gameSessionService.RemainingTime : _timeLimit;

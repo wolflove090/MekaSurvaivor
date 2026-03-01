@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 経験値オーブの生成とプール管理を行うシングルトンクラス
+/// 経験値オーブの生成とプール管理を行うコンポーネント
 /// 敵が死亡した際にオーブをスポーンします
 /// </summary>
 public class ExperienceOrbSpawner : MonoBehaviour
@@ -21,14 +21,9 @@ public class ExperienceOrbSpawner : MonoBehaviour
 
     static ExperienceOrbSpawner _instance;
 
-    /// <summary>
-    /// シングルトンインスタンスを取得します
-    /// </summary>
-    public static ExperienceOrbSpawner Instance => _instance;
-
     void Awake()
     {
-        // シングルトンの設定
+        // 重複配置を防ぎつつ、参照比較用のインスタンスを保持します。
         if (_instance != null && _instance != this)
         {
             Destroy(gameObject);

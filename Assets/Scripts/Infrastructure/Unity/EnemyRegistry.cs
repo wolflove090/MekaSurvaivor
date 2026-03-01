@@ -20,14 +20,6 @@ public class EnemyRegistry : MonoBehaviour
     readonly List<GameObject> _nearbyCandidatesBuffer = new List<GameObject>();
     SpatialGrid _spatialGrid;
 
-    /// <summary>
-    /// EnemyRegistryのシングルトンインスタンスを取得します。
-    /// </summary>
-    public static EnemyRegistry Instance
-    {
-        get => _instance;
-    }
-
     void Awake()
     {
         if (_instance != null && _instance != this)

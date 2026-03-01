@@ -23,14 +23,6 @@ public class PlayerController : MonoBehaviour
     Dictionary<Type, WeaponBase> _weapons = new Dictionary<Type, WeaponBase>();
 
     /// <summary>
-    /// PlayerControllerのシングルトンインスタンスを取得します
-    /// </summary>
-    public static PlayerController Instance
-    {
-        get => _instance;
-    }
-
-    /// <summary>
     /// 移動速度を取得または設定します
     /// </summary>
     public float MoveSpeed
@@ -186,16 +178,6 @@ public class PlayerController : MonoBehaviour
             Debug.LogError($"PlayerController: スタイル変更中にエラーが発生しました。 styleType={styleType}, message={ex.Message}");
             throw;
         }
-    }
-
-    /// <summary>
-    /// 移動速度倍率を設定します
-    /// </summary>
-    /// <param name="multiplier">移動速度倍率</param>
-    public void SetMoveSpeedMultiplier(float multiplier)
-    {
-        _playerState?.SetMoveSpeedMultiplier(multiplier);
-        ApplyMoveSpeedFromStats();
     }
 
     /// <summary>
