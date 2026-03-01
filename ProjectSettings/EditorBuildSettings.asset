@@ -4,6 +4,12 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Home/Home.unity
+    guid: 146fe5f9e8ba34645acbc7d9cc248da1
+  - enabled: 1
+    path: Assets/Survaivor/Main.unity
+    guid: 4aaf888e36c9342c390025105443d798
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

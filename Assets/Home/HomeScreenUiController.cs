@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
 /// <summary>
@@ -9,6 +10,7 @@ using UnityEngine.UIElements;
 public class HomeScreenUiController : MonoBehaviour
 {
     const float TargetAspectRatio = 16f / 9f;
+    const string SurvivorSceneName = "Main";
 
     [SerializeField]
     [Tooltip("ホーム画面UIのUXMLアセット")]
@@ -41,6 +43,7 @@ public class HomeScreenUiController : MonoBehaviour
     Action _onSortieClicked;
     Action _onStoryClicked;
     EventCallback<GeometryChangedEvent> _rootGeometryChangedHandler;
+    bool _isSceneLoading;
 
     /// <summary>
     /// 初期化時にUI構築と参照取得を実行します。
@@ -135,7 +138,11 @@ public class HomeScreenUiController : MonoBehaviour
     {
         _onEncyclopediaClicked = () => LogButtonClick("図鑑");
         _onChangeStyleClicked = () => LogButtonClick("着替え");
-        _onSortieClicked = () => LogButtonClick("出撃");
+        _onSortieClicked = () =>
+        {
+            LogButtonClick("出撃");
+            LoadSurvivorScene();
+        };
         _onStoryClicked = () => LogButtonClick("物語");
     }
 
@@ -292,5 +299,41 @@ public class HomeScreenUiController : MonoBehaviour
     void LogButtonClick(string buttonName)
     {
         Debug.Log($"HomeScreenUiController: {buttonName} ボタンが押されました。");
+    }
+
+    /// <summary>
+    /// 出撃ボタン押下時にサバイバーゲームのシーンへ遷移します。
+    /// </summary>
+    void LoadSurvivorScene()
+    {
+        // TODO: インゲームからホームへ戻る導線を実装する際は、ホーム復帰前後で Time.timeScale を 1f に戻す。
+        if (_isSceneLoading)
+        {
+            Debug.Log("HomeScreenUiController: シーン遷移中のため、追加の出撃操作を無視します。");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(SurvivorSceneName))
+        {
+            Debug.LogWarning("HomeScreenUiController: 遷移先シーン名が未設定です。");
+            return;
+        }
+
+        if (!Application.CanStreamedLevelBeLoaded(SurvivorSceneName))
+        {
+            Debug.LogWarning($"HomeScreenUiController: シーン '{SurvivorSceneName}' をロードできません。Build Settings を確認してください。");
+            return;
+        }
+
+        try
+        {
+            _isSceneLoading = true;
+            SceneManager.LoadScene(SurvivorSceneName);
+        }
+        catch (Exception exception)
+        {
+            _isSceneLoading = false;
+            Debug.LogError($"HomeScreenUiController: シーン '{SurvivorSceneName}' のロードに失敗しました。{exception}");
+        }
     }
 }
