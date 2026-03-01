@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -5,7 +6,8 @@ using UnityEngine;
 /// </summary>
 public class ThrowingWeapon : WeaponBase
 {
-    GameObject _throwingBulletPrefab;
+    readonly Func<int> _sourcePowProvider;
+    readonly Func<Vector3> _facingDirectionProvider;
 
     [Tooltip("発射間隔（秒）")]
     float _shootInterval = 1f;
@@ -20,33 +22,25 @@ public class ThrowingWeapon : WeaponBase
     [Tooltip("弾の発射位置のオフセット")]
     Vector3 _shootOffset = Vector3.zero;
 
-    [Tooltip("投擲弾プールの初期サイズ")]
-    int _initialPoolSize = 12;
-
-    PlayerController _playerController;
-    ObjectPool<ThrowingBulletController> _throwingBulletPool;
-
     protected override float CooldownDuration => _shootInterval;
 
-    public ThrowingWeapon(Transform transform , WeaponBase rideWeapon) : base(transform, rideWeapon)
+    /// <summary>
+    /// 投擲武器を初期化します。
+    /// </summary>
+    /// <param name="originTransform">発動基準のTransform</param>
+    /// <param name="rideWeapon">多重発動する下位武器</param>
+    /// <param name="effectExecutor">武器発動要求の実行ポート</param>
+    /// <param name="sourcePowProvider">攻撃力取得デリゲート</param>
+    /// <param name="facingDirectionProvider">プレイヤー向き取得デリゲート</param>
+    public ThrowingWeapon(
+        Transform originTransform,
+        WeaponBase rideWeapon,
+        IWeaponEffectExecutor effectExecutor,
+        Func<int> sourcePowProvider,
+        Func<Vector3> facingDirectionProvider) : base(originTransform, rideWeapon, effectExecutor)
     {
-        _playerController = _transform.GetComponent<PlayerController>();
-
-        BulletFactory bulletFactory = _transform.GetComponent<BulletFactory>();
-        if (bulletFactory == null)
-        {
-            Debug.LogWarning("BulletFactoryが見つかりません");
-            return;
-        }
-
-        _throwingBulletPrefab = bulletFactory.ThrowingBulletPrefab;
-        if (_throwingBulletPrefab == null)
-        {
-            Debug.LogWarning("BulletFactoryのThrowingBulletPrefabが設定されていません");
-            return;
-        }
-
-        InitializePool();
+        _sourcePowProvider = sourcePowProvider;
+        _facingDirectionProvider = facingDirectionProvider;
     }
 
     /// <summary>
@@ -54,37 +48,15 @@ public class ThrowingWeapon : WeaponBase
     /// </summary>
     protected override void Fire()
     {
-        if (_throwingBulletPrefab == null)
-        {
-            Debug.LogWarning("_throwingBulletPrefabがありません");
-            return;
-        }
-
-        if (_playerController == null)
+        if (_effectExecutor == null)
         {
             return;
         }
 
-        Vector3 spawnPosition = _transform.position + _shootOffset;
-        ThrowingBulletController bulletController = null;
-
-        if (_throwingBulletPool != null)
-        {
-            bulletController = _throwingBulletPool.Get();
-            bulletController.transform.position = spawnPosition;
-            bulletController.transform.rotation = Quaternion.identity;
-        }
-        else
-        {
-            GameObject bullet = GameObject.Instantiate(_throwingBulletPrefab, spawnPosition, Quaternion.identity);
-            bulletController = bullet.GetComponent<ThrowingBulletController>();
-        }
-
-        if (bulletController != null)
-        {
-            bulletController.SetSourcePow(_playerController.Pow);
-            bulletController.SetDirection(_playerController.GetFacingDirection());
-        }
+        Vector3 spawnPosition = GetOriginPosition() + _shootOffset;
+        Vector3 direction = _facingDirectionProvider != null ? _facingDirectionProvider() : Vector3.right;
+        int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
+        _effectExecutor.FireThrowing(new ThrowingFireRequest(spawnPosition, direction, sourcePow));
     }
 
     /// <summary>
@@ -99,25 +71,5 @@ public class ThrowingWeapon : WeaponBase
         ClampCooldownTimerToDuration();
 
         Debug.Log($"ThrowingWeapon: レベル {UpgradeLevel} に強化。発射間隔: {_shootInterval:0.00}s");
-    }
-
-    /// <summary>
-    /// 投擲弾プールを初期化します
-    /// </summary>
-    void InitializePool()
-    {
-        if (_throwingBulletPrefab == null)
-        {
-            return;
-        }
-
-        ThrowingBulletController prefabController = _throwingBulletPrefab.GetComponent<ThrowingBulletController>();
-        if (prefabController == null)
-        {
-            Debug.LogWarning("投擲弾プレハブにThrowingBulletControllerがアタッチされていません");
-            return;
-        }
-
-        _throwingBulletPool = new ObjectPool<ThrowingBulletController>(prefabController, _initialPoolSize, _transform);
     }
 }

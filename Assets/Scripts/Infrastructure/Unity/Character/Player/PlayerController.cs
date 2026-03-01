@@ -16,6 +16,7 @@ public class PlayerController : MonoBehaviour
     PlayerState _playerState;
     PlayerStyleEffectContext _styleEffectContext;
     WeaponService _playerWeaponService;
+    IWeaponEffectExecutor _weaponEffectExecutor;
     GameMessageBus _gameMessageBus;
     GameManager _gameManager;
 
@@ -81,13 +82,12 @@ public class PlayerController : MonoBehaviour
             gameObject.AddComponent<PlayerInput>();
         }
 
-        _playerWeaponService = new WeaponService(transform);
-        _weapon = new BulletWeapon(transform, null);
         _healthComponent = GetComponent<HealthComponent>();
         _playerMovement = GetComponent<PlayerMovement>();
         _characterStats = GetComponent<CharacterStats>();
         _playerExperience = GetComponent<PlayerExperience>();
         _playerState = _playerExperience != null ? _playerExperience.State : null;
+        InitializeWeaponSystems();
 
         if (_characterStats == null)
         {
@@ -318,5 +318,28 @@ public class PlayerController : MonoBehaviour
         }
 
         _styleEffectContext = new PlayerStyleEffectContext(_healthComponent, _playerState);
+    }
+
+    /// <summary>
+    /// 武器システムの依存関係を初期化します。
+    /// </summary>
+    void InitializeWeaponSystems()
+    {
+        BulletFactory bulletFactory = GetComponent<BulletFactory>();
+        EnemyRegistry enemyRegistry = bulletFactory != null ? bulletFactory.EnemyRegistry : null;
+        BreakableObjectSpawner breakableObjectSpawner = bulletFactory != null ? bulletFactory.BreakableObjectSpawner : null;
+
+        _weaponEffectExecutor = new WeaponEffectExecutor(bulletFactory, transform);
+        _playerWeaponService = new WeaponService(
+            transform,
+            _weaponEffectExecutor,
+            () => Pow,
+            GetFacingDirection,
+            enemyRegistry,
+            breakableObjectSpawner);
+        _weapon = _playerWeaponService.ApplyUpgrade(
+            WeaponUpgradeUiController.UpgradeCardType.Shooter,
+            null,
+            _weapons);
     }
 }

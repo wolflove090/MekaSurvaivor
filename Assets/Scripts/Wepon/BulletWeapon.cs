@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -5,9 +6,9 @@ using UnityEngine;
 /// </summary>
 public class BulletWeapon : WeaponBase
 {
-    GameObject _bulletPrefab;
-    BulletFactory _bulletFactory;
-    PlayerController _playerController;
+    readonly EnemyRegistry _enemyRegistry;
+    readonly BreakableObjectSpawner _breakableObjectSpawner;
+    readonly Func<int> _sourcePowProvider;
 
     [Tooltip("発射間隔（秒）")]
     float _shootInterval = 1f;
@@ -21,11 +22,6 @@ public class BulletWeapon : WeaponBase
     [Tooltip("弾の発射位置のオフセット")]
     Vector3 _shootOffset = Vector3.zero;
 
-    [Tooltip("弾プールの初期サイズ")]
-    int _initialPoolSize = 20;
-
-    ObjectPool<BulletController> _bulletPool;
-
     /// <summary>
     /// 発射間隔を取得または設定します
     /// </summary>
@@ -37,25 +33,26 @@ public class BulletWeapon : WeaponBase
 
     protected override float CooldownDuration => _shootInterval;
 
-    public BulletWeapon(Transform transform , WeaponBase rideWeapon) : base(transform, rideWeapon)
+    /// <summary>
+    /// 通常弾武器を初期化します。
+    /// </summary>
+    /// <param name="originTransform">発動基準のTransform</param>
+    /// <param name="rideWeapon">多重発動する下位武器</param>
+    /// <param name="effectExecutor">武器発動要求の実行ポート</param>
+    /// <param name="enemyRegistry">探索対象の敵レジストリ</param>
+    /// <param name="breakableObjectSpawner">探索対象の破壊可能オブジェクトスポナー</param>
+    /// <param name="sourcePowProvider">攻撃力取得デリゲート</param>
+    public BulletWeapon(
+        Transform originTransform,
+        WeaponBase rideWeapon,
+        IWeaponEffectExecutor effectExecutor,
+        EnemyRegistry enemyRegistry,
+        BreakableObjectSpawner breakableObjectSpawner,
+        Func<int> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
     {
-        _bulletFactory = _transform.GetComponent<BulletFactory>();
-        if (_bulletFactory == null)
-        {
-            Debug.LogWarning("BulletFactoryが見つかりません");
-            return;
-        }
-
-        _playerController = _transform.GetComponent<PlayerController>();
-
-        _bulletPrefab = _bulletFactory.BulletPrefab;
-        if (_bulletPrefab == null)
-        {
-            Debug.LogWarning("BulletFactoryのBulletPrefabが設定されていません");
-            return;
-        }
-
-        InitializePool();
+        _enemyRegistry = enemyRegistry;
+        _breakableObjectSpawner = breakableObjectSpawner;
+        _sourcePowProvider = sourcePowProvider;
     }
 
     /// <summary>
@@ -63,25 +60,22 @@ public class BulletWeapon : WeaponBase
     /// </summary>
     protected override void Fire()
     {
-        if (_bulletPrefab == null)
+        if (_effectExecutor == null)
         {
-            Debug.LogWarning("_bulletPrefabがありません");
             return;
         }
 
-        Vector3 shootPosition = _transform.position + _shootOffset;
+        Vector3 shootPosition = GetOriginPosition() + _shootOffset;
         GameObject target = null;
 
-        EnemyRegistry enemyRegistry = _bulletFactory != null ? _bulletFactory.EnemyRegistry : null;
-        if (enemyRegistry != null)
+        if (_enemyRegistry != null)
         {
-            target = enemyRegistry.FindNearestEnemy(shootPosition, onlyVisible: true);
+            target = _enemyRegistry.FindNearestEnemy(shootPosition, onlyVisible: true);
         }
 
-        BreakableObjectSpawner breakableObjectSpawner = _bulletFactory != null ? _bulletFactory.BreakableObjectSpawner : null;
-        if (target == null && breakableObjectSpawner != null)
+        if (target == null && _breakableObjectSpawner != null)
         {
-            target = breakableObjectSpawner.FindNearestBreakableObject(shootPosition, onlyVisible: true);
+            target = _breakableObjectSpawner.FindNearestBreakableObject(shootPosition, onlyVisible: true);
         }
 
         if (target == null)
@@ -91,25 +85,8 @@ public class BulletWeapon : WeaponBase
 
         Vector3 direction = (target.transform.position - shootPosition).normalized;
         direction.y = 0f;
-
-        BulletController bulletController = null;
-        if (_bulletPool != null)
-        {
-            bulletController = _bulletPool.Get();
-            bulletController.transform.position = shootPosition;
-            bulletController.transform.rotation = Quaternion.identity;
-        }
-        else
-        {
-            GameObject bullet = GameObject.Instantiate(_bulletPrefab, shootPosition, Quaternion.identity);
-            bulletController = bullet.GetComponent<BulletController>();
-        }
-
-        if (bulletController != null)
-        {
-            bulletController.SetSourcePow(_playerController != null ? _playerController.Pow : 1);
-            bulletController.SetDirection(direction);
-        }
+        int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
+        _effectExecutor.FireBullet(new BulletFireRequest(shootPosition, direction, sourcePow));
     }
 
     /// <summary>
@@ -124,25 +101,5 @@ public class BulletWeapon : WeaponBase
         ClampCooldownTimerToDuration();
 
         Debug.Log($"BulletWeapon: レベル {UpgradeLevel} に強化。発射間隔: {_shootInterval:0.00}s");
-    }
-
-    /// <summary>
-    /// 弾プールを初期化します
-    /// </summary>
-    void InitializePool()
-    {
-        if (_bulletPrefab == null)
-        {
-            return;
-        }
-
-        BulletController bulletPrefabController = _bulletPrefab.GetComponent<BulletController>();
-        if (bulletPrefabController == null)
-        {
-            Debug.LogWarning("弾プレハブにBulletControllerがアタッチされていません");
-            return;
-        }
-
-        _bulletPool = new ObjectPool<BulletController>(bulletPrefabController, _initialPoolSize, _transform);
     }
 }

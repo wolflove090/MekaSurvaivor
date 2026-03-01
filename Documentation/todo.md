@@ -1,40 +1,40 @@
 # Weapon Application責務分離 リファクタ ToDo
 
 ## Phase 1: 要求データ定義
-- [ ] `Weapon` 発動要求の共通設計を決める
-- [ ] `BulletFireRequest` を追加する
-- [ ] `ThrowingFireRequest` を追加する
-- [ ] `DamageFieldSpawnRequest` を追加する
-- [ ] `IWeaponEffectExecutor` を追加する
+- [x] `Weapon` 発動要求の共通設計を決める
+- [x] `BulletFireRequest` を追加する
+- [x] `ThrowingFireRequest` を追加する
+- [x] `DamageFieldSpawnRequest` を追加する
+- [x] `IWeaponEffectExecutor` を追加する
 
 ## Phase 2: Infrastructure 実行アダプタ追加
-- [ ] `WeaponEffectExecutor` を追加する
-- [ ] 弾発射要求を `BulletController` 初期化へ変換する
-- [ ] 投擲弾発射要求を `ThrowingBulletController` 初期化へ変換する
-- [ ] ダメージフィールド生成要求を `DamageFieldController` 初期化へ変換する
-- [ ] `BulletFactory` の責務を Prefab参照提供に限定する
+- [x] `WeaponEffectExecutor` を追加する
+- [x] 弾発射要求を `BulletController` 初期化へ変換する
+- [x] 投擲弾発射要求を `ThrowingBulletController` 初期化へ変換する
+- [x] ダメージフィールド生成要求を `DamageFieldController` 初期化へ変換する
+- [x] `BulletFactory` の責務を Prefab参照提供に限定する
 
 ## Phase 3: Weapon基底の純化
-- [ ] `WeaponBase` から `Instantiate` / `GetComponent` / `ObjectPool` 依存を排除する
-- [ ] `WeaponBase` のコンストラクタ依存を見直し、実行ポートを受け取れる形にする
-- [ ] `WeaponBase` のクールダウン進行と武器チェーン挙動を維持する
+- [x] `WeaponBase` から `Instantiate` / `GetComponent` / `ObjectPool` 依存を排除する
+- [x] `WeaponBase` のコンストラクタ依存を見直し、実行ポートを受け取れる形にする
+- [x] `WeaponBase` のクールダウン進行と武器チェーン挙動を維持する
 
 ## Phase 4: 個別Weaponの純化
-- [ ] `BulletWeapon` から Prefab保持とプール初期化を削除する
-- [ ] `BulletWeapon` をターゲット探索と `BulletFireRequest` 生成に限定する
-- [ ] `DamageFieldWeapon` から Prefab保持とプール初期化を削除する
-- [ ] `DamageFieldWeapon` を `DamageFieldSpawnRequest` 生成に限定する
-- [ ] `ThrowingWeapon` から Prefab保持とプール初期化を削除する
-- [ ] `ThrowingWeapon` を `ThrowingFireRequest` 生成に限定する
+- [x] `BulletWeapon` から Prefab保持とプール初期化を削除する
+- [x] `BulletWeapon` をターゲット探索と `BulletFireRequest` 生成に限定する
+- [x] `DamageFieldWeapon` から Prefab保持とプール初期化を削除する
+- [x] `DamageFieldWeapon` を `DamageFieldSpawnRequest` 生成に限定する
+- [x] `ThrowingWeapon` から Prefab保持とプール初期化を削除する
+- [x] `ThrowingWeapon` を `ThrowingFireRequest` 生成に限定する
 
 ## Phase 5: 呼び出し側の接続変更
-- [ ] `WeaponService` のビルダーに `IWeaponEffectExecutor` 注入を追加する
-- [ ] `PlayerController` で `WeaponEffectExecutor` を初期化する
-- [ ] `PlayerController` の既存武器生成経路を新しい注入経路へ切り替える
-- [ ] 既存の武器強化フローが壊れていないことを確認する
+- [x] `WeaponService` のビルダーに `IWeaponEffectExecutor` 注入を追加する
+- [x] `PlayerController` で `WeaponEffectExecutor` を初期化する
+- [x] `PlayerController` の既存武器生成経路を新しい注入経路へ切り替える
+- [x] 既存の武器強化フローが壊れていないことを確認する
 
 ## Phase 6: テスト更新
-- [ ] `WeaponServiceTests` を新構造に合わせて更新する
+- [x] `WeaponServiceTests` を新構造に合わせて更新する
 - [ ] `BulletWeapon` の要求生成テストを追加する
 - [ ] `ThrowingWeapon` の要求生成テストを追加する
 - [ ] `DamageFieldWeapon` の要求生成テストを追加する

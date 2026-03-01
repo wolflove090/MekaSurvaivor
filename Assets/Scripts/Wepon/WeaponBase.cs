@@ -5,7 +5,8 @@ using UnityEngine;
 /// </summary>
 public abstract class WeaponBase
 {
-    protected Transform _transform;
+    protected readonly Transform _originTransform;
+    protected readonly IWeaponEffectExecutor _effectExecutor;
     protected readonly WeaponState _weaponState;
 
     // デコレーションパターンで武器を増やす
@@ -25,12 +26,14 @@ public abstract class WeaponBase
     /// <summary>
     /// 武器を初期化します。
     /// </summary>
-    /// <param name="transform">発動基準のTransform</param>
+    /// <param name="originTransform">発動基準のTransform</param>
     /// <param name="rideWeapon">多重発動する下位武器</param>
-    public WeaponBase(Transform transform, WeaponBase rideWeapon)
+    /// <param name="effectExecutor">武器発動要求の実行ポート</param>
+    public WeaponBase(Transform originTransform, WeaponBase rideWeapon, IWeaponEffectExecutor effectExecutor)
     {
-        _transform = transform;
+        _originTransform = originTransform;
         _rideWeapon = rideWeapon;
+        _effectExecutor = effectExecutor;
         _weaponService = new WeaponService();
         _weaponState = new WeaponState(CooldownDuration);
     }
@@ -71,5 +74,14 @@ public abstract class WeaponBase
     protected void ClampCooldownTimerToDuration()
     {
         _weaponService.ClampCooldownToDuration(_weaponState, CooldownDuration);
+    }
+
+    /// <summary>
+    /// 現在の発動基準位置を取得します。
+    /// </summary>
+    /// <returns>発動基準位置</returns>
+    protected Vector3 GetOriginPosition()
+    {
+        return _originTransform != null ? _originTransform.position : Vector3.zero;
     }
 }

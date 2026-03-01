@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -5,8 +6,7 @@ using UnityEngine;
 /// </summary>
 public class DamageFieldWeapon : WeaponBase
 {
-    [Header("生成設定")]
-    GameObject _damageFieldPrefab;
+    readonly Func<int> _sourcePowProvider;
 
     [Tooltip("生成間隔（秒）")]
     float _spawnInterval = 3f;
@@ -16,14 +16,8 @@ public class DamageFieldWeapon : WeaponBase
 
     [Tooltip("生成位置のオフセット")]
     Vector3 _spawnOffset = Vector3.zero;
-
-    [Tooltip("ダメージフィールドプールの初期サイズ")]
-    int _initialPoolSize = 2;
-
-    ObjectPool<DamageFieldController> _damageFieldPool;
     const float DEFAULT_AREA_SCALE = 3f;
     float _currentAreaScale = DEFAULT_AREA_SCALE;
-    PlayerController _playerController;
 
     /// <summary>
     /// 生成間隔を取得または設定します
@@ -36,25 +30,20 @@ public class DamageFieldWeapon : WeaponBase
 
     protected override float CooldownDuration => _spawnInterval;
 
-    public DamageFieldWeapon(Transform transform , WeaponBase rideWeapon) : base(transform, rideWeapon)
+    /// <summary>
+    /// ダメージフィールド武器を初期化します。
+    /// </summary>
+    /// <param name="originTransform">発動基準のTransform</param>
+    /// <param name="rideWeapon">多重発動する下位武器</param>
+    /// <param name="effectExecutor">武器発動要求の実行ポート</param>
+    /// <param name="sourcePowProvider">攻撃力取得デリゲート</param>
+    public DamageFieldWeapon(
+        Transform originTransform,
+        WeaponBase rideWeapon,
+        IWeaponEffectExecutor effectExecutor,
+        Func<int> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
     {
-        BulletFactory bulletFactory = _transform.GetComponent<BulletFactory>();
-        if (bulletFactory == null)
-        {
-            Debug.LogWarning("BulletFactoryが見つかりません");
-            return;
-        }
-
-        _playerController = _transform.GetComponent<PlayerController>();
-
-        _damageFieldPrefab = bulletFactory.DamageFieldPrefab;
-        if (_damageFieldPrefab == null)
-        {
-            Debug.LogWarning("BulletFactoryのDamageFieldPrefabが設定されていません");
-            return;
-        }
-
-        InitializePool();
+        _sourcePowProvider = sourcePowProvider;
     }
 
     /// <summary>
@@ -62,33 +51,15 @@ public class DamageFieldWeapon : WeaponBase
     /// </summary>
     protected override void Fire()
     {
-        if (_damageFieldPrefab == null)
+        if (_effectExecutor == null)
         {
-            Debug.LogWarning("_damageFieldPrefabがありません");
             return;
         }
 
-        Vector3 spawnPosition = _transform.position + _spawnOffset;
-        DamageFieldController damageFieldController = null;
-
-        if (_damageFieldPool != null)
-        {
-            damageFieldController = _damageFieldPool.Get();
-            damageFieldController.transform.position = spawnPosition;
-            damageFieldController.transform.rotation = Quaternion.identity;
-        }
-        else
-        {
-            GameObject damageField = GameObject.Instantiate(_damageFieldPrefab, spawnPosition, Quaternion.identity);
-            damageFieldController = damageField.GetComponent<DamageFieldController>();
-        }
-
-        if (damageFieldController != null)
-        {
-            damageFieldController.SetFollowTarget(_transform);
-            damageFieldController.SetSourcePow(_playerController != null ? _playerController.Pow : 1);
-            damageFieldController.SetAreaScale(_currentAreaScale);
-        }
+        Vector3 spawnPosition = GetOriginPosition() + _spawnOffset;
+        int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
+        _effectExecutor.SpawnDamageField(
+            new DamageFieldSpawnRequest(spawnPosition, _originTransform, sourcePow, _currentAreaScale));
     }
 
     /// <summary>
@@ -100,25 +71,5 @@ public class DamageFieldWeapon : WeaponBase
         _currentAreaScale = DEFAULT_AREA_SCALE + _areaScaleGrowthPerLevel * (UpgradeLevel - 1);
 
         Debug.Log($"DamageFieldWeapon: レベル {UpgradeLevel} に強化。エリア倍率: {_currentAreaScale:0.00}x");
-    }
-
-    /// <summary>
-    /// ダメージフィールドプールを初期化します
-    /// </summary>
-    void InitializePool()
-    {
-        if (_damageFieldPrefab == null)
-        {
-            return;
-        }
-
-        DamageFieldController prefabController = _damageFieldPrefab.GetComponent<DamageFieldController>();
-        if (prefabController == null)
-        {
-            Debug.LogWarning("ダメージフィールドプレハブにDamageFieldControllerがアタッチされていません");
-            return;
-        }
-
-        _damageFieldPool = new ObjectPool<DamageFieldController>(prefabController, _initialPoolSize, _transform);
     }
 }

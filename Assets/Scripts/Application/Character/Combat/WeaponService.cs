@@ -22,14 +22,49 @@ public class WeaponService
     /// 武器生成と強化管理用のサービスを初期化します。
     /// </summary>
     /// <param name="weaponOrigin">武器の発動基準となるTransform</param>
-    public WeaponService(Transform weaponOrigin)
+    /// <param name="effectExecutor">武器発動要求の実行ポート</param>
+    /// <param name="sourcePowProvider">攻撃力取得デリゲート</param>
+    /// <param name="facingDirectionProvider">プレイヤー向き取得デリゲート</param>
+    /// <param name="enemyRegistry">探索対象の敵レジストリ</param>
+    /// <param name="breakableObjectSpawner">探索対象の破壊可能オブジェクトスポナー</param>
+    public WeaponService(
+        Transform weaponOrigin,
+        IWeaponEffectExecutor effectExecutor,
+        Func<int> sourcePowProvider,
+        Func<Vector3> facingDirectionProvider,
+        EnemyRegistry enemyRegistry = null,
+        BreakableObjectSpawner breakableObjectSpawner = null)
     {
         _weaponOrigin = weaponOrigin ?? throw new ArgumentNullException(nameof(weaponOrigin));
         _weaponBuilders = new Dictionary<WeaponUpgradeUiController.UpgradeCardType, Func<WeaponBase, WeaponBase>>
         {
-            { WeaponUpgradeUiController.UpgradeCardType.Shooter, rideWeapon => new BulletWeapon(_weaponOrigin, rideWeapon) },
-            { WeaponUpgradeUiController.UpgradeCardType.Throwing, rideWeapon => new ThrowingWeapon(_weaponOrigin, rideWeapon) },
-            { WeaponUpgradeUiController.UpgradeCardType.DamageField, rideWeapon => new DamageFieldWeapon(_weaponOrigin, rideWeapon) }
+            {
+                WeaponUpgradeUiController.UpgradeCardType.Shooter,
+                rideWeapon => new BulletWeapon(
+                    _weaponOrigin,
+                    rideWeapon,
+                    effectExecutor,
+                    enemyRegistry,
+                    breakableObjectSpawner,
+                    sourcePowProvider)
+            },
+            {
+                WeaponUpgradeUiController.UpgradeCardType.Throwing,
+                rideWeapon => new ThrowingWeapon(
+                    _weaponOrigin,
+                    rideWeapon,
+                    effectExecutor,
+                    sourcePowProvider,
+                    facingDirectionProvider)
+            },
+            {
+                WeaponUpgradeUiController.UpgradeCardType.DamageField,
+                rideWeapon => new DamageFieldWeapon(
+                    _weaponOrigin,
+                    rideWeapon,
+                    effectExecutor,
+                    sourcePowProvider)
+            }
         };
         _weaponTypes = new Dictionary<WeaponUpgradeUiController.UpgradeCardType, Type>
         {
