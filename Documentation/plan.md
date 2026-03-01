@@ -1,116 +1,220 @@
-# ホーム出撃導線 実装計画
+# インゲーム帰還導線 実装計画
 
 ## 実装方針
-- ホーム画面の「出撃」導線は、既存の `HomeScreenUiController` に最小限のシーン遷移責務を追加して接続する。
-- 遷移先は `SceneManager.LoadScene` のシーン名 `"Main"` で固定し、シーン名の定義は `HomeScreenUiController` 内の単一点に集約して分散ハードコードを防ぐ。
-- ボタン押下時の既存ログは残しつつ、同じイベントハンドラ内で遷移処理を実行する。
-- 遷移先 `Assets/Survaivor/Main.unity` のゲーム本体ロジック（`GameManager`、`PlayerController`）は既存構成を利用し、ホーム側から余計な初期化は追加しない。
-- `SceneManager.LoadScene("Main")` が実行可能になるよう、`ProjectSettings/EditorBuildSettings.asset` に少なくとも `Assets/Home/Home.unity` と `Assets/Survaivor/Main.unity` を登録する。
-- 今回はホームへ戻る導線は実装しないため、`Time.timeScale` 復元は未対応のままにし、将来の戻り導線実装時に対応する TODO をドキュメントへ明記する。
+- リザルトUIは `GameScreenUiController` へ混在させず、独立した `ResultUiController` として別 `UIDocument` で実装する。これにより、HUD更新責務と終了導線責務を分離する。
+- 終了状態の監視は `GameScreenPresenter` が担当し、撃破数集計は専用の `GameStatsTracker` に分離する。`GameStatsTracker` は `EnemyDied` 通知で撃破数を加算し、`GameScreenPresenter` は `GameCleared` / `GameOver` 通知時にその集計値を `ResultUiController` へ渡す。
+- ホーム遷移操作は `ResultUiController` 側で受ける。`SceneManager.LoadScene("Home")` の直前に `Time.timeScale = 1f` を復元し、ホーム復帰後の操作不能を防ぐ。
+- 既存の勝敗判定ロジック (`GameManager`, `GameSessionService`, `PlayerController`) と既存HUD更新 (`GameScreenUiController`) は極力変更せず、結果表示の導線だけを追加する。
+- 1プレイ単位の状態（統計値、リザルト表示済みフラグ、ホーム遷移中フラグ）はシーン内オブジェクトに閉じ込め、ホームへ戻った時点で破棄される構成にする。
 
 ## 変更対象ファイル一覧
 
 ### 改修対象
-- `Assets/Home/HomeScreenUiController.cs`
-  - `UnityEngine.SceneManagement` を利用して「出撃」押下時に `Main` シーンをロードする。
-  - 遷移中の多重押下を抑止するためのフラグを追加する。
-  - シーン名未設定や遷移失敗を追跡できるログを追加する。
-- `ProjectSettings/EditorBuildSettings.asset`
-  - `SceneManager.LoadScene("Main")` で解決できるよう、ビルド設定に `Home` / `Main` シーンを登録する。
+- `Assets/Survaivor/UI/GameScreen/Presentation/GameScreenPresenter.cs`
+  - `GameCleared` / `GameOver` 受信時に `GameStatsTracker` の撃破数を読み取り、`ResultUiController` へリザルト表示を依頼する。
+  - 初期化時にリザルト表示状態をリセットする。
+- `Assets/Survaivor/Game/Application/GameStatsTracker.cs`
+  - 新規作成。`GameMessageBus.EnemyDied` を購読して1プレイ中の撃破数を集計する。
+  - 必要に応じて将来の統計項目追加先となるランタイム集計責務を持つ。
+- `Assets/Survaivor/Game/Infrastructure/GameBootstrapper.cs`
+  - `GameStatsTracker` を生成し、`GameScreenPresenter` へ渡す。
+  - シーン内の `ResultUiController` を参照解決する。
+  - `GameScreenPresenter` 生成時に `ResultUiController` 参照を渡す。
+- `Assets/Survaivor/UI/Result/View/ResultUiController.cs`
+  - 新規作成。リザルトUIの構築、表示/非表示制御、「ホームへ」ボタン押下時のホーム遷移を担当する。
+- `Assets/Survaivor/UI/Result/View/ResultUI.uxml`
+  - 新規作成。リザルトオーバーレイ、見出し「撤退」、撃破数表示、「ホームへ」ボタンを定義する。
+- `Assets/Survaivor/UI/Result/View/ResultUI.uss`
+  - 新規作成。リザルトモーダル、背景オーバーレイ、ボタンのスタイルを定義する。
 
-### ドキュメント更新対象
-- `Documentation/todo.md`
-  - 実装タスクと、将来のホーム復帰時に `Time.timeScale` を復元する TODO を整理する。
+### 確認対象（原則コード変更なし）
+- `Assets/Survaivor/Game/Application/GameMessageBus.cs`
+  - 既存の `EnemyDied` / `GameCleared` / `GameOver` 通知をそのまま利用する。追加イベントは不要。
+- `Assets/Survaivor/UI/GameScreen/View/GameScreenUiController.cs`
+  - HUD専用のまま維持し、リザルトUI責務を持たせないことを確認する。
+- `ProjectSettings/EditorBuildSettings.asset`
+  - `Home` / `Main` シーンが既に登録済みのため、差分が不要か確認する。
 
 ## データフロー / 処理フロー
 
-### 1. ホーム画面初期化
-1. `Assets/Home/Home.unity` 上で `HomeScreenUiController.Awake()` が UI Toolkit のルートとボタン参照を初期化する。
-2. `BuildHandlers()` で `_onSortieClicked` が登録される。
-3. `OnEnable()` で `_sortieButton.clicked` に `_onSortieClicked` が接続される。
+### 1. インゲームUI初期化
+1. `Main.unity` 起動時に `GameBootstrapper` が `GameMessageBus` を生成し、`GameScreenUiController` と `ResultUiController` の参照を解決する。
+2. `GameBootstrapper` が `GameMessageBus` を引数に `GameStatsTracker` を生成し、1プレイ分の統計集計を開始する。
+3. `ResultUiController.Awake()` が UXML / USS を読み込み、見出し、撃破数ラベル、「ホームへ」ボタンの参照を取得する。
+4. `GameBootstrapper` が `GameScreenPresenter` に `GameScreenUiController`、プレイヤー参照群、`GameMessageBus`、`GameStatsTracker`、`ResultUiController` を渡して接続する。
+5. `GameScreenPresenter.Activate()` で HUD 購読を開始し、同時に `ResultUiController` を非表示へ初期化する。
 
-### 2. 出撃ボタン押下
-1. ユーザーがホーム画面の「出撃」ボタンを押す。
-2. `_onSortieClicked` が既存のログ出力を行う。
-3. `HomeScreenUiController` が多重遷移防止フラグを確認する。
-4. 未遷移状態であればフラグを立て、`SceneManager.LoadScene("Main")` を実行する。
-5. シーン名が空、またはロード不可の状態なら警告ログを出してフラグを戻す。
+### 2. プレイ中の撃破数集計
+1. 敵が死亡すると `EnemyController.OnDied()` が `GameMessageBus.RaiseEnemyDied(gameObject)` を呼ぶ。
+2. `GameStatsTracker` が `EnemyDied` を受け取り、内部の撃破数カウンタを1増やす。
+3. 通常プレイ中は `GameScreenUiController` でHUDのみ更新し、リザルト表示用の撃破数は `GameStatsTracker` に保持する。
 
-### 3. サバイバーゲーム開始
-1. Unity が `Assets/Survaivor/Main.unity` をロードする。
-2. シーン内の既存 `GameManager` が `Awake()` でゲーム進行管理を初期化する。
-3. シーン内の既存 `PlayerController` が `Awake()` で入力、武器、各種コンポーネントを初期化する。
-4. 追加の接続なしで既存ゲームプレイが開始される。
+### 3. ゲーム終了時のリザルト表示
+1. ゲームオーバー時は `PlayerController.GameOver()` から `GameManager.MarkGameOver()` が呼ばれ、`GameManager.HandleGameOver()` が `RaiseGameOver()` と `Time.timeScale = 0f` を実行する。
+2. ゲームクリア時は `GameSessionService.Tick()` 経由で `GameManager.HandleGameClear()` が `RaiseGameCleared()` と `Time.timeScale = 0f` を実行する。
+3. `GameScreenPresenter` が `GameOver` または `GameCleared` を受け取り、未表示なら `GameStatsTracker` の累計撃破数を読み取って `ResultUiController` に対して「撤退」と累計撃破数を渡し、リザルトUIを表示する。
+4. `ResultUiController` はオーバーレイを表示し、「ホームへ」ボタンのみ押せる状態にする。
+
+### 4. ホーム遷移
+1. ユーザーが `ResultUiController` 上の「ホームへ」ボタンを押す。
+2. `ResultUiController` が多重遷移防止フラグを確認し、`Home` シーンがロード可能か検証する。
+3. 遷移可能なら `Time.timeScale = 1f` を復元してから `SceneManager.LoadScene("Home")` を実行する。
+4. `Home.unity` 読み込み後は `HomeScreenUiController` の既存導線で再度 `Main` へ出撃できる。
 
 ## 実装ステップ
 
-### Phase 1: ホーム側の遷移処理追加
-- `HomeScreenUiController` にシーン遷移用の定数を追加する。
-- `_onSortieClicked` の処理を、ログ出力に加えて専用メソッド経由で `Main` シーンをロードする形へ変更する。
-- 多重押下で `LoadScene` が連続実行されないようフラグ管理を追加する。
+### Phase 1: Result UI を新規作成
+- `Assets/Survaivor/UI/Result/View/` 配下を作成する。
+- `ResultUI.uxml` にオーバーレイ、見出し「撤退」、撃破数表示ラベル、「ホームへ」ボタンを定義する。
+- `ResultUI.uss` に中央モーダル表示、背景オーバーレイ、ボタンのスタイルを追加する。
+- `ResultUiController` を新規作成し、UI構築、参照取得、初期非表示化を実装する。
 
-### Phase 2: シーン登録
-- `ProjectSettings/EditorBuildSettings.asset` に `Assets/Home/Home.unity` と `Assets/Survaivor/Main.unity` を有効状態で登録する。
-- シーン名 `"Main"` でロード可能な状態を担保する。
+### Phase 2: ResultUiController にホーム復帰導線を追加
+- `ResultUiController` に「ホームへ」ボタンのコールバック登録/解除を追加する。
+- `SceneManager` ベースの `Home` シーン遷移処理を追加する。
+- `Time.timeScale = 1f` 復元、多重押下防止、`Application.CanStreamedLevelBeLoaded("Home")` チェック、例外ログ出力を追加する。
 
-### Phase 3: 動作確認と TODO 整理
-- ホームシーンから「出撃」押下で `Main` へ遷移することを確認する。
-- 遷移後に `GameManager` / `PlayerController` が通常どおり動作することを確認する。
-- 将来のホーム復帰時に `Time.timeScale` を 1 に戻す TODO を `Documentation/todo.md` に残す。
+### Phase 3: GameStatsTracker と Presenter / Bootstrapper を接続
+- `GameStatsTracker` を新規作成し、`EnemyDied` 購読と撃破数集計を実装する。
+- `GameScreenPresenter` に `GameStatsTracker` 参照、`ResultUiController` 参照、リザルト表示済みフラグを追加する。
+- `GameOver` / `GameCleared` 受信時に `GameStatsTracker` の値を使って `ResultUiController` の表示APIを呼ぶ。
+- `GameBootstrapper` に `GameStatsTracker` の生成、`ResultUiController` の参照解決、Presenter への注入を追加する。
+
+### Phase 4: 動作確認
+- ゲームオーバー時にリザルトUIが1回だけ表示されることを確認する。
+- ゲームクリア時に同じリザルトUIが表示されることを確認する。
+- 撃破した敵数と表示値が一致することを確認する。
+- 「ホームへ」押下でホームに戻り、その後「出撃」で再プレイできることを確認する。
+- 既存HUDが従来どおり更新され続けることを確認する。
 
 ## リスクと対策
-- リスク: `SceneManager.LoadScene("Main")` がビルド設定未登録で失敗する。
-  - 対策: `ProjectSettings/EditorBuildSettings.asset` に `Home` と `Main` を明示登録し、ロード先を固定する。
-- リスク: ボタン連打で複数回ロード要求が走り、不安定な遷移になる。
-  - 対策: `HomeScreenUiController` に遷移中フラグを持たせ、2回目以降の押下を無視する。
-- リスク: ホーム側で余計な初期化を追加してサバイバーゲームの既存起動フローを壊す。
-  - 対策: ホーム側はシーンロードのみを担当し、ゲーム開始処理は `Main.unity` 内の既存コンポーネントに委ねる。
-- リスク: 将来ゲーム終了後にホームへ戻る際、`Time.timeScale` が 0 のまま残る。
-  - 対策: 今回は実装しないが、戻り導線実装時に `Time.timeScale = 1f` を復元する TODO を明示して追跡する。
+- リスク: `ResultUiController` 用の `UIDocument` がシーンに未配置だと、終了時にリザルトが出ない。
+  - 対策: `GameBootstrapper` の参照解決時に未検出なら警告ログを出し、シーン設定漏れを即座に把握できるようにする。
+- リスク: `GameOver` と `PlayerDied`、あるいは重複通知でリザルトUIが複数回更新される。
+  - 対策: `GameScreenPresenter` に表示済みフラグを持たせ、終了通知は最初の1回だけ `ResultUiController` へ反映する。
+- リスク: `Time.timeScale` を戻さずにホームへ遷移すると、ホーム復帰後も UI や入力が停止したままになる。
+  - 対策: `SceneManager.LoadScene("Home")` の直前に必ず `Time.timeScale = 1f` を実行する。
+- リスク: 撃破数を `EnemyDied` で数えると、将来プレイヤー以外の原因で倒れた敵も同じくカウントされる可能性がある。
+  - 対策: 今回は `GameStatsTracker` 上で「プレイ中に倒れた敵数」を定義として `EnemyDied` をそのまま採用し、撃破原因の区別が必要になった時点でイベント拡張を検討する。
+- リスク: `Home` シーン名解決に失敗すると、終了後に復帰不能になる。
+  - 対策: `Application.CanStreamedLevelBeLoaded("Home")` を事前確認し、失敗時は警告ログを出して遷移しない。
 
 ## 検証方針
 - 手動確認
-  - `Assets/Home/Home.unity` を再生し、「出撃」ボタン押下で `Assets/Survaivor/Main.unity` へ遷移すること。
-  - 遷移後にプレイヤーが操作でき、ゲーム進行が開始されること。
-  - 「図鑑」「着替え」「物語」ボタンは従来どおりログ出力のみであること。
-  - 「出撃」ボタンを連打しても例外や多重遷移が発生しないこと。
-- エラー確認
-  - シーン参照が不正な場合、Unity Console で追跡可能な警告またはエラーログが出ること。
+  - `Assets/Survaivor/Main.unity` を再生し、敵を数体倒した後にゲームオーバーへ遷移して、撃破数が一致したリザルトUIが表示されること。
+  - 制限時間経過でゲームクリアになっても、同様にリザルトUIが表示されること。
+  - リザルトUI表示中に「ホームへ」ボタンが押せること。
+  - ホーム復帰後に `Assets/Home/Home.unity` 上の UI 操作が停止していないこと。
+  - ホームから再度「出撃」して、次回プレイ開始時の撃破数表示がリセットされていること。
+- ログ確認
+  - `ResultUiController` が未配置の場合に警告ログが出ること。
+  - `Home` シーン未登録時に、遷移失敗が Unity Console で追跡できる警告またはエラーとして出ること。
+- 必要に応じた回帰確認
+  - 既存HUD（時間、レベル、HP、EXP、POW、DEF、SPD）が従来どおり更新されること。
 
 ## コードスニペット（主要変更イメージ）
 ```csharp
-using UnityEngine.SceneManagement;
-
-public class HomeScreenUiController : MonoBehaviour
+public class GameScreenPresenter
 {
-    const string SurvivorSceneName = "Main";
+    readonly GameStatsTracker _gameStatsTracker;
+    readonly ResultUiController _resultUiController;
+    bool _isResultShown;
 
-    bool _isSceneLoading;
-
-    void BuildHandlers()
+    public GameScreenPresenter(
+        GameScreenUiController view,
+        PlayerController playerController,
+        PlayerExperience playerExperience,
+        GameManager gameManager,
+        GameMessageBus messageBus,
+        GameStatsTracker gameStatsTracker,
+        ResultUiController resultUiController)
     {
-        _onSortieClicked = () =>
-        {
-            LogButtonClick("出撃");
-            LoadSurvivorScene();
-        };
+        _view = view;
+        _playerController = playerController;
+        _playerExperience = playerExperience;
+        _gameManager = gameManager;
+        _messageBus = messageBus;
+        _gameStatsTracker = gameStatsTracker;
+        _resultUiController = resultUiController;
     }
 
-    void LoadSurvivorScene()
+    void OnGameFinished()
+    {
+        if (_isResultShown)
+        {
+            return;
+        }
+
+        _isResultShown = true;
+        _resultUiController?.Show("撤退", _gameStatsTracker != null ? _gameStatsTracker.KillCount : 0);
+    }
+}
+```
+
+```csharp
+public class GameStatsTracker : IDisposable
+{
+    readonly GameMessageBus _messageBus;
+
+    public int KillCount { get; private set; }
+
+    public GameStatsTracker(GameMessageBus messageBus)
+    {
+        _messageBus = messageBus;
+        _messageBus.EnemyDied += OnEnemyDied;
+        KillCount = 0;
+    }
+
+    void OnEnemyDied(GameObject enemy)
+    {
+        KillCount++;
+    }
+
+    public void Dispose()
+    {
+        _messageBus.EnemyDied -= OnEnemyDied;
+    }
+}
+```
+
+```csharp
+using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
+
+[RequireComponent(typeof(UIDocument))]
+public class ResultUiController : MonoBehaviour
+{
+    const string HomeSceneName = "Home";
+
+    bool _isSceneLoading;
+    Button _homeButton;
+
+    public void Show(string title, int killCount)
+    {
+        // ラベル更新とオーバーレイ表示
+    }
+
+    public void Hide()
+    {
+        // オーバーレイ非表示
+    }
+
+    void OnHomeButtonClicked()
     {
         if (_isSceneLoading)
         {
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(SurvivorSceneName))
+        if (!Application.CanStreamedLevelBeLoaded(HomeSceneName))
         {
-            Debug.LogWarning("HomeScreenUiController: 遷移先シーン名が未設定です。");
+            Debug.LogWarning($"ResultUiController: シーン '{HomeSceneName}' をロードできません。");
             return;
         }
 
         _isSceneLoading = true;
-        SceneManager.LoadScene(SurvivorSceneName);
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(HomeSceneName);
     }
 }
 ```

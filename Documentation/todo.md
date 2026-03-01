@@ -1,24 +1,43 @@
-# ホーム出撃導線 ToDo
+# インゲーム帰還導線 ToDo
 
-## Phase 1: ホーム側の遷移導線追加
-- [x] `HomeScreenUiController` にサバイバーゲーム遷移先シーン名 `Main` の定数を追加する。
-- [x] `UnityEngine.SceneManagement` を導入し、「出撃」ボタン押下時に `SceneManager.LoadScene("Main")` を呼ぶ専用メソッドを追加する。
-- [x] 「出撃」ボタン押下時に、既存ログ出力後に遷移処理が走るよう `_onSortieClicked` を更新する。
-- [x] ボタン連打による多重遷移を防ぐフラグを追加する。
-- [x] シーン名不正時に警告ログを出す。
+## Phase 1: Result UI を新規作成
+- [ ] `Assets/Survaivor/UI/Result/View/ResultUI.uxml` を新規作成する。
+- [ ] `ResultUI.uxml` に「撤退」ラベル、撃破数表示ラベル、「ホームへ」ボタンを配置する。
+- [ ] `Assets/Survaivor/UI/Result/View/ResultUI.uss` を新規作成し、オーバーレイとモーダルのスタイルを定義する。
+- [ ] `Assets/Survaivor/UI/Result/View/ResultUiController.cs` を新規作成し、UI構築と初期非表示化を実装する。
+- [ ] `Main.unity` に `ResultUiController` 用の `UIDocument` を配置し、UXML / USS を割り当てる。
 
-## Phase 2: シーン登録
-- [x] `ProjectSettings/EditorBuildSettings.asset` に `Assets/Home/Home.unity` を追加する。
-- [x] `ProjectSettings/EditorBuildSettings.asset` に `Assets/Survaivor/Main.unity` を追加する。
-- [x] `Main` のシーン名でロードできる状態になっていることを確認する。
+## Phase 2: ResultUiController にホーム復帰導線を追加
+- [ ] `ResultUiController` でリザルトUI要素の参照取得を追加する。
+- [ ] リザルトUIの表示/非表示を切り替えるメソッドを追加する。
+- [ ] 「ホームへ」ボタンのクリックイベント登録・解除を追加する。
+- [ ] `Home` シーンへ戻る専用メソッドを追加する。
+- [ ] ホーム遷移時に `Time.timeScale = 1f` を復元する。
+- [ ] 多重押下防止とシーン未登録時の警告ログを追加する。
 
-## Phase 3: 今後の動作確認
-- 今回の実装ではコード反映まで完了し、Unity 上での再生確認は後続対応として TODO に残す。
-- [ ] `Assets/Home/Home.unity` を再生し、「出撃」ボタンで `Assets/Survaivor/Main.unity` に遷移することを確認する。
-- [ ] 遷移後に `GameManager` と `PlayerController` が通常どおり動作することを確認する。
-- [ ] 「図鑑」「着替え」「物語」ボタンの既存挙動に影響がないことを確認する。
-- [ ] 「出撃」ボタン連打時に例外や多重ロードが発生しないことを確認する。
-- [ ] Unity Relay Server 未起動のため、`u state` による確認とエディタ再生での手動検証を実施する。
+## Phase 3: GameStatsTracker を追加して統計集計を分離
+- [ ] `Assets/Survaivor/Game/Application/GameStatsTracker.cs` を新規作成する。
+- [ ] `GameStatsTracker` で `GameMessageBus.EnemyDied` の購読を追加する。
+- [ ] `GameStatsTracker` に 1プレイ単位の撃破数カウンタを追加する。
+- [ ] 将来の統計追加を見据えた責務名・公開APIに整理する。
 
-## Future TODO
-- [ ] インゲームからホームへ戻る導線を実装する際、ホーム遷移前またはホーム復帰時に `Time.timeScale = 1f` を復元する。
+## Phase 4: GameScreenPresenter と Bootstrapper を更新
+- [ ] `Assets/Survaivor/UI/GameScreen/Presentation/GameScreenPresenter.cs` に `GameStatsTracker` 参照を追加する。
+- [ ] `GameCleared` / `GameOver` 通知受信時に `GameStatsTracker` の値を使って `ResultUiController` を表示する処理を追加する。
+- [ ] リザルトUIの二重表示を防ぐフラグを追加する。
+- [ ] `Activate()` 時にリザルト表示状態を初期化し、再プレイ時の持ち越しを防ぐ。
+- [ ] `Assets/Survaivor/Game/Infrastructure/GameBootstrapper.cs` に `ResultUiController` の参照を追加する。
+- [ ] `Assets/Survaivor/Game/Infrastructure/GameBootstrapper.cs` で `GameStatsTracker` を生成する。
+- [ ] `FindFirstObjectByType<ResultUiController>()` で未設定時の補完を追加する。
+- [ ] `GameScreenPresenter` 生成時に `GameStatsTracker` と `ResultUiController` を注入する。
+- [ ] `ResultUiController` が未配置のときに検知できるログ方針を実装時に反映する。
+
+## Phase 5: シーン設定と動作確認
+- [ ] `ProjectSettings/EditorBuildSettings.asset` に `Assets/Home/Home.unity` と `Assets/Survaivor/Main.unity` が登録済みであることを確認する。
+- [ ] ゲームオーバー時にリザルトUIが1回だけ表示されることを確認する。
+- [ ] ゲームクリア時に同じリザルトUIが表示されることを確認する。
+- [ ] リザルトUIの撃破数が実際の撃破数と一致することを確認する。
+- [ ] リザルトUIの「ホームへ」ボタンで `Assets/Home/Home.unity` へ戻れることを確認する。
+- [ ] ホーム復帰後に UI と入力が停止していないことを確認する。
+- [ ] ホームから再度「出撃」して、前回のリザルト状態と撃破数が持ち越されないことを確認する。
+- [ ] 既存HUDが従来どおり更新されることを確認する。
