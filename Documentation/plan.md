@@ -1,203 +1,160 @@
-# プロジェクト再構築リファクタ 実装計画
+# Weapon Application責務分離 リファクタ 実装計画
 
 ## 実装方針
-- 現在の挙動を維持しながら、既存クラスを一度に置き換えず、責務ごとに段階移行する。
-- `MonoBehaviour` は Unityイベント受信と見た目反映に限定し、ゲームルールは純C#クラスへ移す。
-- 新規コードは `Domain` / `Application` / `Infrastructure` / `Presentation` の4層構成で追加し、既存コードを少しずつ移設する。
-- シングルトン (`GameManager.Instance`、`PlayerController.Instance`、`EnemySpawner.Instance`) と静的イベント (`GameEvents`) は、新規実装で依存を増やさず、移行完了後に縮退または置換する。
-- UIは UI Toolkit を継続利用しつつ、表示更新と操作通知に責務を絞る。
-- `ScriptableObject` は設定データの保持に限定し、ロジック本体は純C#側に寄せる。
-- 優先順は以下とする。
-  1. ブートストラップと依存解決の整理
-  2. プレイヤー進行・ゲーム進行の純C#化
-  3. 武器・敵生成の責務分離
-  4. UIのPresenter化
-  5. 旧依存の撤去とテスト整備
+- `WeaponBase`、`BulletWeapon`、`DamageFieldWeapon`、`ThrowingWeapon` を `Application` 層へ移せるように、Unity 依存処理を `Infrastructure` 側へ切り出す。
+- 武器クラスは「いつ発動するか」「どの要求を出すか」のみを担当し、Prefab取得、プール操作、`Instantiate`、`GetComponent` は行わない。
+- 発射や生成に必要な情報は、純C#の要求データとして定義し、`Application` 層から `Infrastructure` 層の実行ポートへ渡す。
+- `PlayerController` と `WeaponService` の既存利用形は大きく崩さず、呼び出し元の変更を最小限に抑える。
+- 既存挙動を維持するため、実装は「要求データの導入」→「生成アダプタの追加」→「`*Weapon` の純化」→「呼び出し側調整」の順で段階的に行う。
 
 ## 変更対象ファイル一覧
 
 ### 新規追加予定
-- `Assets/Scripts/Domain/Game/GameSessionState.cs`
-  - ゲーム時間、クリア、ゲームオーバー状態を保持する。
-- `Assets/Scripts/Domain/Player/PlayerState.cs`
-  - HP、経験値、レベル、移動倍率、装備武器状態、スタイル状態を保持する。
-- `Assets/Scripts/Domain/Combat/WeaponState.cs`
-  - 武器レベル、クールダウン、発射判定のランタイム状態を保持する。
-- `Assets/Scripts/Domain/Enemy/EnemySpawnState.cs`
-  - スポーンタイマーや出現制御に必要な状態を保持する。
-- `Assets/Scripts/Application/Game/GameSessionService.cs`
-  - 時間経過、ゲームクリア、ゲームオーバー遷移を制御する。
-- `Assets/Scripts/Application/Player/PlayerProgressionService.cs`
-  - 経験値加算、レベルアップ、スタイル変更、ステータス反映を制御する。
-- `Assets/Scripts/Application/Combat/WeaponService.cs`
-  - 武器アップグレード、発射タイミング判定、武器状態更新を制御する。
-- `Assets/Scripts/Application/Enemy/EnemySpawnService.cs`
-  - スポーン間隔更新、スポーン要求生成、探索条件判定を制御する。
-- `Assets/Scripts/Application/Events/GameMessageBus.cs`
-  - 局所的な通知ハブ。静的イベントの代替として利用する。
-- `Assets/Scripts/Infrastructure/Unity/Bootstrap/GameBootstrapper.cs`
-  - シーン起動時に依存関係を組み立てる。
-- `Assets/Scripts/Presentation/UI/GameScreenPresenter.cs`
-  - HUD表示用の表示モデル生成と UI 更新窓口を担当する。
-- `Assets/Scripts/Presentation/UI/WeaponUpgradePresenter.cs`
-  - 武器強化UIの入力を Application 層へ橋渡しする。
+- `Assets/Scripts/Application/Character/Combat/WeaponFireRequest.cs`
+  - 武器発動要求の共通表現を定義する。
+- `Assets/Scripts/Application/Character/Combat/BulletFireRequest.cs`
+  - 弾発射に必要な位置、方向、攻撃力を保持する。
+- `Assets/Scripts/Application/Character/Combat/ThrowingFireRequest.cs`
+  - 投擲弾発射に必要な位置、方向、攻撃力を保持する。
+- `Assets/Scripts/Application/Character/Combat/DamageFieldSpawnRequest.cs`
+  - ダメージフィールド生成に必要な位置、追従対象、攻撃力、スケールを保持する。
+- `Assets/Scripts/Application/Character/Combat/IWeaponEffectExecutor.cs`
+  - 武器要求を実行する Application から Infrastructure へのポートを定義する。
+- `Assets/Scripts/Infrastructure/Unity/Combat/WeaponEffectExecutor.cs`
+  - 各要求を受けて Prefab 生成、プール取得、`*Controller` 初期化を行う。
 
 ### 既存ファイルの改修対象
-- `Assets/Scripts/Common/GameManager.cs`
-  - 段階1では新 `GameSessionService` への委譲に変更し、最終的には薄いUnityアダプター化または役割解消する。
-- `Assets/Scripts/Character/Player/PlayerController.cs`
-  - ゲームルール保持をやめ、入力・見た目・アプリケーション層呼び出しに限定する。
-- `Assets/Scripts/Character/Player/PlayerExperience.cs`
-  - 計算と状態保持を `PlayerState` / `PlayerProgressionService` へ移し、当面は同期専用アダプターに縮小する。
-- `Assets/Scripts/Character/Stats/CharacterStats.cs`
-  - `ScriptableObject` 読み出しと表示用参照の責務に限定し、実ステータス計算はドメインへ移す。
-- `Assets/Scripts/Character/Enemy/EnemySpawner.cs`
-  - スポーン判定と生成処理を分離し、`EnemySpawnService` と Unity生成アダプターへ再編する。
 - `Assets/Scripts/Wepon/WeaponBase.cs`
-  - クールダウン計算と `Time.deltaTime` 依存をドメイン/アプリケーションへ移し、実行側の抽象境界を見直す。
-- `Assets/Scripts/UI/GameScreenUiController.cs`
-  - `FindFirstObjectByType` とシングルトン参照を排し、Presenter経由で表示更新する。
-- `Assets/Scripts/UI/WeaponUpgradeUiController.cs`
-  - `PlayerController` 直参照をやめ、選択通知のみを担う構成に変更する。
-- `Assets/Scripts/Common/GameEvents.cs`
-  - 新規依存を止め、段階的に `GameMessageBus` または明示的イベント購読へ置換する。
-
-## フェーズ別実装計画
-
-### Phase 1: フォルダ構成とブートストラップ整備
-- 4層構成のディレクトリを新設する。
-- `GameBootstrapper` を追加し、シーン内の参照解決とサービス生成を一元化する。
-- 既存コンポーネント同士の `Instance` 参照を、ブートストラップ経由の明示参照へ移せる経路を作る。
-- この段階では既存クラスの public API を急に壊さず、委譲先だけ差し替えられる状態にする。
-
-### Phase 2: ゲーム進行とプレイヤー進行の純C#化
-- `GameSessionState` と `GameSessionService` を作成し、残り時間、ゲームクリア、ゲームオーバー判定を移す。
-- `PlayerState` と `PlayerProgressionService` を作成し、経験値、レベル、倍率、スタイル適用を移す。
-- `PlayerExperience` のレベルアップ計算、`GameManager` のタイマー更新をサービスへ委譲する。
-- `PlayerController` は `Update` でサービス更新を呼び、Transform反映や入力受付だけを担当する。
-
-### Phase 3: 武器・敵生成の責務分離
-- `WeaponBase` 由来のクールダウン更新と `Time.deltaTime` 依存を `WeaponService` に集約する。
-- 武器の種類管理は `enum` や `switch` に閉じず、定義データまたは登録テーブルへ移行する。
-- `EnemySpawner` のスポーンタイマー、スポーン条件、探索補助ロジックを `EnemySpawnService` に移す。
-- Unity側は「スポーン要求を受けてPrefabを出す」「ターゲットを接続する」役割だけにする。
-
-### Phase 4: UIのPresenter化
-- `GameScreenUiController` は UXML/USS 構築と要素参照保持だけに寄せる。
-- ステータスの表示モデル作成、更新差分判定、購読イベント管理を `GameScreenPresenter` に移す。
-- `WeaponUpgradeUiController` はボタン入力通知のみを担当し、武器強化適用は Presenter または Application 層に委譲する。
-- 既存の `GameEvents` 購読は、局所バスまたはサービス通知に置換する。
-
-### Phase 5: 旧依存の撤去とテスト整備
-- `Instance` 前提の参照、`FindFirstObjectByType`、不要になった静的イベント依存を削減する。
-- EditMode テストを追加し、経験値計算、ゲーム進行、武器クールダウン、スポーン判定、スタイル適用を固定する。
-- PlayMode では最低限、ブートストラップと UI 接続の統合確認を行う。
+  - Unity 実装依存を排除し、発動要求の抽象化とクールダウン進行に責務を限定する。
+- `Assets/Scripts/Wepon/BulletWeapon.cs`
+  - ターゲット探索と `BulletFireRequest` 生成に責務を限定する。
+- `Assets/Scripts/Wepon/DamageFieldWeapon.cs`
+  - `DamageFieldSpawnRequest` 生成と強化値管理に責務を限定する。
+- `Assets/Scripts/Wepon/ThrowingWeapon.cs`
+  - `ThrowingFireRequest` 生成に責務を限定する。
+- `Assets/Scripts/Application/Character/Combat/WeaponService.cs`
+  - `*Weapon` 生成時に実行ポートを注入できるよう、ビルダー構築を見直す。
+- `Assets/Scripts/Character/Player/PlayerController.cs`
+  - `WeaponService` 初期化時に武器実行ポートを渡す。
+- `Assets/Scripts/Wepon/Prefabs/BulletFactory.cs`
+  - Prefab参照の提供責務を `WeaponEffectExecutor` から利用しやすい形へ調整する。
+- `Assets/Tests/EditMode/WeaponServiceTests.cs`
+  - 要求データ生成と強化動作に合わせてテストを更新する。
 
 ## データフロー / 処理フロー
 
-### 1. ゲーム開始
-1. `GameBootstrapper` がシーンの `MonoBehaviour` 参照を収集する。
-2. `GameSessionState`、`PlayerState`、各Serviceを生成し、必要な依存を接続する。
-3. UI Presenter に状態取得元と通知経路を渡す。
-4. 既存 `MonoBehaviour` は以後、Serviceへの委譲先として動作する。
+### 1. 武器初期化
+1. `PlayerController` が `BulletFactory` と発動基準 `Transform` を取得する。
+2. `PlayerController` が `WeaponEffectExecutor` を生成または参照取得する。
+3. `PlayerController` が `WeaponService` に対して、発動基準と実行ポートを渡す。
+4. `WeaponService` が `BulletWeapon` / `ThrowingWeapon` / `DamageFieldWeapon` を生成する。
 
-### 2. 毎フレーム更新
-1. Unity側の `MonoBehaviour.Update` が入力や `deltaTime` を取得する。
-2. `GameSessionService.Tick(deltaTime)` が制限時間と終了状態を更新する。
-3. `PlayerProgressionService` と `WeaponService` が必要な状態更新を行う。
-4. `EnemySpawnService.Tick(deltaTime)` がスポーン要求の有無を判定する。
-5. Infrastructure層が必要なPrefab生成やTransform同期を行う。
-6. Presenterが最新状態をUI表示へ反映する。
+### 2. 毎フレームの武器更新
+1. `PlayerController.Update` が現在の武器チェーンに対して `Tick(Time.deltaTime)` を呼ぶ。
+2. `WeaponBase` が `WeaponService` を使ってクールダウンを進行し、発動可否を判定する。
+3. 発動条件を満たした場合、各 `*Weapon` が現在の状況から発動要求を生成する。
+4. `*Weapon` が `IWeaponEffectExecutor` に要求を渡す。
+5. `WeaponEffectExecutor` が対応する Prefab を取得し、プールまたは `Instantiate` で実体を生成する。
+6. `WeaponEffectExecutor` が `BulletController` / `ThrowingBulletController` / `DamageFieldController` を初期化する。
 
-### 3. レベルアップと武器強化
-1. 経験値取得時に `PlayerProgressionService.AddExperience(amount)` を呼ぶ。
-2. サービスがレベルアップを確定し、必要なら武器強化UI表示イベントを通知する。
-3. `WeaponUpgradeUiController` が選択結果を Presenterへ通知する。
-4. Presenterが `WeaponService.ApplyUpgrade(selection)` を呼ぶ。
-5. 武器状態が更新され、以後の `Tick` で新挙動が反映される。
+### 3. 武器強化
+1. `WeaponUpgradeUiController` から選択結果が `PlayerController.ApplyWeaponUpgrade` に渡る。
+2. `PlayerController` が `WeaponService.ApplyUpgrade` を呼ぶ。
+3. 既存武器なら `LevelUp()` で内部パラメータを更新する。
+4. 未取得武器なら `WeaponService` が同じ実行ポートを注入して新しい `*Weapon` を生成する。
 
-### 4. スタイル変更
-1. スタイル選択UIまたは既存導線から `PlayerProgressionService.ChangeStyle(style)` を呼ぶ。
-2. サービスが旧スタイル効果を解除し、新スタイル効果を適用する。
-3. `PlayerState` の倍率や継続効果状態を更新する。
-4. Presenter と Unityアダプターが表示・移動速度・経験値計算へ反映する。
+## フェーズ別実装計画
+
+### Phase 1: 要求データと実行ポートの定義
+- 武器発動要求を表す純C#型を追加する。
+- `IWeaponEffectExecutor` を追加し、武器クラスが依存する唯一の実行境界を定義する。
+- 要求データは最小限の値のみを持ち、Unity コンポーネント参照の露出を抑える。
+
+### Phase 2: Infrastructure 実行アダプタの追加
+- `WeaponEffectExecutor` を追加し、`BulletFactory`、`ObjectPool<T>`、`*Controller` 初期化を集約する。
+- 弾、投擲弾、ダメージフィールドごとに、要求データから実体生成する処理を実装する。
+- 既存 `BulletFactory` は Prefab参照と探索先参照の提供責務に限定する。
+
+### Phase 3: `*Weapon` の純化
+- `WeaponBase` から `Transform` の直接依存を最小化し、発動基準位置取得と実行ポート呼び出しに必要な抽象だけを残す。
+- `BulletWeapon` から `ObjectPool`、Prefab保持、`Instantiate` を削除し、ターゲット探索後に `BulletFireRequest` を組み立てる。
+- `DamageFieldWeapon` から `ObjectPool`、Prefab保持、`Instantiate` を削除し、生成要求を組み立てる。
+- `ThrowingWeapon` から `ObjectPool`、Prefab保持、`Instantiate` を削除し、投擲要求を組み立てる。
+
+### Phase 4: 呼び出し側の接続変更
+- `WeaponService` のビルダーに実行ポート注入を追加する。
+- `PlayerController` で `WeaponEffectExecutor` を初期化し、武器生成経路に接続する。
+- 既存の武器チェーン構造と `Tick` 呼び出しを維持したまま、新経路へ切り替える。
+
+### Phase 5: テスト更新と回帰確認
+- EditMode テストで、`*Weapon` が要求データを正しく生成することを検証する。
+- `WeaponServiceTests` を更新し、新規武器生成時に適切な依存が注入されることを確認する。
+- 手動確認で、3種の武器の発動、強化、クールダウン、ダメージ反映が従来どおり動作することを確認する。
 
 ## リスクと対策
-- リスク: 段階移行中に旧ロジックと新ロジックが二重で動き、挙動が重複する。
-  - 対策: 各フェーズで「単一の責務は片方だけが更新する」境界を明確にし、委譲化してから旧処理を空にする。
-- リスク: `GameEvents` と新通知基盤が混在し、通知漏れや二重通知が起きる。
-  - 対策: 移行対象ごとに通知の唯一の発火元を決め、新規機能は静的イベントへ追加しない。
-- リスク: `MonoBehaviour` から純C#へ切り出す際に、`Time.deltaTime` や `Transform` 依存が残る。
-  - 対策: Service入力を `deltaTime` や座標値の引数化で受け取り、Unity型への依存を限定する。
-- リスク: UI参照解決の変更で初期化順不整合が起きる。
-  - 対策: `GameBootstrapper` に初期化順を集約し、`Awake` / `Start` の責務を明確化する。
-- リスク: データ駆動化途中で `enum + switch` と定義テーブルが混在し、保守箇所が増える。
-  - 対策: 武器、スタイルの順で対象を絞って移行し、切り替え完了単位ごとに旧分岐を削除する。
+- リスク: `*Weapon` から Unity 依存を外す過程で、発射位置や向きの取得経路が複雑化する。
+  - 対策: まずは必要最小限として、位置・向き・攻撃力を呼び出し時点で値として組み立てる。
+- リスク: `BulletFactory` と新しい `WeaponEffectExecutor` の責務が重複する。
+  - 対策: `BulletFactory` は設定参照の提供、`WeaponEffectExecutor` は実行のみに明確に分離する。
+- リスク: 新旧の生成経路が混在すると、二重生成や未初期化が発生する。
+  - 対策: `*Weapon` の `Fire()` 切り替えは一括で行い、旧生成コードを残さない。
+- リスク: `Application` 層に Unity 型依存が残り、中途半端な分離になる。
+  - 対策: `GameObject.Instantiate`、`ObjectPool<T>`、`GetComponent` を `*Weapon` から排除することを完了条件に含める。
+- リスク: 既存テストが実装詳細に依存していて壊れる。
+  - 対策: テスト対象を「生成実行」ではなく「要求生成」と「クールダウン進行」に寄せる。
 
 ## 検証方針
 - EditMode テスト
-  - 制限時間経過でゲームクリアになる。
-  - ゲームオーバー後は進行更新が停止する。
-  - 経験値倍率込みで経験値加算とレベルアップが正しく計算される。
-  - スタイル変更時に旧効果が解除され、新効果だけが残る。
-  - 武器クールダウンとレベルアップ後の発動条件が正しく更新される。
-  - 敵スポーンタイマーとスポーン要求判定が正しく動作する。
-- PlayMode / 手動確認
-  - メインシーン起動時に参照解決エラーが発生しない。
-  - HUDがHP、経験値、時間を正しく表示する。
-  - レベルアップ時に武器強化UIが表示され、選択結果が適用される。
-  - プレイヤー移動、攻撃、敵スポーン、ゲームクリア/ゲームオーバーが既存通りに動作する。
+  - `BulletWeapon` が有効なターゲットを見つけた場合のみ発射要求を出す。
+  - `ThrowingWeapon` がプレイヤー向きに基づく投擲要求を出す。
+  - `DamageFieldWeapon` が強化レベルに応じたスケールで生成要求を出す。
+  - `WeaponService.ApplyUpgrade` が既存武器強化と新規武器追加を従来どおり処理する。
+  - `WeaponBase.Tick` がクールダウン条件に従って発動判定する。
+- 手動確認
+  - シューター武器が最寄り敵へ発射される。
+  - ターゲット不在時に破壊可能オブジェクトへ発射される。
+  - 投擲武器がプレイヤーの向きに従って飛ぶ。
+  - ダメージフィールドがプレイヤー追従し、強化でサイズが拡大する。
+  - 武器強化 UI からの選択で新規武器追加と既存武器強化が維持される。
 
 ## コードスニペット（主要変更イメージ）
 ```csharp
 /// <summary>
-/// ゲーム進行の純C#状態
+/// 武器発動の実行ポート
 /// </summary>
-public class GameSessionState
+public interface IWeaponEffectExecutor
 {
-    public float TimeLimit { get; }
-    public float ElapsedTime { get; private set; }
-    public bool IsGameClear { get; private set; }
-    public bool IsGameOver { get; private set; }
-
-    public GameSessionState(float timeLimit)
-    {
-        TimeLimit = timeLimit;
-    }
-
-    public void Advance(float deltaTime)
-    {
-        if (IsGameClear || IsGameOver)
-        {
-            return;
-        }
-
-        ElapsedTime += deltaTime;
-        if (ElapsedTime >= TimeLimit)
-        {
-            IsGameClear = true;
-        }
-    }
-
-    public void MarkGameOver()
-    {
-        IsGameOver = true;
-    }
+    void FireBullet(BulletFireRequest request);
+    void FireThrowing(ThrowingFireRequest request);
+    void SpawnDamageField(DamageFieldSpawnRequest request);
 }
 
 /// <summary>
-/// Unity側の薄い委譲コンポーネント
+/// 弾発射要求
 /// </summary>
-public class GameManager : MonoBehaviour
+public sealed class BulletFireRequest
 {
-    [SerializeField]
-    float _timeLimit = 30f;
+    public Vector3 Origin { get; }
+    public Vector3 Direction { get; }
+    public int SourcePow { get; }
 
-    GameSessionService _gameSessionService;
-
-    void Update()
+    public BulletFireRequest(Vector3 origin, Vector3 direction, int sourcePow)
     {
-        _gameSessionService.Tick(Time.deltaTime);
+        Origin = origin;
+        Direction = direction;
+        SourcePow = sourcePow;
     }
+}
+
+protected override void Fire()
+{
+    GameObject target = _targetResolver.FindNearestTarget(_originProvider.Position);
+    if (target == null)
+    {
+        return;
+    }
+
+    Vector3 direction = (target.transform.position - _originProvider.Position).normalized;
+    _effectExecutor.FireBullet(new BulletFireRequest(_originProvider.Position, direction, _powProvider.CurrentPow));
 }
 ```
