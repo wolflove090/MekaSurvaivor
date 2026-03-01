@@ -119,6 +119,13 @@ public class StyleChangeUiController : MonoBehaviour
     /// </summary>
     void ResolvePlayerReferences()
     {
+        if (_playerController != null)
+        {
+            _playerHealthComponent = _playerController.GetComponent<HealthComponent>();
+            _spriteDirectionController = _playerController.GetComponent<SpriteDirectionController>();
+            return;
+        }
+
         PlayerController player = PlayerController.Instance;
         if (player == null)
         {
@@ -134,6 +141,17 @@ public class StyleChangeUiController : MonoBehaviour
         _playerController = player;
         _playerHealthComponent = player.GetComponent<HealthComponent>();
         _spriteDirectionController = player.GetComponent<SpriteDirectionController>();
+    }
+
+    /// <summary>
+    /// ブートストラップからプレイヤー参照を設定します。
+    /// </summary>
+    /// <param name="playerController">参照するプレイヤー</param>
+    public void SetPlayer(PlayerController playerController)
+    {
+        _playerController = playerController;
+        _playerHealthComponent = playerController != null ? playerController.GetComponent<HealthComponent>() : null;
+        _spriteDirectionController = playerController != null ? playerController.GetComponent<SpriteDirectionController>() : null;
     }
 
     /// <summary>

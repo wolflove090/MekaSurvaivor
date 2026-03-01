@@ -130,10 +130,7 @@ public class EnemyController : MonoBehaviour
     {
         GameEvents.RaiseEnemyDied(gameObject);
 
-        if (EnemySpawner.Instance != null)
-        {
-            EnemySpawner.Instance.RemoveEnemy(gameObject);
-        }
+        EnemyRegistry.Instance?.UnregisterEnemy(gameObject);
 
         PooledObject pooledObject = GetComponent<PooledObject>();
         if (pooledObject != null)

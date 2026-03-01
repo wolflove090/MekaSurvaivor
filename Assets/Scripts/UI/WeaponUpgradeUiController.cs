@@ -291,4 +291,13 @@ public class WeaponUpgradeUiController : MonoBehaviour
         _uiDocument.sortingOrder = _defaultSortOrder;
     }
 
+    /// <summary>
+    /// ブートストラップから強化対象プレイヤーを設定します。
+    /// </summary>
+    /// <param name="player">強化対象のプレイヤー</param>
+    public void SetPlayer(PlayerController player)
+    {
+        _player = player;
+    }
+
 }

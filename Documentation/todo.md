@@ -3,14 +3,14 @@
 ## Phase 1: 事前整備と配置整理
 - [x] `Assets/Scripts/Domain` を新規作成する
 - [x] `Assets/Scripts/Application` を新規作成する
-- [ ] `Assets/Scripts/Infrastructure/Unity` を新規作成する
-- [ ] `Assets/Scripts/Presentation/UI` を新規作成する
-- [ ] `Assets/Scripts/Presentation/World` を新規作成する
+- [x] `Assets/Scripts/Infrastructure/Unity` を新規作成する
+- [x] `Assets/Scripts/Presentation/UI` を新規作成する
+- [x] `Assets/Scripts/Presentation/World` を新規作成する
 - [ ] 既存スクリプトの責務マッピング表を作成し、移行先レイヤーを明記する
 
 ## Phase 2: ブートストラップと依存解決
-- [ ] `GameBootstrapper` を新規作成する
-- [ ] メインシーンで必要な参照を `GameBootstrapper` に集約する
+- [x] `GameBootstrapper` を新規作成する
+- [x] メインシーンで必要な参照を `GameBootstrapper` に集約する
 - [ ] `GameManager.Instance` への新規依存を止める
 - [ ] `PlayerController.Instance` への新規依存を止める
 - [ ] `EnemySpawner.Instance` への新規依存を止める
@@ -39,12 +39,12 @@
 - [ ] 既存武器の発動挙動が維持されることを確認する
 
 ## Phase 6: 敵生成システム再編
-- [ ] `EnemySpawnState` を作成する
-- [ ] `EnemySpawnService` を作成する
-- [ ] `EnemySpawner` のスポーンタイマー管理をサービスへ移す
-- [ ] スポーン位置決定ロジックをサービスへ移す
-- [ ] Unity側の `EnemySpawner` は生成とターゲット接続に責務を限定する
-- [ ] 近傍探索ロジックの互換性を確認する
+- [x] `EnemySpawnState` を作成する
+- [x] `EnemySpawnService` を作成する
+- [x] `EnemySpawner` のスポーンタイマー管理をサービスへ移す
+- [x] スポーン位置決定ロジックをサービスへ移す
+- [x] Unity側の `EnemySpawner` は生成とターゲット接続に責務を限定する
+- [x] 近傍探索ロジックの互換性を確認する
 
 ## Phase 7: UIのPresenter化
 - [ ] `GameScreenPresenter` を新規作成する
@@ -62,11 +62,11 @@
 - [ ] 旧 `GameEvents` の残存利用箇所を洗い出す
 
 ## Phase 9: テスト整備
-- [ ] `Assets/Tests/EditMode` 配下のテスト配置方針を決める
-- [ ] `GameSessionService` の EditMode テストを追加する
+- [x] `Assets/Tests/EditMode` 配下のテスト配置方針を決める
+- [x] `GameSessionService` の EditMode テストを追加する
 - [ ] `PlayerProgressionService` の EditMode テストを追加する
 - [ ] `WeaponService` の EditMode テストを追加する
-- [ ] `EnemySpawnService` の EditMode テストを追加する
+- [x] `EnemySpawnService` の EditMode テストを追加する
 - [ ] スタイル変更と倍率解除の回帰テストを追加する
 
 ## Phase 10: 旧実装の縮退と最終確認

@@ -283,6 +283,30 @@ public class GameScreenUiController : MonoBehaviour
     }
 
     /// <summary>
+    /// ブートストラップから参照を設定します。
+    /// </summary>
+    /// <param name="playerController">参照するプレイヤーコントローラー</param>
+    /// <param name="playerExperience">参照するプレイヤー経験値</param>
+    /// <param name="gameManager">参照するゲーム進行管理</param>
+    public void SetReferences(PlayerController playerController, PlayerExperience playerExperience, GameManager gameManager)
+    {
+        _playerController = playerController;
+        _playerExperience = playerExperience;
+        _gameManager = gameManager;
+
+        if (_playerController != null)
+        {
+            _healthComponent = _playerController.GetComponent<HealthComponent>();
+            _characterStats = _playerController.GetComponent<CharacterStats>();
+        }
+        else
+        {
+            _healthComponent = null;
+            _characterStats = null;
+        }
+    }
+
+    /// <summary>
     /// 残り時間表示を差分更新で反映します。
     /// </summary>
     /// <param name="force">強制更新する場合はtrue</param>

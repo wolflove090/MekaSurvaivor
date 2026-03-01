@@ -68,9 +68,9 @@ public class BulletWeapon : WeaponBase
         Vector3 shootPosition = _transform.position + _shootOffset;
         GameObject target = null;
 
-        if (EnemySpawner.Instance != null)
+        if (EnemyRegistry.Instance != null)
         {
-            target = EnemySpawner.Instance.FindNearestEnemy(shootPosition, onlyVisible: true);
+            target = EnemyRegistry.Instance.FindNearestEnemy(shootPosition, onlyVisible: true);
         }
 
         if (target == null && BreakableObjectSpawner.Instance != null)
