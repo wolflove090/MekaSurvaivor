@@ -48,4 +48,22 @@ public class GameSessionServiceTests
         Assert.That(service.RemainingTime, Is.EqualTo(7f));
         Assert.That(service.IsGameClear, Is.False);
     }
+
+    /// <summary>
+    /// ゲームオーバー遷移時の通知が一度だけ発火することを検証します。
+    /// </summary>
+    [Test]
+    public void MarkGameOver_RaisedOnce_InvokesCallbackOnce()
+    {
+        int gameOverCount = 0;
+        GameSessionService service = new GameSessionService(
+            new GameSessionState(10f),
+            onGameOver: () => gameOverCount++);
+
+        service.MarkGameOver();
+        service.MarkGameOver();
+
+        Assert.That(service.IsGameOver, Is.True);
+        Assert.That(gameOverCount, Is.EqualTo(1));
+    }
 }

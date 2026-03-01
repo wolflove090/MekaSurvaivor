@@ -18,6 +18,7 @@ public class EnemyController : MonoBehaviour
     Transform _targetTransform;
     IEnemyBehavior _enemyBehavior;
     GameMessageBus _gameMessageBus;
+    EnemyRegistry _enemyRegistry;
 
     /// <summary>
     /// 移動速度を取得または設定します
@@ -71,6 +72,15 @@ public class EnemyController : MonoBehaviour
     public void SetMessageBus(GameMessageBus gameMessageBus)
     {
         _gameMessageBus = gameMessageBus;
+    }
+
+    /// <summary>
+    /// 登録管理に使用する敵レジストリを設定します。
+    /// </summary>
+    /// <param name="enemyRegistry">設定する敵レジストリ</param>
+    public void SetRegistry(EnemyRegistry enemyRegistry)
+    {
+        _enemyRegistry = enemyRegistry;
     }
 
     /// <summary>
@@ -139,9 +149,8 @@ public class EnemyController : MonoBehaviour
     void OnDied()
     {
         _gameMessageBus?.RaiseEnemyDied(gameObject);
-        GameEvents.RaiseEnemyDied(gameObject);
 
-        EnemyRegistry.Instance?.UnregisterEnemy(gameObject);
+        _enemyRegistry?.UnregisterEnemy(gameObject);
 
         PooledObject pooledObject = GetComponent<PooledObject>();
         if (pooledObject != null)
@@ -184,7 +193,7 @@ public class EnemyController : MonoBehaviour
     {
         if (_characterStats != null)
         {
-            _moveSpeed = _characterStats.Spd;
+            _moveSpeed = _characterStats.CurrentValues.Spd;
         }
     }
 }

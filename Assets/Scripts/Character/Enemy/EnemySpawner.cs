@@ -160,10 +160,8 @@ public class EnemySpawner : MonoBehaviour
             enemyController.SetTarget(_playerTransform);
         }
 
+        enemyController?.SetRegistry(_enemyRegistry);
         enemyController?.SetMessageBus(_gameMessageBus);
-
-        // スポーンイベントを発火
-        GameEvents.RaiseEnemySpawned(enemy);
     }
 
     /// <summary>

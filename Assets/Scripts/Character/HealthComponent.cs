@@ -16,7 +16,7 @@ public class HealthComponent : MonoBehaviour, IDamageable
     /// <summary>
     /// 最大HPを取得します
     /// </summary>
-    public int MaxHp => _characterStats != null ? _characterStats.MaxHp : 10;
+    public int MaxHp => _characterStats != null ? _characterStats.CurrentValues.MaxHp : CharacterStatValues.Default.MaxHp;
 
     /// <summary>
     /// 死亡状態かどうかを取得します
@@ -88,7 +88,8 @@ public class HealthComponent : MonoBehaviour, IDamageable
         }
 
         int baseDamage = Mathf.Max(0, damage);
-        int defense = _characterStats != null ? _characterStats.Def : 0;
+        CharacterStatValues currentValues = _characterStats != null ? _characterStats.CurrentValues : CharacterStatValues.Default;
+        int defense = currentValues.Def;
         int finalDamage = Mathf.Max(1, baseDamage - defense);
 
         _currentHp -= finalDamage;

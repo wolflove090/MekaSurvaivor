@@ -27,7 +27,12 @@ public class GameMessageBus
     public event Action PlayerDied;
 
     /// <summary>
-    /// ゲームオーバーになった時に発火します。
+    /// ゲームクリア時に発火します。
+    /// </summary>
+    public event Action GameCleared;
+
+    /// <summary>
+    /// ゲームオーバー時に発火します。
     /// </summary>
     public event Action GameOver;
 
@@ -71,6 +76,14 @@ public class GameMessageBus
     public void RaisePlayerDied()
     {
         PlayerDied?.Invoke();
+    }
+
+    /// <summary>
+    /// ゲームクリア通知を発火します。
+    /// </summary>
+    public void RaiseGameCleared()
+    {
+        GameCleared?.Invoke();
     }
 
     /// <summary>

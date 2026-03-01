@@ -600,7 +600,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponUpgradeUiController
   _layoutAsset: {fileID: 9197481963319205126, guid: d94e67f8435964a2a8b90d0168277cdd, type: 3}
   _styleSheet: {fileID: 7433441132597879392, guid: 9147c165db3b14e77b8a9b0ffce545f1, type: 3}
-  _player: {fileID: 153723276}
   _sortOrderWhileOpen: 100
 --- !u!114 &469418916
 MonoBehaviour:
@@ -635,6 +634,52 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: -0.5, z: 3.3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &693046094
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 693046096}
+  - component: {fileID: 693046095}
+  m_Layer: 0
+  m_Name: EnemyRegister
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &693046095
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 693046094}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bb8203ea781542188002731a1dcb8bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MekaSurvaivor.Runtime::EnemyRegistry
+  _gridCellSize: 5
+  _maxGridSearchSteps: 8
+--- !u!4 &693046096
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 693046094}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -28.51966, y: 1, z: 7.10563}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -795,13 +840,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9d08c8d7d38e432596da7c19e2dbb81f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameBootstrapper
-  _playerController: {fileID: 0}
-  _gameManager: {fileID: 0}
-  _enemySpawner: {fileID: 0}
-  _enemyRegistry: {fileID: 0}
-  _gameScreenUiController: {fileID: 0}
-  _weaponUpgradeUiController: {fileID: 0}
-  _styleChangeUiController: {fileID: 0}
+  _playerController: {fileID: 153723276}
+  _gameManager: {fileID: 1960855176}
+  _enemySpawner: {fileID: 730075973}
+  _enemyRegistry: {fileID: 693046095}
+  _experienceOrbSpawner: {fileID: 1960855178}
+  _gameScreenUiController: {fileID: 2050010001}
+  _weaponUpgradeUiController: {fileID: 469418915}
+  _styleChangeUiController: {fileID: 721230212}
 --- !u!4 &1342434703
 Transform:
   m_ObjectHideFlags: 0
@@ -1087,8 +1133,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameScreenUiController
   _layoutAsset: {fileID: 9197481963319205126, guid: bda26db23a8d4b10b081f857c4de9997, type: 3}
   _styleSheet: {fileID: 7433441132597879392, guid: 8ed0dc2eb5be4caf83f3713f6e92e9f5, type: 3}
-  _playerController: {fileID: 0}
-  _playerExperience: {fileID: 0}
 --- !u!114 &2050010002
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1142,3 +1186,4 @@ SceneRoots:
   - {fileID: 2050010003}
   - {fileID: 1929379176}
   - {fileID: 1342434703}
+  - {fileID: 693046096}

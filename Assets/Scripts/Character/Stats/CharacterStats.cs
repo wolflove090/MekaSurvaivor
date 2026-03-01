@@ -10,11 +10,6 @@ public class CharacterStats : MonoBehaviour
     [Tooltip("参照するステータスデータ")]
     CharacterStatsData _statsData;
 
-    const int DEFAULT_MAX_HP = 10;
-    const int DEFAULT_POW = 1;
-    const int DEFAULT_DEF = 0;
-    const float DEFAULT_SPD = 5f;
-
     /// <summary>
     /// ステータスデータが変更された時に発火するイベント
     /// </summary>
@@ -26,24 +21,29 @@ public class CharacterStats : MonoBehaviour
     public bool HasData => _statsData != null;
 
     /// <summary>
+    /// 現在のランタイム参照用ステータス値を取得します。
+    /// </summary>
+    public CharacterStatValues CurrentValues => _statsData != null ? _statsData.ToRuntimeValues() : CharacterStatValues.Default;
+
+    /// <summary>
     /// 最大HPを取得します
     /// </summary>
-    public int MaxHp => _statsData != null ? _statsData.MaxHp : DEFAULT_MAX_HP;
+    public int MaxHp => CurrentValues.MaxHp;
 
     /// <summary>
     /// 攻撃力を取得します
     /// </summary>
-    public int Pow => _statsData != null ? _statsData.Pow : DEFAULT_POW;
+    public int Pow => CurrentValues.Pow;
 
     /// <summary>
     /// 防御力を取得します
     /// </summary>
-    public int Def => _statsData != null ? _statsData.Def : DEFAULT_DEF;
+    public int Def => CurrentValues.Def;
 
     /// <summary>
     /// 移動速度を取得します
     /// </summary>
-    public float Spd => _statsData != null ? _statsData.Spd : DEFAULT_SPD;
+    public float Spd => CurrentValues.Spd;
 
     /// <summary>
     /// ステータスデータを差し替えて変更通知を発火します

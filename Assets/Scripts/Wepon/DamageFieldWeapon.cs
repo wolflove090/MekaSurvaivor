@@ -23,6 +23,7 @@ public class DamageFieldWeapon : WeaponBase
     ObjectPool<DamageFieldController> _damageFieldPool;
     const float DEFAULT_AREA_SCALE = 3f;
     float _currentAreaScale = DEFAULT_AREA_SCALE;
+    PlayerController _playerController;
 
     /// <summary>
     /// 生成間隔を取得または設定します
@@ -43,6 +44,8 @@ public class DamageFieldWeapon : WeaponBase
             Debug.LogWarning("BulletFactoryが見つかりません");
             return;
         }
+
+        _playerController = _transform.GetComponent<PlayerController>();
 
         _damageFieldPrefab = bulletFactory.DamageFieldPrefab;
         if (_damageFieldPrefab == null)
@@ -83,6 +86,7 @@ public class DamageFieldWeapon : WeaponBase
         if (damageFieldController != null)
         {
             damageFieldController.SetFollowTarget(_transform);
+            damageFieldController.SetSourcePow(_playerController != null ? _playerController.Pow : 1);
             damageFieldController.SetAreaScale(_currentAreaScale);
         }
     }

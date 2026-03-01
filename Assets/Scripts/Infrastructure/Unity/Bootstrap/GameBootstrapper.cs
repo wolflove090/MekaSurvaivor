@@ -41,6 +41,14 @@ public class GameBootstrapper : MonoBehaviour
     [Tooltip("参照を解決するスタイル変更UIコントローラー")]
     StyleChangeUiController _styleChangeUiController;
 
+    [SerializeField]
+    [Tooltip("参照を解決する破壊可能オブジェクトスポナー")]
+    BreakableObjectSpawner _breakableObjectSpawner;
+
+    [SerializeField]
+    [Tooltip("参照を解決する回復アイテムスポナー")]
+    HealPickupSpawner _healPickupSpawner;
+
     /// <summary>
     /// 参照解決と依存接続を実行します。
     /// </summary>
@@ -63,6 +71,8 @@ public class GameBootstrapper : MonoBehaviour
         _gameScreenUiController ??= FindFirstObjectByType<GameScreenUiController>();
         _weaponUpgradeUiController ??= FindFirstObjectByType<WeaponUpgradeUiController>();
         _styleChangeUiController ??= FindFirstObjectByType<StyleChangeUiController>();
+        _breakableObjectSpawner ??= FindFirstObjectByType<BreakableObjectSpawner>();
+        _healPickupSpawner ??= FindFirstObjectByType<HealPickupSpawner>();
     }
 
     /// <summary>
@@ -75,16 +85,26 @@ public class GameBootstrapper : MonoBehaviour
         _enemySpawner?.SetMessageBus(_gameMessageBus);
         _experienceOrbSpawner?.SetMessageBus(_gameMessageBus);
         _styleChangeUiController?.SetMessageBus(_gameMessageBus);
+        _breakableObjectSpawner?.SetHealPickupSpawner(_healPickupSpawner);
 
         if (_playerController != null)
         {
             PlayerExperience playerExperience = _playerController.GetComponent<PlayerExperience>();
 
             _playerController.SetMessageBus(_gameMessageBus);
+            _playerController.SetGameManager(_gameManager);
             playerExperience?.SetMessageBus(_gameMessageBus);
 
             _enemySpawner?.SetSpawnTarget(_playerController.transform);
+            _breakableObjectSpawner?.SetSpawnTarget(_playerController.transform);
             _styleChangeUiController?.SetPlayer(_playerController);
+
+            BulletFactory bulletFactory = _playerController.GetComponent<BulletFactory>();
+            if (bulletFactory != null)
+            {
+                bulletFactory.SetEnemyRegistry(_enemyRegistry);
+                bulletFactory.SetBreakableObjectSpawner(_breakableObjectSpawner);
+            }
 
             if (_gameScreenUiController != null)
             {

@@ -12,6 +12,7 @@ public class BreakableObject : MonoBehaviour, IDamageable
     int _currentHp;
     bool _isDestroyHandled;
     BreakableObjectSpawner _ownerSpawner;
+    HealPickupSpawner _healPickupSpawner;
 
     /// <summary>
     /// 現在のHPを取得します
@@ -27,9 +28,11 @@ public class BreakableObject : MonoBehaviour, IDamageable
     /// 所有スポーナーを設定し、初期状態を再設定します
     /// </summary>
     /// <param name="ownerSpawner">生成元のスポーナー</param>
-    public void Initialize(BreakableObjectSpawner ownerSpawner)
+    /// <param name="healPickupSpawner">破壊時に使用する回復アイテムスポナー</param>
+    public void Initialize(BreakableObjectSpawner ownerSpawner, HealPickupSpawner healPickupSpawner)
     {
         _ownerSpawner = ownerSpawner;
+        _healPickupSpawner = healPickupSpawner;
         ResetState();
     }
 
@@ -73,9 +76,9 @@ public class BreakableObject : MonoBehaviour, IDamageable
 
         _isDestroyHandled = true;
 
-        if (HealPickupSpawner.Instance != null)
+        if (_healPickupSpawner != null)
         {
-            HealPickupSpawner.Instance.SpawnHealPickup(transform.position);
+            _healPickupSpawner.SpawnHealPickup(transform.position);
         }
 
         if (_ownerSpawner != null)

@@ -6,6 +6,8 @@ using UnityEngine;
 public class BulletWeapon : WeaponBase
 {
     GameObject _bulletPrefab;
+    BulletFactory _bulletFactory;
+    PlayerController _playerController;
 
     [Tooltip("発射間隔（秒）")]
     float _shootInterval = 1f;
@@ -37,14 +39,16 @@ public class BulletWeapon : WeaponBase
 
     public BulletWeapon(Transform transform , WeaponBase rideWeapon) : base(transform, rideWeapon)
     {
-        BulletFactory bulletFactory = _transform.GetComponent<BulletFactory>();
-        if (bulletFactory == null)
+        _bulletFactory = _transform.GetComponent<BulletFactory>();
+        if (_bulletFactory == null)
         {
             Debug.LogWarning("BulletFactoryが見つかりません");
             return;
         }
 
-        _bulletPrefab = bulletFactory.BulletPrefab;
+        _playerController = _transform.GetComponent<PlayerController>();
+
+        _bulletPrefab = _bulletFactory.BulletPrefab;
         if (_bulletPrefab == null)
         {
             Debug.LogWarning("BulletFactoryのBulletPrefabが設定されていません");
@@ -68,14 +72,16 @@ public class BulletWeapon : WeaponBase
         Vector3 shootPosition = _transform.position + _shootOffset;
         GameObject target = null;
 
-        if (EnemyRegistry.Instance != null)
+        EnemyRegistry enemyRegistry = _bulletFactory != null ? _bulletFactory.EnemyRegistry : null;
+        if (enemyRegistry != null)
         {
-            target = EnemyRegistry.Instance.FindNearestEnemy(shootPosition, onlyVisible: true);
+            target = enemyRegistry.FindNearestEnemy(shootPosition, onlyVisible: true);
         }
 
-        if (target == null && BreakableObjectSpawner.Instance != null)
+        BreakableObjectSpawner breakableObjectSpawner = _bulletFactory != null ? _bulletFactory.BreakableObjectSpawner : null;
+        if (target == null && breakableObjectSpawner != null)
         {
-            target = BreakableObjectSpawner.Instance.FindNearestBreakableObject(shootPosition, onlyVisible: true);
+            target = breakableObjectSpawner.FindNearestBreakableObject(shootPosition, onlyVisible: true);
         }
 
         if (target == null)
@@ -101,6 +107,7 @@ public class BulletWeapon : WeaponBase
 
         if (bulletController != null)
         {
+            bulletController.SetSourcePow(_playerController != null ? _playerController.Pow : 1);
             bulletController.SetDirection(direction);
         }
     }

@@ -39,6 +39,11 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public bool IsGameClear => _gameSessionService != null && _gameSessionService.IsGameClear;
 
+    /// <summary>
+    /// ゲームオーバー状態かどうかを取得します。
+    /// </summary>
+    public bool IsGameOver => _gameSessionService != null && _gameSessionService.IsGameOver;
+
     void Awake()
     {
         if (_instance != null && _instance != this)
@@ -55,8 +60,6 @@ public class GameManager : MonoBehaviour
 
     void OnDestroy()
     {
-        UnregisterMessageBus();
-
         if (_instance == this)
         {
             _instance = null;
@@ -69,37 +72,15 @@ public class GameManager : MonoBehaviour
     /// <param name="gameMessageBus">設定する通知バス</param>
     public void SetMessageBus(GameMessageBus gameMessageBus)
     {
-        if (_gameMessageBus == gameMessageBus)
-        {
-            return;
-        }
-
-        UnregisterMessageBus();
         _gameMessageBus = gameMessageBus;
-
-        if (_gameMessageBus != null)
-        {
-            _gameMessageBus.GameOver += OnGameOver;
-        }
     }
 
     /// <summary>
-    /// ゲームオーバー時のコールバック
+    /// ゲームオーバー状態へ遷移させます。
     /// </summary>
-    void OnGameOver()
+    public void MarkGameOver()
     {
         _gameSessionService?.MarkGameOver();
-    }
-
-    /// <summary>
-    /// 現在のメッセージバス購読を解除します。
-    /// </summary>
-    void UnregisterMessageBus()
-    {
-        if (_gameMessageBus != null)
-        {
-            _gameMessageBus.GameOver -= OnGameOver;
-        }
     }
 
     void Update()
@@ -113,6 +94,7 @@ public class GameManager : MonoBehaviour
     void HandleGameClear()
     {
         Debug.Log("ゲームクリア");
+        _gameMessageBus?.RaiseGameCleared();
         Time.timeScale = 0f;
     }
 
@@ -122,6 +104,8 @@ public class GameManager : MonoBehaviour
     void HandleGameOver()
     {
         Debug.Log("GameManager: ゲームオーバーを検知しました");
+        _gameMessageBus?.RaiseGameOver();
+        Time.timeScale = 0f;
     }
 
     /// <summary>

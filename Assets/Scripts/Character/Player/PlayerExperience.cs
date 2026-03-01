@@ -165,7 +165,6 @@ public class PlayerExperience : MonoBehaviour
     void OnExperienceGained(int gainedAmount, int currentExperience, int experienceToNextLevel)
     {
         _gameMessageBus?.RaiseExperienceGained(gainedAmount, currentExperience, experienceToNextLevel);
-        GameEvents.RaiseExperienceGained(gainedAmount, currentExperience, experienceToNextLevel);
     }
 
     /// <summary>
@@ -176,7 +175,6 @@ public class PlayerExperience : MonoBehaviour
     {
         Debug.Log($"レベルアップ！ レベル {currentLevel} に到達しました");
         _gameMessageBus?.RaisePlayerLevelUp(currentLevel);
-        GameEvents.RaisePlayerLevelUp(currentLevel);
     }
 
     void EnsureInitialized()

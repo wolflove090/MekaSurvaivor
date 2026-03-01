@@ -34,6 +34,8 @@ public class BreakableObjectSpawner : MonoBehaviour
     ObjectPool<BreakableObject> _breakableObjectPool;
     List<GameObject> _activeBreakableObjects = new List<GameObject>();
     float _spawnTimer;
+    Transform _spawnTarget;
+    HealPickupSpawner _healPickupSpawner;
 
     static BreakableObjectSpawner _instance;
 
@@ -139,6 +141,24 @@ public class BreakableObjectSpawner : MonoBehaviour
     }
 
     /// <summary>
+    /// スポーン位置計算に使用するターゲットを設定します。
+    /// </summary>
+    /// <param name="target">基準となるTransform</param>
+    public void SetSpawnTarget(Transform target)
+    {
+        _spawnTarget = target;
+    }
+
+    /// <summary>
+    /// 破壊時に使用する回復アイテムスポナーを設定します。
+    /// </summary>
+    /// <param name="healPickupSpawner">設定するスポナー</param>
+    public void SetHealPickupSpawner(HealPickupSpawner healPickupSpawner)
+    {
+        _healPickupSpawner = healPickupSpawner;
+    }
+
+    /// <summary>
     /// 破壊可能オブジェクトのスポーンを試みます
     /// </summary>
     void TrySpawnBreakableObject()
@@ -171,7 +191,7 @@ public class BreakableObjectSpawner : MonoBehaviour
 
         breakableObject.transform.position = spawnPosition;
         breakableObject.transform.rotation = Quaternion.identity;
-        breakableObject.Initialize(this);
+        breakableObject.Initialize(this, _healPickupSpawner);
         _activeBreakableObjects.Add(breakableObject.gameObject);
     }
 
@@ -183,9 +203,7 @@ public class BreakableObjectSpawner : MonoBehaviour
     /// <returns>有効位置が見つかった場合はtrue</returns>
     bool TryCalculateSpawnPosition(Camera camera, out Vector3 spawnPosition)
     {
-        float spawnPlaneY = PlayerController.Instance != null
-            ? PlayerController.Instance.transform.position.y
-            : 0f;
+        float spawnPlaneY = _spawnTarget != null ? _spawnTarget.position.y : 0f;
 
         for (int i = 0; i < _maxSpawnAttempts; i++)
         {

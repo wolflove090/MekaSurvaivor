@@ -9,8 +9,6 @@ public class PlayerController : MonoBehaviour
 {
     static PlayerController _instance;
 
-    bool _isGameOver;
-
     HealthComponent _healthComponent;
     PlayerMovement _playerMovement;
     CharacterStats _characterStats;
@@ -19,6 +17,7 @@ public class PlayerController : MonoBehaviour
     PlayerStyleEffectContext _styleEffectContext;
     WeaponService _playerWeaponService;
     GameMessageBus _gameMessageBus;
+    GameManager _gameManager;
 
     WeaponBase _weapon;
     Dictionary<Type, WeaponBase> _weapons = new Dictionary<Type, WeaponBase>();
@@ -59,7 +58,7 @@ public class PlayerController : MonoBehaviour
     /// <summary>
     /// ゲームオーバー状態かどうかを取得します
     /// </summary>
-    public bool IsGameOver => _isGameOver;
+    public bool IsGameOver => _gameManager != null && _gameManager.IsGameOver;
 
     /// <summary>
     /// プレイヤーの向いている方向を取得します
@@ -113,7 +112,6 @@ public class PlayerController : MonoBehaviour
             Debug.LogWarning("PlayerController: PlayerExperienceが見つからないため、スタイル効果の経験値倍率は適用されません。");
         }
 
-        _isGameOver = false;
         BuildStyleEffectContext();
 
         if (_healthComponent != null)
@@ -127,11 +125,6 @@ public class PlayerController : MonoBehaviour
             _characterStats.OnStatsDataChanged += OnStatsDataChanged;
         }
         
-        if (_playerMovement != null)
-        {
-            _playerMovement.OnMoved += OnMoved;
-        }
-
         ApplyMoveSpeedFromStats();
     }
 
@@ -142,7 +135,7 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        if (_isGameOver)
+        if (IsGameOver)
         {
             return;
         }
@@ -215,6 +208,15 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
+    /// ゲーム進行管理を設定します。
+    /// </summary>
+    /// <param name="gameManager">設定するゲーム進行管理</param>
+    public void SetGameManager(GameManager gameManager)
+    {
+        _gameManager = gameManager;
+    }
+
+    /// <summary>
     /// ダメージを受けた時のコールバック
     /// </summary>
     /// <param name="damage">受けたダメージ量</param>
@@ -222,7 +224,6 @@ public class PlayerController : MonoBehaviour
     {
         Debug.Log($"プレイヤーがダメージを受けました。残りHP: {CurrentHp}");
         _gameMessageBus?.RaisePlayerDamaged(damage);
-        GameEvents.RaisePlayerDamaged(damage);
     }
 
     /// <summary>
@@ -230,7 +231,11 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     void GameOver()
     {
-        _isGameOver = true;
+        if (IsGameOver)
+        {
+            return;
+        }
+
         if (_playerMovement != null)
         {
             _playerMovement.SetCanMove(false);
@@ -238,9 +243,13 @@ public class PlayerController : MonoBehaviour
 
         Debug.Log("ゲームオーバー！");
         _gameMessageBus?.RaisePlayerDied();
-        _gameMessageBus?.RaiseGameOver();
-        GameEvents.RaisePlayerDied();
-        GameEvents.RaiseGameOver();
+
+        if (_gameManager != null)
+        {
+            _gameManager.MarkGameOver();
+            return;
+        }
+
         Time.timeScale = 0f;
     }
 
@@ -254,11 +263,6 @@ public class PlayerController : MonoBehaviour
             _healthComponent.OnDamaged -= OnDamaged;
         }
 
-        if (_playerMovement != null)
-        {
-            _playerMovement.OnMoved -= OnMoved;
-        }
-
         if (_characterStats != null)
         {
             _characterStats.OnStatsDataChanged -= OnStatsDataChanged;
@@ -268,20 +272,6 @@ public class PlayerController : MonoBehaviour
         {
             _instance = null;
         }
-    }
-
-    /// <summary>
-    /// 移動時のコールバック
-    /// </summary>
-    /// <param name="position">プレイヤーの現在位置</param>
-    void OnMoved(Vector3 position)
-    {
-        if (_isGameOver)
-        {
-            return;
-        }
-
-        GameEvents.RaisePlayerMoved(position);
     }
 
     /// <summary>
@@ -311,8 +301,9 @@ public class PlayerController : MonoBehaviour
     {
         if (_playerMovement != null && _characterStats != null)
         {
+            CharacterStatValues currentValues = _characterStats.CurrentValues;
             float moveSpeedMultiplier = _playerState != null ? _playerState.MoveSpeedMultiplier : 1f;
-            _playerMovement.MoveSpeed = _characterStats.Spd * moveSpeedMultiplier;
+            _playerMovement.MoveSpeed = currentValues.Spd * moveSpeedMultiplier;
         }
     }
 

@@ -68,6 +68,8 @@ public class GameScreenPresenter
             _messageBus.ExperienceGained += OnExperienceGained;
             _messageBus.PlayerLevelUp += OnLevelUp;
             _messageBus.PlayerDied += OnPlayerDied;
+            _messageBus.GameCleared += OnGameFlowChanged;
+            _messageBus.GameOver += OnGameFlowChanged;
         }
 
         Refresh(true);
@@ -91,6 +93,8 @@ public class GameScreenPresenter
             _messageBus.ExperienceGained -= OnExperienceGained;
             _messageBus.PlayerLevelUp -= OnLevelUp;
             _messageBus.PlayerDied -= OnPlayerDied;
+            _messageBus.GameCleared -= OnGameFlowChanged;
+            _messageBus.GameOver -= OnGameFlowChanged;
         }
     }
 
@@ -118,6 +122,11 @@ public class GameScreenPresenter
     }
 
     void OnPlayerDied()
+    {
+        _forceRefresh = true;
+    }
+
+    void OnGameFlowChanged()
     {
         _forceRefresh = true;
     }
@@ -156,8 +165,9 @@ public class GameScreenPresenter
         int maxHp = _healthComponent != null ? _healthComponent.MaxHp : currentHp;
         int currentExperience = _playerExperience != null ? _playerExperience.CurrentExperience : 0;
         int experienceToNext = _playerExperience != null ? _playerExperience.ExperienceToNextLevel : 0;
-        int pow = _characterStats != null ? _characterStats.Pow : _playerController.Pow;
-        int def = _characterStats != null ? _characterStats.Def : 0;
+        CharacterStatValues characterValues = _characterStats != null ? _characterStats.CurrentValues : CharacterStatValues.Default;
+        int pow = _characterStats != null ? characterValues.Pow : _playerController.Pow;
+        int def = _characterStats != null ? characterValues.Def : CharacterStatValues.Default.Def;
         float spd = _playerController.MoveSpeed;
 
         bool hasChanged =

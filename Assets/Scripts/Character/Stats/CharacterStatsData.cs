@@ -42,6 +42,15 @@ public class CharacterStatsData : ScriptableObject
     /// </summary>
     public float Spd => _spd;
 
+    /// <summary>
+    /// ランタイム参照用のステータス値へ変換します。
+    /// </summary>
+    /// <returns>ランタイム参照用ステータス値</returns>
+    public CharacterStatValues ToRuntimeValues()
+    {
+        return new CharacterStatValues(_maxHp, _pow, _def, _spd);
+    }
+
     void OnValidate()
     {
         _maxHp = Mathf.Max(1, _maxHp);

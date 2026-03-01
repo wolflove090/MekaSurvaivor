@@ -80,7 +80,11 @@ public class ThrowingWeapon : WeaponBase
             bulletController = bullet.GetComponent<ThrowingBulletController>();
         }
 
-        bulletController?.SetDirection(_playerController.GetFacingDirection());
+        if (bulletController != null)
+        {
+            bulletController.SetSourcePow(_playerController.Pow);
+            bulletController.SetDirection(_playerController.GetFacingDirection());
+        }
     }
 
     /// <summary>
