@@ -2,4 +2,5 @@
   <Project Path="MekaSurvaivor.Runtime.csproj" />
   <Project Path="MekaSurvaivor.EditModeTests.csproj" />
   <Project Path="MekaSurvaivor.InputGenerated.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
 </Solution>

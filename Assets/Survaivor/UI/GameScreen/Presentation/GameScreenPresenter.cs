@@ -10,6 +10,8 @@ public class GameScreenPresenter
     readonly PlayerExperience _playerExperience;
     readonly GameManager _gameManager;
     readonly GameMessageBus _messageBus;
+    readonly GameStatsTracker _gameStatsTracker;
+    readonly ResultUiController _resultUiController;
 
     readonly HealthComponent _healthComponent;
     readonly CharacterStats _characterStats;
@@ -25,6 +27,7 @@ public class GameScreenPresenter
     string _cachedGameTimeText;
     bool _isActive;
     bool _forceRefresh = true;
+    bool _isResultShown;
 
     /// <summary>
     /// Presenter を初期化します。
@@ -34,18 +37,24 @@ public class GameScreenPresenter
     /// <param name="playerExperience">参照する経験値管理</param>
     /// <param name="gameManager">参照するゲーム進行管理</param>
     /// <param name="messageBus">局所通知ハブ</param>
+    /// <param name="gameStatsTracker">参照するプレイ統計</param>
+    /// <param name="resultUiController">参照するリザルトUI</param>
     public GameScreenPresenter(
         GameScreenUiController view,
         PlayerController playerController,
         PlayerExperience playerExperience,
         GameManager gameManager,
-        GameMessageBus messageBus)
+        GameMessageBus messageBus,
+        GameStatsTracker gameStatsTracker,
+        ResultUiController resultUiController)
     {
         _view = view;
         _playerController = playerController;
         _playerExperience = playerExperience;
         _gameManager = gameManager;
         _messageBus = messageBus;
+        _gameStatsTracker = gameStatsTracker;
+        _resultUiController = resultUiController;
         _healthComponent = _playerController != null ? _playerController.GetComponent<HealthComponent>() : null;
         _characterStats = _playerController != null ? _playerController.GetComponent<CharacterStats>() : null;
     }
@@ -61,6 +70,8 @@ public class GameScreenPresenter
         }
 
         _isActive = true;
+        _isResultShown = false;
+        _resultUiController?.Hide();
 
         if (_messageBus != null)
         {
@@ -128,7 +139,22 @@ public class GameScreenPresenter
 
     void OnGameFlowChanged()
     {
+        ShowResultIfNeeded();
         _forceRefresh = true;
+    }
+
+    /// <summary>
+    /// 終了通知時に未表示ならリザルトUIを表示します。
+    /// </summary>
+    void ShowResultIfNeeded()
+    {
+        if (_isResultShown)
+        {
+            return;
+        }
+
+        _isResultShown = true;
+        _resultUiController?.Show("撤退", _gameStatsTracker != null ? _gameStatsTracker.KillCount : 0);
     }
 
     void Refresh(bool force)

@@ -8,6 +8,7 @@ public class GameBootstrapper : MonoBehaviour
     GameMessageBus _gameMessageBus;
     GameScreenPresenter _gameScreenPresenter;
     WeaponUpgradePresenter _weaponUpgradePresenter;
+    GameStatsTracker _gameStatsTracker;
 
     [SerializeField]
     [Tooltip("参照を解決するプレイヤーコントローラー")]
@@ -32,6 +33,10 @@ public class GameBootstrapper : MonoBehaviour
     [SerializeField]
     [Tooltip("参照を解決するHUDコントローラー")]
     GameScreenUiController _gameScreenUiController;
+
+    [SerializeField]
+    [Tooltip("参照を解決するリザルトUIコントローラー")]
+    ResultUiController _resultUiController;
 
     [SerializeField]
     [Tooltip("参照を解決する武器強化UIコントローラー")]
@@ -69,6 +74,7 @@ public class GameBootstrapper : MonoBehaviour
         _enemyRegistry ??= FindFirstObjectByType<EnemyRegistry>();
         _experienceOrbSpawner ??= FindFirstObjectByType<ExperienceOrbSpawner>();
         _gameScreenUiController ??= FindFirstObjectByType<GameScreenUiController>();
+        _resultUiController ??= FindFirstObjectByType<ResultUiController>();
         _weaponUpgradeUiController ??= FindFirstObjectByType<WeaponUpgradeUiController>();
         _styleChangeUiController ??= FindFirstObjectByType<StyleChangeUiController>();
         _breakableObjectSpawner ??= FindFirstObjectByType<BreakableObjectSpawner>();
@@ -81,11 +87,17 @@ public class GameBootstrapper : MonoBehaviour
     void WireDependencies()
     {
         _gameMessageBus ??= new GameMessageBus();
+        _gameStatsTracker ??= new GameStatsTracker(_gameMessageBus);
         _gameManager?.SetMessageBus(_gameMessageBus);
         _enemySpawner?.SetMessageBus(_gameMessageBus);
         _experienceOrbSpawner?.SetMessageBus(_gameMessageBus);
         _styleChangeUiController?.SetMessageBus(_gameMessageBus);
         _breakableObjectSpawner?.SetHealPickupSpawner(_healPickupSpawner);
+
+        if (_resultUiController == null)
+        {
+            Debug.LogWarning("GameBootstrapper: ResultUiController が見つかりません。リザルトUIは表示されません。");
+        }
 
         if (_playerController != null)
         {
@@ -113,7 +125,9 @@ public class GameBootstrapper : MonoBehaviour
                     _playerController,
                     playerExperience,
                     _gameManager,
-                    _gameMessageBus);
+                    _gameMessageBus,
+                    _gameStatsTracker,
+                    _resultUiController);
                 _gameScreenUiController.SetPresenter(_gameScreenPresenter);
             }
 
@@ -131,5 +145,14 @@ public class GameBootstrapper : MonoBehaviour
         {
             _enemyRegistry = FindFirstObjectByType<EnemyRegistry>();
         }
+    }
+
+    /// <summary>
+    /// 生成した購読オブジェクトを破棄します。
+    /// </summary>
+    void OnDestroy()
+    {
+        _gameStatsTracker?.Dispose();
+        _gameStatsTracker = null;
     }
 }

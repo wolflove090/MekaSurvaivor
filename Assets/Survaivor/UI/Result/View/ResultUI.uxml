@@ -1,0 +1,9 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="result-overlay" class="result-overlay">
+        <ui:VisualElement name="result-modal" class="result-modal">
+            <ui:Label name="result-title" class="result-title" text="撤退" />
+            <ui:Label name="result-kill-count" class="result-kill-count" text="撃破数 0" />
+            <ui:Button name="result-home-button" class="result-home-button" text="ホームへ" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
