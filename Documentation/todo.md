@@ -1,67 +1,77 @@
-# 新規武器追加 ToDo
+# デバッグ用トレーニングルーム ToDo
 
-## Phase 1: 武器強化UIの候補選択を拡張
-- [x] `Assets/Survaivor/UI/WeaponUpgrade/View/WeaponUpgradeUiController.cs` の `UpgradeCardType` に `Drone`、`BoundBall`、`FlameBottle` を追加する。
-- [x] `WeaponUpgradeUiController` の `OnUpgradeCardSelected` を `Action<UpgradeCardType>` に変更する。
-- [x] 3枚のカードに表示中の武器候補を保持する配列またはリストを追加する。
-- [x] 全武器候補から重複なしで3件をランダム抽選するロジックを追加する。
-- [x] カードラベルの表示内容を選ばれた `UpgradeCardType` に応じて切り替えられるようにする。
-- [x] ボタン押下時にカードIndexではなく、表示中の `UpgradeCardType` を通知する。
-- [x] `Assets/Survaivor/UI/WeaponUpgrade/Presentation/WeaponUpgradePresenter.cs` を新しいイベント型へ対応させる。
+## Phase 1: ランタイム側の武器初期化と参照 API を整備
+- [ ] `Assets/Survaivor/Character/Player/Infrastructure/PlayerController.cs` に初期武器自動付与の ON/OFF を切り替えるシリアライズ設定を追加する。
+- [ ] `PlayerController.InitializeWeaponSystems()` で初期武器自動付与 OFF 時は `Shooter` を追加しないようにする。
+- [ ] `PlayerController.Update()` の `_weapon` 実行を null 安全にする。
+- [ ] `PlayerController` に指定武器の所持有無を参照する公開 API を追加する。
+- [ ] `PlayerController` に指定武器の現在レベルを参照する公開 API を追加する。
+- [ ] `Assets/Survaivor/Character/Combat/Application/WeaponService.cs` に `UpgradeCardType` から武器 `Type` を引く読み取り用 API を追加する。
+- [ ] `WeaponService` に指定武器の所持判定を行う補助 API を追加する。
+- [ ] `WeaponService` に指定武器の現在レベルを取得する補助 API を追加する。
+- [ ] `Main` シーン相当の既存挙動で初期武器が維持される前提を崩していないことを確認する。
 
-## Phase 2: 武器生成管理のApplication層を拡張
-- [x] `Assets/Survaivor/Character/Combat/Application/WeaponService.cs` のビルダー辞書へ新規3武器を追加する。
-- [x] `WeaponService` の型辞書へ新規3武器を追加する。
-- [x] UIが参照するための武器候補一覧取得APIを `WeaponService` に追加する。
-- [x] `Assets/Survaivor/Character/Combat/Application/DroneWeapon.cs` を新規作成する。
-- [x] `Assets/Survaivor/Character/Combat/Application/BoundBallWeapon.cs` を新規作成する。
-- [x] `Assets/Survaivor/Character/Combat/Application/FlameBottleWeapon.cs` を新規作成する。
-- [x] ドローン用、バウンドボール用、火炎瓶用の各 `*Request` クラスを新規作成する。
-- [x] ドローンのレベルアップで発射間隔が短くなる処理を実装する。
-- [x] 火炎瓶のレベルアップ時に強化する値（持続時間、範囲、間隔のいずれか）を確定して実装する。
+## Phase 2: サンドボックス用 EditorWindow を実装
+- [ ] `Assets/Survaivor/Editor/SandboxWeaponDebugWindow.cs` を新規作成する。
+- [ ] EditorWindow で既存全武器を列挙して描画する。
+- [ ] 各武器ごとに追加用トグルを表示する。
+- [ ] 各武器ごとにレベル 1 から 5 のスライダーを表示する。
+- [ ] Play 中の `PlayerController` を解決できない場合は、操作を無効化して案内表示だけを出す。
+- [ ] 未所持武器のトグルを OFF から ON にした時、`PlayerController.ApplyWeaponUpgrade()` を1回呼んで武器追加する。
+- [ ] 武器追加後にトグル ON / スライダー 1 の状態へ再同期する。
+- [ ] スライダーを現在レベルより高い値へ動かした時、差分回数だけ `ApplyWeaponUpgrade()` を呼ぶ。
+- [ ] 操作後に `PlayerController` から状態を再読込し、EditorWindow 表示を実状態へ同期する。
+- [ ] トグルを ON から OFF にした時は武器削除を行わず、未対応ログを出す。
+- [ ] トグル OFF 操作後は UI を即時に実状態へ差し戻す。
+- [ ] スライダーを現在レベル未満へ下げた時はレベル低下を行わず、未対応ログを出す。
+- [ ] スライダー減少操作後は UI を即時に実状態へ差し戻す。
+- [ ] IMGUI 再描画で同じ操作が重複適用されないよう、前回反映値の管理を入れる。
 
-## Phase 3: 実行ポートとプレハブ参照を拡張
-- [x] `Assets/Survaivor/Character/Combat/Application/IWeaponEffectExecutor.cs` に新規武器用メソッドを追加する。
-- [x] `Assets/Survaivor/Character/Combat/Infrastructure/WeaponEffectExecutor.cs` にドローン、バウンドボール、火炎瓶、炎エリア用の実行処理を追加する。
-- [x] `WeaponEffectExecutor` に新規プールを追加する。
-- [x] `Assets/Survaivor/Character/Combat/Infrastructure/Factories/BulletFactory.cs` に新規武器プレハブ参照を追加する。
-- [ ] `BulletFactory` で火炎瓶の着地判定に使う地面オブジェクト参照を保持できるようにする。
-- [x] `Assets/Survaivor/Character/Player/Infrastructure/PlayerController.cs` の武器システム初期化が新規依存追加後も成立するよう確認し、必要なら調整する。
+## Phase 3: `Sandbox.unity` 再生時の自動起動フックを実装
+- [ ] `Assets/Survaivor/Editor/SandboxPlayModeHook.cs` を新規作成する。
+- [ ] `EditorApplication.playModeStateChanged` を購読し、`EnteredPlayMode` のみ処理する。
+- [ ] アクティブシーンのパスが `Assets/Survaivor/Editor/Sandbox.unity` と一致する場合だけ処理する。
+- [ ] `Sandbox.unity` 再生時に `SandboxWeaponDebugWindow` を自動で開く。
+- [ ] 他シーン再生時には Window を開かない。
+- [ ] 既存の `Assets/Survaivor/Editor/GameTimePlayToolbarExtension.cs` とイベント競合しないことを確認する。
 
-## Phase 4: ドローンのInfrastructure実装
-- [x] `Assets/Survaivor/Character/Combat/Infrastructure/Drones/DroneController.cs` を新規作成する。
-- [x] ドローンがプレイヤーを追従しながら周回する移動処理を実装する。
-- [x] ドローン内部の射撃タイマーを実装する。
-- [x] `EnemyRegistry` を使った最寄り敵探索を実装する。
-- [x] 敵がいる時だけ弾を発射し、いない時は待機する処理を実装する。
-- [x] 初期実装では1武器につき1機だけ維持し、再展開時に増殖しない制御を入れる。
+## Phase 4: サンドバッグ用エネミーを実装
+- [ ] `Assets/Survaivor/Character/Enemy/Infrastructure/SandboxDummyEnemy.cs` を新規作成する。
+- [ ] サンドバッグ用コンポーネントで HP 減少を無効化する。
+- [ ] サンドバッグ用コンポーネントで死亡処理への遷移を抑止する。
+- [ ] サンドバッグ用コンポーネントで移動を停止し、配置位置から離脱しないようにする。
+- [ ] サンドバッグ用コンポーネントでプレイヤーへの接触ダメージを発生させない構成を入れる。
+- [ ] `Assets/Survaivor/Character/Enemy/Infrastructure/EnemyController.cs` または `Assets/Survaivor/Character/Infrastructure/HealthComponent.cs` に、通常敵を壊さない最小限の拡張ポイントを追加する。
+- [ ] サンドバッグが `EnemyRegistry` 上では攻撃対象として残り続けることを確認する。
 
-## Phase 5: バウンドボールのInfrastructure実装
-- [x] `Assets/Survaivor/Character/Combat/Infrastructure/Projectiles/BoundBallController.cs` を新規作成する。
-- [x] 初期方向をワールド固定の右下にする処理を実装する。
-- [x] 敵および破壊可能オブジェクトへのダメージ処理を実装する。
-- [x] 衝突点と `Collider.ClosestPoint` を使った法線近似を実装する。
-- [x] `Vector3.Reflect` による反射方向計算を実装する。
-- [x] 反射後のめり込み防止の押し戻し処理を追加する。
-- [x] 最大3回のヒット後にプール返却する処理を実装する。
+## Phase 5: `Sandbox.unity` のシーン構成を調整
+- [ ] `Assets/Survaivor/Editor/Sandbox.unity` のプレイヤーで初期武器自動付与を OFF に設定する。
+- [ ] `Sandbox.unity` から `EnemySpawner` を外す、または無効化する。
+- [ ] `Sandbox.unity` から経験値関連オブジェクトを外す、または無効化する。
+- [ ] `Sandbox.unity` から武器強化 UI を外す、または無効化する。
+- [ ] `Sandbox.unity` の `GameBootstrapper` 参照を最小構成に合わせて再設定する。
+- [ ] `Sandbox.unity` 上のサンドバッグ用エネミーへ `SandboxDummyEnemy` をアタッチする。
+- [ ] `Sandbox.unity` が単体再生可能で、未設定参照で起動不能にならないことを確認する。
 
-## Phase 6: 火炎瓶と炎エリアのInfrastructure実装
-- [x] `Assets/Survaivor/Character/Combat/Infrastructure/Projectiles/FlameBottleProjectileController.cs` を新規作成する。
-- [x] プレイヤーの向きに応じた水平移動と上方向成分を持つ放物線移動を実装する。
-- [x] 飛翔中はダメージ判定を行わない構成にする。
-- [x] 地面オブジェクトから取得した基準 `y` に到達したら着地する処理を実装する。
-- [x] 着地時に炎エリア生成を行い、自身をプール返却する処理を実装する。
-- [x] `Assets/Survaivor/Character/Combat/Infrastructure/DamageFields/FlameAreaController.cs` を新規作成する、または既存 `DamageFieldController` を拡張する。
-- [x] 炎エリアが一定時間その場に残る処理を実装する。
-- [x] 炎エリアが敵と破壊可能オブジェクトに継続ダメージを与える処理を実装する。
-- [x] 炎エリアが時間経過で消滅する処理を実装する。
+## Phase 6: テストを追加
+- [ ] `Assets/Survaivor/Tests/EditMode/Player/PlayerControllerWeaponDebugTests.cs` を新規作成する。
+- [ ] 初期武器自動付与 OFF で武器なし開始できることを検証する。
+- [ ] 武器追加後に所持判定とレベル 1 が参照できることを検証する。
+- [ ] 目標レベルまでの差分適用でレベルが上がることを検証する。
+- [ ] レベル低下未対応時に状態を変えない分岐を検証する。
+- [ ] 武器削除未対応時に状態を変えない分岐を検証する。
+- [ ] `Assets/Survaivor/Tests/EditMode/Editor/SandboxWeaponDebugWindowTests.cs` を新規作成する。
+- [ ] `Sandbox.unity` 再生時のみ自動起動対象になることを検証する。
+- [ ] `PlayerController` 未検出時に操作不能表示へ入ることを検証する。
+- [ ] `SandboxDummyEnemy` の無敵と非接触ダメージを検証するテストを追加する。
 
-## Phase 7: テスト追加と回帰確認
-- [x] `Assets/Survaivor/Tests/EditMode/Combat/WeaponServiceTests.cs` に新規武器登録の検証を追加する。
-- [x] 武器候補抽選ロジックのユニットテストを追加する。
-- [ ] バウンドボールの最大3回バウンドを検証するテストを追加する。
-- [ ] 火炎瓶の飛翔中非ダメージを検証するテストを追加する。
-- [ ] 炎エリアの継続ダメージ対象に破壊可能オブジェクトを含むことを検証するテストを追加する。
-- [ ] `u tests run edit` でEditModeテストを実行する。
-- [ ] `u play` でMainシーンを起動し、武器強化UIから新規武器を取得できることを確認する。
-- [ ] `u console get -l E` でエラーが出ていないことを確認する。
+## Phase 7: 動作確認
+- [ ] `u tests run edit` で EditMode テストを実行する。
+- [ ] `Sandbox.unity` を再生し、EditorWindow が自動表示されることを確認する。
+- [ ] 初期状態でプレイヤーが移動可能かつ攻撃しないことを確認する。
+- [ ] 任意の武器トグルを ON にして武器追加できることを確認する。
+- [ ] スライダーを 1 から 5 に上げて、武器レベルが指定どおり上がることを確認する。
+- [ ] スライダーを下げた時にレベルが下がらず、未対応ログが出ることを確認する。
+- [ ] トグルを OFF にした時に武器が削除されず、未対応ログが出ることを確認する。
+- [ ] サンドバッグへ攻撃しても破壊されず、プレイヤーへ接触ダメージを与えないことを確認する。
+- [ ] `u console get -l E` で `Sandbox.unity` 再生時にエラーが出ていないことを確認する。

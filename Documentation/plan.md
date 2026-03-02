@@ -1,194 +1,198 @@
-# 新規武器追加 実装計画
+# デバッグ用トレーニングルーム 実装計画
 
 ## 実装方針
-- 既存の武器システムは `WeaponService` が `WeaponUpgradeUiController.UpgradeCardType` をキーに `WeaponBase` を生成し、`PlayerController` が1本の武器チェーンとして `Tick` を回している。この構造を維持したまま、武器種の追加とカード提示ロジックの拡張を行う。
-- 新規武器3種は、発動タイミングの組み立てを `Application` 層、Unity依存の移動・衝突・生成を `Infrastructure` 層へ分離する。既存の `IWeaponEffectExecutor` を拡張し、武器側はリクエストデータを渡すだけに留める。
-- ドローンは「プレイヤー追従しながら自律攻撃する継続オブジェクト」を生成する武器として扱う。`WeaponBase` はドローン生成・再展開の周期だけを管理し、実際の周回移動と敵探索・射撃は専用 `DroneController` に持たせる。
-- バウンドボールは既存 `ProjectileController` の直進弾では不足するため、反射回数と衝突法線による方向反射を持つ専用コントローラーを追加する。初期方向はワールド固定の右下とし、衝突時は `Collider.ClosestPoint` と接触点近傍ベクトルから簡易法線を導出して反射角を決める。
-- 火炎瓶は「放物線で飛ぶ投擲本体」と「着地後に残る炎エリア」を分離する。飛翔中は非ダメージ、着地時にのみ炎エリアを生成するため、既存 `ThrowingBulletController` とは別系統の `FlameBottleProjectileController` を用意する。
-- 武器強化UIは表示枠3枚を維持し、全武器候補から重複なしでランダムに3件を表示する。カードの押下結果を「UI上の表示候補」から「実際の `UpgradeCardType`」へ変換する責務を `WeaponUpgradeUiController` / `WeaponUpgradePresenter` 側へ追加する。
+- `Assets/Survaivor/Editor/Sandbox.unity` を、`Main` シーンの移動確認と武器デバッグに必要な最小構成シーンとして扱う。敵スポーン、経験値、武器強化UIは外し、プレイヤー移動と攻撃検証に必要な参照だけを残す。
+- プレイヤーの初期武器は現状 `PlayerController.InitializeWeaponSystems()` 内で `Shooter` を自動付与しているため、この初期付与を設定で無効化できるようにする。`Main` は既存挙動を維持し、`Sandbox` のみ未所持開始に切り替える。
+- 武器の追加と強化はランタイムUIではなく Editor 拡張で行う。`Assets/Survaivor/Editor` 配下にサンドボックス専用 `EditorWindow` を追加し、Play 中の `PlayerController` を操作して既存の `ApplyWeaponUpgrade()` を呼び出す。
+- EditorWindow は「武器追加トグル」と「レベル 1-5 スライダー」を武器ごとに持つ。トグル ON で未所持武器を取得し、スライダー増加で差分回数だけ `LevelUp` を適用する。トグル OFF とスライダー減少は未対応として扱い、武器状態を変更せずログを出す。
+- 現在の `WeaponService` / `PlayerController` には「指定武器の所持有無」や「現在レベル」の読み取り API がないため、EditorWindow から参照できる最小限の公開 API を追加する。削除やレベルダウンの API は追加しない。
+- サンドバッグ用エネミーは既存 `EnemyController` と `HealthComponent` を破壊せずに流用し、同一 GameObject に追加する専用コンポーネントで「無敵」「非移動」「非接触ダメージ」を実現する。武器のターゲットとしては既存 `EnemyRegistry` に載り続ける状態を維持する。
+- `Sandbox.unity` 再生開始時の EditorWindow 自動表示は、`EditorApplication.playModeStateChanged` とアクティブシーン判定で行う。シーン名だけでなくパスも確認し、他シーン再生時に誤起動しないようにする。
 
 ## 変更対象ファイル一覧
 
 ### 改修対象
-- `Assets/Survaivor/UI/WeaponUpgrade/View/WeaponUpgradeUiController.cs`
-  - `UpgradeCardType` に `Drone`、`BoundBall`、`FlameBottle` を追加する。
-  - 3枚のカードへ表示中の武器候補を割り当てる仕組みを追加する。
-  - ランダムに3件の一意な候補を選び、ボタン押下時に「カードIndex」ではなく「割り当て済み武器種別」を通知する。
-- `Assets/Survaivor/UI/WeaponUpgrade/Presentation/WeaponUpgradePresenter.cs`
-  - `OnUpgradeCardSelected` を実カード種別受け取りへ変更する。
-  - レベルアップ時に UI を開く前に、候補一覧の生成をビューへ指示する初期化導線を追加する。
 - `Assets/Survaivor/Character/Player/Infrastructure/PlayerController.cs`
-  - 武器システム初期化で新規武器プレハブ/依存の注入経路を維持する。
-  - 新規武器追加後も初期武器 (`Shooter`) の付与を維持しつつ、アップグレード適用が新規列挙値に対応できることを確認する。
+  - 初期武器自動付与を ON/OFF できるシリアライズ設定を追加する。
+  - 武器未所持でも `Update()` で安全に動作するよう、`_weapon` null 時のガードを入れる。
+  - 指定武器の所持有無、現在レベル、全武器状態を EditorWindow から読める公開 API を追加する。
+  - EditorWindow から目標レベルへ合わせる際に使う補助メソッド（例: `TryApplyWeaponLevel(type, targetLevel)`）を追加するか、既存 `ApplyWeaponUpgrade()` と読み取り API の組み合わせで完結できる構成に整理する。
 - `Assets/Survaivor/Character/Combat/Application/WeaponService.cs`
-  - 武器ビルダー辞書と型辞書へ新規3武器を追加する。
-  - 武器候補一覧を外部へ返すAPI（例: `GetAvailableUpgradeTypes()`）を追加し、UIのランダム抽選元を一元化する。
-- `Assets/Survaivor/Character/Combat/Application/IWeaponEffectExecutor.cs`
-  - ドローン展開、バウンドボール発射、火炎瓶発射、炎エリア生成に対応する実行メソッドを追加する。
-- `Assets/Survaivor/Character/Combat/Infrastructure/WeaponEffectExecutor.cs`
-  - 新規武器用のプールを追加し、各リクエストを対応する `*Controller` 初期化へ変換する。
-  - 炎エリアは既存 `DamageFieldController` の再利用可否に応じて、専用コントローラーか汎用初期化分岐を追加する。
-- `Assets/Survaivor/Character/Combat/Infrastructure/Factories/BulletFactory.cs`
-  - 新規武器用プレハブ参照（ドローン、バウンドボール、火炎瓶本体、炎エリア、必要ならドローン弾）を追加する。
-  - 火炎瓶用の地面基準取得に必要な地面オブジェクト参照、またはそこへ到達する参照を保持する。
+  - `UpgradeCardType` から実武器 `Type` への対応表を、Apply 用だけでなく読み取りにも使えるよう整理する。
+  - 指定武器の所持判定や現在レベル参照に必要な補助 API を追加する。
+  - レベル低下や武器削除は未対応のままにし、既存の生成・レベルアップロジックを維持する。
 - `Assets/Survaivor/Game/Infrastructure/GameBootstrapper.cs`
-  - `BulletFactory` へ既存の敵レジストリ・破壊可能オブジェクトスポナー注入を継続し、新規武器が必要とする参照もシーン初期化で満たせることを確認する。
-- `Assets/Survaivor/Character/Combat/Infrastructure/Projectiles/ProjectileController.cs`
-  - バウンド処理や非ダメージ飛翔体とは責務が異なるため、共通化可能な初期化点だけを整理し、必要なら拡張ポイント（衝突時フック）を追加する。
-- `Assets/Survaivor/Character/Combat/Infrastructure/DamageFields/DamageFieldController.cs`
-  - 破壊可能オブジェクトへの継続ダメージを許可する。
-  - 追従対象なし・その場固定のエリア運用を明示的に扱えるようにする。
+  - `Sandbox` で `WeaponUpgradeUiController`、`ExperienceOrbSpawner`、`EnemySpawner` が未配置でも、不要な警告や依存漏れで破綻しないことを確認し、必要ならシーン差分前提のガードを追加する。
+  - `Sandbox` で最低限必要な依存だけを接続できるよう、既存の null 許容挙動を明文化したログへ整理する。
+- `Assets/Survaivor/Character/Enemy/Infrastructure/EnemyController.cs`
+  - サンドバッグ用コンポーネントが付いている場合に、追跡行動や接触ダメージ向けの通常挙動を抑止しやすい拡張ポイントを用意する。
+  - 既存の `EnemyRegistry` 登録や武器ヒット対象としての扱いは維持する。
+- `Assets/Survaivor/Character/Infrastructure/HealthComponent.cs`
+  - サンドバッグ無敵化コンポーネントと協調するため、ダメージ適用前のキャンセル拡張ポイントを追加するか、外部からダメージを吸収できる構造に整理する。
+  - 既存の敵・プレイヤーへの通常ダメージフローを壊さないよう影響範囲を限定する。
+- `Assets/Survaivor/Editor/GameTimePlayToolbarExtension.cs`
+  - 必要に応じて `Sandbox` 用 EditorWindow 自動起動コードをここへ統合するか、責務分離のため別ファイルへ切り出す際の共通フック元として使う。
+  - 既存のツールバー機能とは責務を分け、再生開始イベント処理の競合を避ける。
 
 ### 新規作成候補
-- `Assets/Survaivor/Character/Combat/Application/DroneWeapon.cs`
-  - ドローン展開周期とレベルアップ時の発射間隔短縮を管理する。
-- `Assets/Survaivor/Character/Combat/Application/BoundBallWeapon.cs`
-  - バウンドボールの発射周期と初期方向決定を管理する。
-- `Assets/Survaivor/Character/Combat/Application/FlameBottleWeapon.cs`
-  - 火炎瓶の投擲周期とレベルアップ時の火炎性能強化を管理する。
-- `Assets/Survaivor/Character/Combat/Application/DroneSpawnRequest.cs`
-  - ドローン生成位置、追従対象、攻撃力、発射間隔などを運ぶ。
-- `Assets/Survaivor/Character/Combat/Application/BoundBallFireRequest.cs`
-  - バウンドボールの発射位置、初期方向、攻撃力、最大バウンド回数を運ぶ。
-- `Assets/Survaivor/Character/Combat/Application/FlameBottleFireRequest.cs`
-  - 火炎瓶の発射位置、初速、向き、攻撃力、地面基準情報を運ぶ。
-- `Assets/Survaivor/Character/Combat/Application/FlameAreaSpawnRequest.cs`
-  - 着地地点、持続時間、範囲、継続ダメージ情報を運ぶ。
-- `Assets/Survaivor/Character/Combat/Infrastructure/Drones/DroneController.cs`
-  - プレイヤー周回、敵探索、一定周期射撃を管理する。
-- `Assets/Survaivor/Character/Combat/Infrastructure/Projectiles/BoundBallController.cs`
-  - 最大3回のバウンドと衝突法線ベースの反射、ダメージ適用を管理する。
-- `Assets/Survaivor/Character/Combat/Infrastructure/Projectiles/FlameBottleProjectileController.cs`
-  - 放物線飛翔、地面Y到達判定、着地時の炎エリア生成要求を管理する。
-- `Assets/Survaivor/Character/Combat/Infrastructure/DamageFields/FlameAreaController.cs`
-  - その場固定で敵・破壊可能オブジェクトに継続ダメージを与える炎エリアを管理する。
+- `Assets/Survaivor/Editor/SandboxWeaponDebugWindow.cs`
+  - サンドボックス専用 `EditorWindow` 本体。
+  - 全武器分のトグルとスライダー描画、Play 中の `PlayerController` 解決、未対応操作時ログ出力を担当する。
+- `Assets/Survaivor/Editor/SandboxPlayModeHook.cs`
+  - PlayMode 遷移時に `Sandbox.unity` を判定し、`SandboxWeaponDebugWindow` を自動表示する。
+  - 他シーンでは何もしない。
+- `Assets/Survaivor/Character/Enemy/Infrastructure/SandboxDummyEnemy.cs`
+  - サンドバッグ挙動を付与する専用コンポーネント。
+  - HP 減少無効、移動停止、プレイヤーへの接触ダメージ無効を担当する。
+- `Assets/Survaivor/Tests/EditMode/Editor/SandboxWeaponDebugWindowTests.cs`
+  - EditorWindow の武器状態同期ロジック、未対応操作時の分岐を検証する。
+- `Assets/Survaivor/Tests/EditMode/Player/PlayerControllerWeaponDebugTests.cs`
+  - 初期武器なし設定、所持判定、目標レベルへの同期ロジックを検証する。
 
-### テスト追加・改修対象
-- `Assets/Survaivor/Tests/EditMode/Combat/WeaponServiceTests.cs`
-  - 新規武器のビルダー登録、候補一覧取得、既存武器との共存を検証する。
-- `Assets/Survaivor/Tests/EditMode/Enemy/EnemyRegistryTests.cs`
-  - 必要に応じてドローンのターゲット探索前提となる近傍探索の継続利用を確認する。
-- `Assets/Survaivor/Tests/EditMode/Combat/` 配下に新規テスト
-  - バウンド回数上限、火炎エリア継続ダメージ、カード候補抽選ロジックの単体テストを追加する。
+### シーン・プレハブ調整対象
+- `Assets/Survaivor/Editor/Sandbox.unity`
+  - プレイヤーの初期武器自動付与を OFF に設定する。
+  - `EnemySpawner`、経験値関連、武器強化UI を配置しない構成へ整理する。
+  - サンドバッグ用エネミーに `SandboxDummyEnemy` をアタッチし、必要なら `EnemyRegistry` へ登録される構成を確認する。
+  - `GameBootstrapper` の参照を `Sandbox` 用最小構成に合わせて設定する。
 
 ## データフロー / 処理フロー
 
-### 1. 武器強化UIのランダム候補表示
-1. `GameMessageBus.PlayerLevelUp` を `WeaponUpgradePresenter` が受信する。
-2. `WeaponUpgradePresenter` が `PlayerController` または `WeaponService` から全武器候補一覧を取得する。
-3. `WeaponUpgradeUiController` が候補一覧から重複なしで3件をランダム抽選し、各カードへ武器名を割り当てる。
-4. ユーザーがカードを押すと、UIは「表示中の `UpgradeCardType`」を `OnUpgradeCardSelected` で通知する。
-5. `WeaponUpgradePresenter` がその武器種別を `PlayerController.ApplyWeaponUpgrade()` へ渡す。
+### 1. `Sandbox.unity` 再生開始時の初期化
+1. Unity Editor で `Assets/Survaivor/Editor/Sandbox.unity` をアクティブシーンにした状態で Play を開始する。
+2. `SandboxPlayModeHook` が `EditorApplication.playModeStateChanged` を受け取り、Play 開始直後に現在シーンパスを確認する。
+3. シーンが `Sandbox.unity` の場合のみ、`SandboxWeaponDebugWindow` を開く。
+4. `Sandbox` 側では `GameBootstrapper` が最低限の依存を解決し、`PlayerController` を通常どおり初期化する。
+5. `PlayerController` は初期武器自動付与 OFF 設定により、武器未所持で開始する。
 
-### 2. ドローン武器の発動
-1. `DroneWeapon.Tick()` がクールダウン満了時に `DroneSpawnRequest` を生成する。
-2. `WeaponEffectExecutor` が `DroneController` をプールから取得し、プレイヤー追従対象、周回半径、発射間隔、攻撃力を設定して有効化する。
-3. `DroneController.Update()` がプレイヤー周囲を周回し、内部の射撃タイマーが満了したら `EnemyRegistry.FindNearestEnemy()` で対象を探す。
-4. 対象が見つかった場合のみ、ドローン位置から弾を発射する。弾の実体は既存 `BulletController` を流用するか、同等の初期化を行う。
-5. ドローン武器レベルアップ時は、ドローンの発射間隔設定値を短縮する。
+### 2. EditorWindow から武器を追加する
+1. `SandboxWeaponDebugWindow` が Play 中の `PlayerController` を `FindFirstObjectByType<PlayerController>()` などで解決する。
+2. Window は `PlayerController` から全武器の所持状況と現在レベルを読み取り、トグルとスライダーの初期表示を同期する。
+3. ユーザーが未所持武器のトグルを OFF から ON にする。
+4. Window は `PlayerController.ApplyWeaponUpgrade(type)` を1回呼び出し、対象武器を追加する。
+5. 追加後に再読込して、トグル ON / スライダー 1 の表示へ同期する。
 
-### 3. バウンドボールの発動
-1. `BoundBallWeapon.Fire()` がワールド固定の右下ベクトルを初期方向として `BoundBallFireRequest` を生成する。
-2. `WeaponEffectExecutor` が `BoundBallController` を取得し、初期位置・方向・攻撃力・最大バウンド回数3を設定する。
-3. `BoundBallController` は毎フレーム移動し、敵または破壊可能オブジェクトへ衝突するとダメージを与える。
-4. 衝突時に、接触点と衝突対象中心との差分から法線近似を求め、`Vector3.Reflect` で次の進行方向を計算する。
-5. バウンド回数が3に達したらオブジェクトを返却する。
+### 3. EditorWindow から武器レベルを上げる
+1. ユーザーが所持済み武器のスライダーを現在値より大きい値へ変更する。
+2. Window は `PlayerController` から現在レベルを読み取り、差分値を算出する。
+3. 差分回数だけ `PlayerController.ApplyWeaponUpgrade(type)` を呼び出す。
+4. 反映後に `PlayerController` から現在レベルを再読込し、Window 表示を実状態へ合わせる。
 
-### 4. 火炎瓶の発動
-1. `FlameBottleWeapon.Fire()` がプレイヤーの向きに応じた水平初速と上方向成分を含む `FlameBottleFireRequest` を生成する。
-2. `WeaponEffectExecutor` が `FlameBottleProjectileController` を取得し、発射位置、初速、攻撃力、地面基準 `y` を設定する。
-3. `FlameBottleProjectileController` は放物線運動で移動し、飛翔中はダメージ判定を持たない。
-4. 射出物の `y` が地面オブジェクトから取得した基準 `y` 以下になったタイミングで着地し、`FlameAreaSpawnRequest` を発行するか、Executor経由で炎エリアを生成する。
-5. `FlameAreaController` が着地点で一定時間残留し、敵と破壊可能オブジェクトへ一定間隔でダメージを与え、時間経過後に返却される。
+### 4. 未対応操作時の扱い
+1. ユーザーがトグルを ON から OFF にする、またはスライダーを現在値未満へ下げる。
+2. Window は武器削除・レベル低下を行わず、`Debug.Log` で未対応であることを出力する。
+3. UI は即時に実際の武器状態へ差し戻し、表示と実状態の不整合を残さない。
+
+### 5. サンドバッグへの攻撃
+1. プレイヤー武器がサンドバッグ用エネミーへヒットする。
+2. 通常どおり `IDamageable.TakeDamage()` 系の経路に入る。
+3. `SandboxDummyEnemy` または `HealthComponent` 側のガードがダメージ消費と死亡遷移を抑止する。
+4. エネミーは `EnemyRegistry` 上に残り続け、次の攻撃でもターゲット対象のままとなる。
+5. サンドバッグはプレイヤー追跡と接触ダメージを行わない。
 
 ## 実装ステップ
 
-### Phase 1: 武器種追加とアップグレードUI拡張
-- `UpgradeCardType` に新規3武器を追加する。
-- `WeaponUpgradeUiController` のイベントシグネチャを `Action<UpgradeCardType>` に変更する。
-- カード表示名のマッピングと、全武器候補から3件ランダム抽選するロジックを追加する。
-- 既存の3ボタン構造を変えず、表示中の候補と押下結果が一致するようにする。
+### Phase 1: ランタイム側の武器状態 API 整備
+- `PlayerController` に初期武器自動付与フラグを追加する。
+- `PlayerController.Update()` の `_weapon` null ガードを追加する。
+- `PlayerController` / `WeaponService` に、全武器の所持有無と現在レベルを読める API を追加する。
+- 既存 `Main` シーンでは初期武器 ON のまま変化しないことを前提にする。
 
-### Phase 2: Application層の武器定義追加
-- `DroneWeapon`、`BoundBallWeapon`、`FlameBottleWeapon` と各リクエスト型を追加する。
-- `WeaponService` のビルダー辞書・型辞書を拡張する。
-- 武器候補一覧取得APIを `WeaponService` に追加し、UI側が列挙値のハードコードを持たないようにする。
-- レベルアップ時の強化内容を各武器で定義する。
+### Phase 2: EditorWindow と自動起動フックの実装
+- `SandboxWeaponDebugWindow` を作成し、全武器分のトグルと 1-5 スライダーを描画する。
+- Play 中の `PlayerController` 解決に失敗した場合は、操作無効と案内表示だけにする。
+- トグル ON 時の追加、スライダー増加時の差分適用、未対応操作時ログと即時差し戻しを実装する。
+- `SandboxPlayModeHook` で `Sandbox.unity` 再生時のみ Window を自動表示する。
 
-### Phase 3: Infrastructure層の実体追加
-- `BulletFactory` に新規プレハブ参照を追加する。
-- `WeaponEffectExecutor` に新規プールと初期化処理を追加する。
-- `DroneController` を実装し、プレイヤー追従、周回、内部射撃を構築する。
-- `BoundBallController` を実装し、衝突ダメージ、法線ベース反射、最大3回バウンドを実装する。
-- `FlameBottleProjectileController` と `FlameAreaController` を実装し、放物線飛翔、地面Y判定、継続ダメージを構築する。
+### Phase 3: サンドバッグ挙動の実装
+- `SandboxDummyEnemy` を作成し、無敵、移動停止、接触ダメージ無効を実装する。
+- 既存 `EnemyController` / `HealthComponent` への影響が最小になる差し込みポイントを追加する。
+- 武器ヒット時にターゲットとしては有効、死亡だけしない状態を確認する。
 
-### Phase 4: 既存コンポーネントとの接続
-- `PlayerController.InitializeWeaponSystems()` の依存注入が新規プレハブ参照を含んでも破綻しないことを確認する。
-- `GameBootstrapper` と `BulletFactory` 経由で敵レジストリ、破壊可能オブジェクトスポナー、地面オブジェクト参照を接続する。
-- `DamageFieldController` を拡張または `FlameAreaController` を分離し、破壊可能オブジェクトへの継続ダメージを有効にする。
+### Phase 4: `Sandbox.unity` の構成整理
+- プレイヤーの初期武器自動付与を OFF に設定する。
+- 経験値、武器強化UI、敵スポナーを外した最小構成にする。
+- `GameBootstrapper` の参照不足がないようシーン上の参照を再接続する。
+- サンドバッグ用エネミーへ専用コンポーネントを付与する。
 
-### Phase 5: テストと動作確認
-- EditModeテストを追加し、武器追加の管理ロジックと抽選ロジックを検証する。
-- バウンド回数上限、火炎瓶の飛翔中非ダメージ、炎エリアの持続ダメージを確認する。
-- PlayModeまたは手動確認で、武器強化UI、プレハブ参照、実際の見た目挙動を確認する。
+### Phase 5: テストと確認
+- EditMode テストで初期武器なし、武器追加、レベル同期、未対応操作時の分岐を確認する。
+- Editor テストで `Sandbox.unity` 判定による Window 自動起動条件を確認する。
+- 手動で `Sandbox.unity` を再生し、Window 自動起動、武器追加、レベル変更、サンドバッグの無敵を確認する。
 
 ## リスクと対策
-- リスク: `WeaponUpgradeUiController` のイベント型変更で既存のUI選択処理が壊れる。
-  - 対策: `WeaponUpgradePresenter` まで同一ターンで更新し、カードIndex依存の箇所を完全に撤去する。
-- リスク: 武器候補のランダム抽選が毎回同じ結果、または重複を返す。
-  - 対策: 候補一覧をコピーしてシャッフルし、先頭3件を採用する単純な一意抽選に固定する。
-- リスク: ドローンが `WeaponBase` の都度発動で複数生成され続け、意図せず増殖する。
-  - 対策: 初期実装は1武器につき1機維持とし、未展開時のみ生成、展開済みならステータス更新のみにする。
-- リスク: バウンドボールの法線計算が不安定で、対象内部にめり込んで連続ヒットする。
-  - 対策: 衝突後に法線方向へわずかに押し戻してから進行を再開し、同フレーム再衝突を防ぐ。
-- リスク: 火炎瓶の地面基準 `y` がシーンごとにズレると着地タイミングが狂う。
-  - 対策: 地面オブジェクト参照を `BulletFactory` など一箇所で解決し、そこからワールド座標を取得する。
-- リスク: 破壊可能オブジェクトへの継続ダメージ追加で既存 `DamageFieldWeapon` の仕様も変わる可能性がある。
-  - 対策: 既存 `DamageFieldController` を共用する場合は明示的なフラグで対象種別を制御し、影響範囲を限定する。
+- リスク: `PlayerController` の初期武器無効化変更で `Main` シーンまで武器なし開始になる。
+  - 対策: シリアライズ設定を追加し、既存シーンのデフォルト値は ON に維持する。
+- リスク: `_weapon` null 許容にした結果、既存コードの武器前提箇所が見落とされる。
+  - 対策: `PlayerController.Update()` 以外にも `_weapon` 参照箇所を確認し、null ガードを明示的に揃える。
+- リスク: EditorWindow の表示状態と実際の武器レベルがずれる。
+  - 対策: 操作後は必ず `PlayerController` から再読込し、Window 表示を実状態へ再同期する。
+- リスク: スライダー変更時の IMGUI 再描画で、同じ操作が複数回適用される。
+  - 対策: 前回表示値と実反映値を分離して保持し、値変化イベント時のみ適用する。
+- リスク: PlayMode フックが他シーン再生でも Window を開く。
+  - 対策: シーンパスを厳密一致で判定し、`Sandbox.unity` 以外は即 return する。
+- リスク: サンドバッグ無敵化の差し込み方次第で、通常の敵まで死亡しなくなる。
+  - 対策: 無敵判定は `SandboxDummyEnemy` の有無に限定し、通常敵は既存挙動を維持する。
+- リスク: 接触ダメージ無効のために `PlayerController.OnTriggerEnter()` を広く変えると、通常シーンの被弾判定が壊れる。
+  - 対策: プレイヤー側ではなく、サンドバッグ側の Collider / Layer / 移動停止で接触ダメージが発生しない構成を優先する。
 
 ## 検証方針
-- EditModeテスト
-  - `WeaponService` が新規武器を生成できること。
-  - 武器候補一覧から3件の一意なランダム候補を生成できること。
-  - バウンド回数が3回で停止すること。
-  - 火炎エリアが敵と破壊可能オブジェクトに継続ダメージを与えること。
+- EditMode テスト
+  - `PlayerController` が初期武器自動付与 OFF で武器なし開始できること。
+  - `ApplyWeaponUpgrade()` と読み取り API の組み合わせで、目標レベルまで増加できること。
+  - スライダー減少要求時にレベルが変わらず、未対応ログ経路へ入ること。
+  - トグル OFF 要求時に武器が削除されず、未対応ログ経路へ入ること。
+  - `SandboxDummyEnemy` がダメージを受けても死亡しないこと。
+- Editor テスト
+  - `Sandbox.unity` 再生時のみ Window を開くこと。
+  - `PlayerController` 未検出時に Window が操作不能表示になること。
 - 手動確認
-  - レベルアップ時に3枚のカードへ異なる武器候補が表示されること。
-  - ドローンがプレイヤー周囲を周回し、敵がいる時のみ弾を撃つこと。
-  - バウンドボールが右下へ飛び、最大3回反射してから消えること。
-  - 火炎瓶がプレイヤーの向きに応じて飛び、地面到達で炎エリアを残すこと。
-  - 炎エリアが時間経過で消え、破壊可能オブジェクトに触れると即座に破壊されること。
-- Unity確認
-  - `u console get -l E` で参照不足や NullReference が発生していないこと。
-  - 必要に応じて `u play` で Main シーンを起動し、プレハブ設定漏れがないこと。
+  - `Sandbox.unity` を再生すると Window が自動表示されること。
+  - 初期状態でプレイヤーが移動可能かつ攻撃しないこと。
+  - 任意の武器トグル ON で武器が追加されること。
+  - スライダーを 1 から 5 に上げると、その武器の攻撃頻度や挙動が強化後状態になること。
+  - スライダーを下げた時にレベルは下がらず、ログが出ること。
+  - トグルを OFF にしても武器は消えず、ログが出ること。
+  - サンドバッグへ攻撃しても破壊されず、プレイヤーへダメージを返さないこと。
+- Unity 確認
+  - `u console get -l E` で `Sandbox` 再生時に Console エラーが発生していないこと。
 
 ## コードスニペット（主要変更イメージ）
 ```csharp
-public class WeaponUpgradeUiController : MonoBehaviour
+public class PlayerController : MonoBehaviour
 {
-    WeaponUpgradeUiController.UpgradeCardType[] _displayedTypes = new WeaponUpgradeUiController.UpgradeCardType[3];
+    [SerializeField]
+    [Tooltip("開始時に初期武器を自動付与するかどうか")]
+    bool _grantDefaultWeaponOnStart = true;
 
-    public event Action<UpgradeCardType> OnUpgradeCardSelected;
-
-    public void SetUpgradeCandidates(IReadOnlyList<UpgradeCardType> candidates)
+    public bool TryGetWeaponLevel(WeaponUpgradeUiController.UpgradeCardType type, out int level)
     {
-        for (int i = 0; i < _displayedTypes.Length; i++)
-        {
-            _displayedTypes[i] = candidates[i];
-            // ボタンラベル更新
-        }
+        return _playerWeaponService != null &&
+            _playerWeaponService.TryGetWeaponLevel(type, _weapons, out level);
     }
 
-    void OnCardClicked(int cardIndex)
+    void Update()
     {
-        if (!_isUpgradeUiOpen)
+        if (IsGameOver)
         {
             return;
         }
 
-        OnUpgradeCardSelected?.Invoke(_displayedTypes[cardIndex]);
-        CloseUpgradeUi();
+        _weapon?.Tick(Time.deltaTime);
+        _playerExperience?.TickStyleEffect(_styleEffectContext, Time.deltaTime);
+    }
+
+    void InitializeWeaponSystems()
+    {
+        // 既存初期化...
+
+        if (_grantDefaultWeaponOnStart)
+        {
+            _weapon = _playerWeaponService.ApplyUpgrade(
+                WeaponUpgradeUiController.UpgradeCardType.Shooter,
+                null,
+                _weapons);
+        }
     }
 }
 ```
@@ -196,69 +200,85 @@ public class WeaponUpgradeUiController : MonoBehaviour
 ```csharp
 public class WeaponService
 {
-    public IReadOnlyList<WeaponUpgradeUiController.UpgradeCardType> GetAvailableUpgradeTypes()
+    public bool TryGetWeaponLevel(
+        WeaponUpgradeUiController.UpgradeCardType type,
+        Dictionary<Type, WeaponBase> weapons,
+        out int level)
     {
-        return new[]
+        level = 0;
+
+        if (!_weaponTypes.TryGetValue(type, out Type weaponType))
         {
-            WeaponUpgradeUiController.UpgradeCardType.Shooter,
-            WeaponUpgradeUiController.UpgradeCardType.Throwing,
-            WeaponUpgradeUiController.UpgradeCardType.DamageField,
-            WeaponUpgradeUiController.UpgradeCardType.Drone,
-            WeaponUpgradeUiController.UpgradeCardType.BoundBall,
-            WeaponUpgradeUiController.UpgradeCardType.FlameBottle
-        };
+            return false;
+        }
+
+        if (!weapons.TryGetValue(weaponType, out WeaponBase weapon))
+        {
+            return false;
+        }
+
+        level = weapon.UpgradeLevel;
+        return true;
     }
 }
 ```
 
 ```csharp
-public class BoundBallController : ProjectileController
+public class SandboxWeaponDebugWindow : EditorWindow
 {
-    int _remainingBounceCount;
-
-    protected override void OnTriggerEnter(Collider other)
+    void DrawWeaponControl(WeaponUpgradeUiController.UpgradeCardType type)
     {
-        if (!IsDamageTarget(other))
+        bool hasWeapon = _playerController.TryGetWeaponLevel(type, out int currentLevel);
+        bool nextToggle = EditorGUILayout.ToggleLeft(type.ToString(), hasWeapon);
+
+        if (!hasWeapon && nextToggle)
         {
+            _playerController.ApplyWeaponUpgrade(type);
             return;
         }
 
-        ApplyDamage(other);
-        _remainingBounceCount--;
-
-        if (_remainingBounceCount <= 0)
+        if (hasWeapon && !nextToggle)
         {
-            ReturnToPoolOrDestroy();
+            Debug.Log($"SandboxWeaponDebugWindow: 武器削除は未対応です。 type={type}");
+        }
+
+        int requestedLevel = EditorGUILayout.IntSlider(currentLevel, 1, 5);
+        if (requestedLevel < currentLevel)
+        {
+            Debug.Log($"SandboxWeaponDebugWindow: レベル低下は未対応です。 type={type}, current={currentLevel}, requested={requestedLevel}");
             return;
         }
 
-        Vector3 hitPoint = other.ClosestPoint(transform.position);
-        Vector3 normal = (transform.position - hitPoint).normalized;
-        _direction = Vector3.Reflect(_direction, normal);
+        for (int i = currentLevel; i < requestedLevel; i++)
+        {
+            _playerController.ApplyWeaponUpgrade(type);
+        }
     }
 }
 ```
 
 ```csharp
-public class FlameBottleProjectileController : MonoBehaviour
+[InitializeOnLoad]
+public static class SandboxPlayModeHook
 {
-    float _groundY;
-    Vector3 _velocity;
-
-    void Update()
+    static SandboxPlayModeHook()
     {
-        _velocity += Physics.gravity * Time.deltaTime;
-        transform.position += _velocity * Time.deltaTime;
+        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+    }
 
-        if (transform.position.y <= _groundY)
+    static void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state != PlayModeStateChange.EnteredPlayMode)
         {
-            _effectExecutor.SpawnFlameArea(new FlameAreaSpawnRequest(
-                new Vector3(transform.position.x, _groundY, transform.position.z),
-                _sourcePow,
-                _duration,
-                _radius));
-            ReturnToPoolOrDestroy();
+            return;
         }
+
+        if (SceneManager.GetActiveScene().path != "Assets/Survaivor/Editor/Sandbox.unity")
+        {
+            return;
+        }
+
+        SandboxWeaponDebugWindow.Open();
     }
 }
 ```
