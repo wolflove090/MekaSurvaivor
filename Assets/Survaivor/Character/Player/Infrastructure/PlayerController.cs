@@ -181,6 +181,41 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
+    /// 指定した武器の目標レベルを設定します。
+    /// </summary>
+    /// <param name="type">設定対象の武器種別</param>
+    /// <param name="targetLevel">設定する目標レベル。0以下で未所持にします</param>
+    /// <returns>設定できた場合はtrue</returns>
+    public bool TrySetWeaponLevel(WeaponUpgradeUiController.UpgradeCardType type, int targetLevel)
+    {
+        if (_playerWeaponService == null)
+        {
+            Debug.LogWarning("PlayerController: WeaponServiceが未初期化のため武器レベルを設定できません。");
+            return false;
+        }
+
+        if (!_playerWeaponService.TryGetWeaponType(type, out _))
+        {
+            Debug.LogWarning($"PlayerController: 未対応の武器種別です。 type={type}");
+            return false;
+        }
+
+        Dictionary<WeaponUpgradeUiController.UpgradeCardType, int> targetLevels =
+            new Dictionary<WeaponUpgradeUiController.UpgradeCardType, int>();
+
+        foreach (WeaponUpgradeUiController.UpgradeCardType availableType in _playerWeaponService.GetAvailableUpgradeTypes())
+        {
+            int currentLevel = 0;
+            _playerWeaponService.TryGetWeaponLevel(availableType, _weapons, out currentLevel);
+            targetLevels[availableType] = currentLevel;
+        }
+
+        targetLevels[type] = Mathf.Max(0, targetLevel);
+        _weapon = _playerWeaponService.RebuildWeapons(targetLevels, _weapons);
+        return true;
+    }
+
+    /// <summary>
     /// 現在選択可能な武器強化候補一覧を取得します。
     /// </summary>
     /// <returns>武器強化候補一覧</returns>

@@ -234,6 +234,61 @@ public class WeaponService
     }
 
     /// <summary>
+    /// 指定した武器レベル一覧から武器チェーン全体を再構築します。
+    /// </summary>
+    /// <param name="targetLevels">適用する目標レベル一覧</param>
+    /// <param name="weapons">更新対象の取得済み武器テーブル</param>
+    /// <returns>再構築後のアクティブ武器チェーン先頭</returns>
+    public WeaponBase RebuildWeapons(
+        IReadOnlyDictionary<WeaponUpgradeUiController.UpgradeCardType, int> targetLevels,
+        Dictionary<Type, WeaponBase> weapons)
+    {
+        if (_weaponBuilders == null || _weaponTypes == null)
+        {
+            throw new InvalidOperationException("WeaponService: 武器強化管理用の初期化が行われていません。");
+        }
+
+        if (targetLevels == null)
+        {
+            throw new ArgumentNullException(nameof(targetLevels));
+        }
+
+        if (weapons == null)
+        {
+            throw new ArgumentNullException(nameof(weapons));
+        }
+
+        weapons.Clear();
+
+        WeaponBase activeWeapon = null;
+        foreach (WeaponUpgradeUiController.UpgradeCardType type in AVAILABLE_UPGRADE_TYPES)
+        {
+            if (!targetLevels.TryGetValue(type, out int targetLevel) || targetLevel <= 0)
+            {
+                continue;
+            }
+
+            if (!_weaponBuilders.TryGetValue(type, out Func<WeaponBase, WeaponBase> builder) ||
+                !_weaponTypes.TryGetValue(type, out Type weaponType))
+            {
+                Debug.LogWarning($"WeaponService: 未対応の武器種別です。 type={type}");
+                continue;
+            }
+
+            WeaponBase weapon = builder(activeWeapon);
+            for (int level = 1; level < targetLevel; level++)
+            {
+                weapon.LevelUp();
+            }
+
+            weapons[weaponType] = weapon;
+            activeWeapon = weapon;
+        }
+
+        return activeWeapon;
+    }
+
+    /// <summary>
     /// クールダウン残り時間を現在の発動間隔以内に補正します。
     /// </summary>
     /// <param name="state">対象の武器状態</param>

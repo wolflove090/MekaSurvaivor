@@ -106,7 +106,7 @@ public class SandboxWeaponDebugWindow : EditorWindow
             int nextLevel = EditorGUILayout.IntSlider("Level", displayedLevel, MinWeaponLevel, MaxWeaponLevel);
             if (nextLevel != displayedLevel)
             {
-                HandleLevelChange(type, currentLevel, nextLevel);
+                HandleLevelChange(type, nextLevel);
             }
         }
 
@@ -156,14 +156,14 @@ public class SandboxWeaponDebugWindow : EditorWindow
     {
         if (!hasWeapon && nextToggle)
         {
-            _playerController.ApplyWeaponUpgrade(type);
+            _playerController.TrySetWeaponLevel(type, MinWeaponLevel);
             SyncDisplayStateFromPlayer();
             return;
         }
 
         if (hasWeapon && !nextToggle)
         {
-            Debug.Log($"SandboxWeaponDebugWindow: 武器削除は未対応です。 type={type}");
+            _playerController.TrySetWeaponLevel(type, 0);
             SyncDisplayStateFromPlayer();
         }
     }
@@ -172,26 +172,12 @@ public class SandboxWeaponDebugWindow : EditorWindow
     /// レベル変更操作を反映します。
     /// </summary>
     /// <param name="type">対象武器種別</param>
-    /// <param name="currentLevel">現在レベル</param>
     /// <param name="requestedLevel">要求レベル</param>
     void HandleLevelChange(
         WeaponUpgradeUiController.UpgradeCardType type,
-        int currentLevel,
         int requestedLevel)
     {
-        if (requestedLevel < currentLevel)
-        {
-            Debug.Log(
-                $"SandboxWeaponDebugWindow: レベル低下は未対応です。 type={type}, current={currentLevel}, requested={requestedLevel}");
-            SyncDisplayStateFromPlayer();
-            return;
-        }
-
-        for (int level = currentLevel; level < requestedLevel; level++)
-        {
-            _playerController.ApplyWeaponUpgrade(type);
-        }
-
+        _playerController.TrySetWeaponLevel(type, requestedLevel);
         SyncDisplayStateFromPlayer();
     }
 

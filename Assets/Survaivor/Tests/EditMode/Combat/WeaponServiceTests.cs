@@ -189,4 +189,43 @@ public class WeaponServiceTests
             UnityEngine.Object.DestroyImmediate(player);
         }
     }
+
+    /// <summary>
+    /// 目標レベル一覧から武器チェーンを再構築できることを検証します。
+    /// </summary>
+    [Test]
+    public void RebuildWeapons_WhenTargetLevelsIncludeRemovalAndDowngrade_RebuildsExpectedLoadout()
+    {
+        GameObject player = new GameObject("Player");
+
+        try
+        {
+            WeaponService service = new WeaponService(
+                player.transform,
+                null,
+                () => 4,
+                () => Vector3.right);
+            Dictionary<Type, WeaponBase> weapons = new Dictionary<Type, WeaponBase>();
+            Dictionary<WeaponUpgradeUiController.UpgradeCardType, int> targetLevels =
+                new Dictionary<WeaponUpgradeUiController.UpgradeCardType, int>
+                {
+                    { WeaponUpgradeUiController.UpgradeCardType.Shooter, 2 },
+                    { WeaponUpgradeUiController.UpgradeCardType.Throwing, 0 },
+                    { WeaponUpgradeUiController.UpgradeCardType.Drone, 3 }
+                };
+
+            WeaponBase activeWeapon = service.RebuildWeapons(targetLevels, weapons);
+
+            Assert.That(activeWeapon, Is.TypeOf<DroneWeapon>());
+            Assert.That(weapons.ContainsKey(typeof(BulletWeapon)), Is.True);
+            Assert.That(weapons[typeof(BulletWeapon)].UpgradeLevel, Is.EqualTo(2));
+            Assert.That(weapons.ContainsKey(typeof(ThrowingWeapon)), Is.False);
+            Assert.That(weapons.ContainsKey(typeof(DroneWeapon)), Is.True);
+            Assert.That(weapons[typeof(DroneWeapon)].UpgradeLevel, Is.EqualTo(3));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(player);
+        }
+    }
 }
