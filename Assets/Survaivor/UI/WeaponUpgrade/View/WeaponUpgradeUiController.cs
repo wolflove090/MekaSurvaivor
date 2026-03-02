@@ -39,6 +39,8 @@ public class WeaponUpgradeUiController : MonoBehaviour
     UIDocument _uiDocument;
     WeaponUpgradePresenter _presenter;
     Button[] _upgradeCards;
+    Label[] _upgradeCardTitles;
+    Label[] _upgradeCardDescriptions;
     Action[] _cardClickHandlers;
     UpgradeCardType[] _displayedTypes;
     bool _isUpgradeUiOpen;
@@ -120,6 +122,18 @@ public class WeaponUpgradeUiController : MonoBehaviour
             root.Q<Button>("upgrade-card-1"),
             root.Q<Button>("upgrade-card-2"),
             root.Q<Button>("upgrade-card-3")
+        };
+        _upgradeCardTitles = new[]
+        {
+            root.Q<Label>("upgrade-card-1-title"),
+            root.Q<Label>("upgrade-card-2-title"),
+            root.Q<Label>("upgrade-card-3-title")
+        };
+        _upgradeCardDescriptions = new[]
+        {
+            root.Q<Label>("upgrade-card-1-description"),
+            root.Q<Label>("upgrade-card-2-description"),
+            root.Q<Label>("upgrade-card-3-description")
         };
     }
 
@@ -228,7 +242,18 @@ public class WeaponUpgradeUiController : MonoBehaviour
             bool hasCandidate = candidates != null && i < candidates.Count;
             UpgradeCardType cardType = hasCandidate ? candidates[i] : UpgradeCardType.Shooter;
             _displayedTypes[i] = cardType;
-            card.text = hasCandidate ? GetCardLabel(cardType) : "-";
+            card.text = string.Empty;
+
+            if (_upgradeCardTitles != null && i < _upgradeCardTitles.Length && _upgradeCardTitles[i] != null)
+            {
+                _upgradeCardTitles[i].text = hasCandidate ? GetCardLabel(cardType) : "-";
+            }
+
+            if (_upgradeCardDescriptions != null && i < _upgradeCardDescriptions.Length && _upgradeCardDescriptions[i] != null)
+            {
+                _upgradeCardDescriptions[i].text = hasCandidate ? GetCardDescription(cardType) : string.Empty;
+            }
+
             card.SetEnabled(hasCandidate);
         }
     }
@@ -294,6 +319,32 @@ public class WeaponUpgradeUiController : MonoBehaviour
                 return "Flame Bottle";
             default:
                 return type.ToString();
+        }
+    }
+
+    /// <summary>
+    /// カード表示用の説明文を取得します。
+    /// </summary>
+    /// <param name="type">表示する武器種別</param>
+    /// <returns>UIへ表示する説明文</returns>
+    public static string GetCardDescription(UpgradeCardType type)
+    {
+        switch (type)
+        {
+            case UpgradeCardType.Shooter:
+                return "もっとも近い敵を狙う通常弾の発射間隔を短縮します。";
+            case UpgradeCardType.Throwing:
+                return "向いている方向へ投げる武器の発射間隔を短縮します。";
+            case UpgradeCardType.DamageField:
+                return "周囲に展開するダメージエリアの範囲を拡大します。";
+            case UpgradeCardType.Drone:
+                return "追従ドローンを展開し、強化で攻撃間隔を短縮します。";
+            case UpgradeCardType.BoundBall:
+                return "右下へ飛ぶ反射弾を追加し、強化で発射間隔を短縮します。";
+            case UpgradeCardType.FlameBottle:
+                return "前方へ火炎瓶を投げ、強化で炎エリアの持続時間を延長します。";
+            default:
+                return string.Empty;
         }
     }
 

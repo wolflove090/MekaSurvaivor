@@ -24,6 +24,9 @@ public class FlameBottleWeapon : WeaponBase
     [Tooltip("上方向初速")]
     float _upwardSpeed = 3f;
 
+    [Tooltip("プレイヤー前方へ出す投擲開始位置オフセット")]
+    float _forwardSpawnOffset = 0.75f;
+
     [Tooltip("炎エリア持続時間（秒）")]
     float _flameDuration = 3f;
 
@@ -75,7 +78,7 @@ public class FlameBottleWeapon : WeaponBase
 
         Vector3 initialVelocity = horizontalDirection * _horizontalSpeed + Vector3.up * _upwardSpeed;
         int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
-        Vector3 origin = GetOriginPosition();
+        Vector3 origin = GetOriginPosition() + horizontalDirection * _forwardSpawnOffset;
         _effectExecutor.FireFlameBottle(
             new FlameBottleFireRequest(
                 origin,
