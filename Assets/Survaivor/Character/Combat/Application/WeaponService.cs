@@ -180,6 +180,60 @@ public class WeaponService
     }
 
     /// <summary>
+    /// 指定した武器種別に対応する武器型を取得します。
+    /// </summary>
+    /// <param name="type">確認する武器種別</param>
+    /// <param name="weaponType">取得できた武器型</param>
+    /// <returns>対応する武器型がある場合はtrue</returns>
+    public bool TryGetWeaponType(WeaponUpgradeUiController.UpgradeCardType type, out Type weaponType)
+    {
+        weaponType = null;
+
+        if (_weaponTypes == null)
+        {
+            return false;
+        }
+
+        return _weaponTypes.TryGetValue(type, out weaponType);
+    }
+
+    /// <summary>
+    /// 指定した武器を現在所持しているかどうかを返します。
+    /// </summary>
+    /// <param name="type">確認する武器種別</param>
+    /// <param name="weapons">取得済み武器の管理テーブル</param>
+    /// <returns>所持している場合はtrue</returns>
+    public bool HasWeapon(
+        WeaponUpgradeUiController.UpgradeCardType type,
+        Dictionary<Type, WeaponBase> weapons)
+    {
+        return TryGetWeapon(type, weapons, out _);
+    }
+
+    /// <summary>
+    /// 指定した武器の現在レベルを取得します。
+    /// </summary>
+    /// <param name="type">確認する武器種別</param>
+    /// <param name="weapons">取得済み武器の管理テーブル</param>
+    /// <param name="level">取得できた現在レベル</param>
+    /// <returns>武器を所持していてレベル取得できた場合はtrue</returns>
+    public bool TryGetWeaponLevel(
+        WeaponUpgradeUiController.UpgradeCardType type,
+        Dictionary<Type, WeaponBase> weapons,
+        out int level)
+    {
+        level = 0;
+
+        if (!TryGetWeapon(type, weapons, out WeaponBase weapon))
+        {
+            return false;
+        }
+
+        level = weapon.UpgradeLevel;
+        return true;
+    }
+
+    /// <summary>
     /// クールダウン残り時間を現在の発動間隔以内に補正します。
     /// </summary>
     /// <param name="state">対象の武器状態</param>
@@ -202,5 +256,25 @@ public class WeaponService
     public IReadOnlyList<WeaponUpgradeUiController.UpgradeCardType> GetAvailableUpgradeTypes()
     {
         return AVAILABLE_UPGRADE_TYPES;
+    }
+
+    bool TryGetWeapon(
+        WeaponUpgradeUiController.UpgradeCardType type,
+        Dictionary<Type, WeaponBase> weapons,
+        out WeaponBase weapon)
+    {
+        weapon = null;
+
+        if (weapons == null)
+        {
+            return false;
+        }
+
+        if (!TryGetWeaponType(type, out Type weaponType))
+        {
+            return false;
+        }
+
+        return weapons.TryGetValue(weaponType, out weapon);
     }
 }

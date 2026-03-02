@@ -58,6 +58,11 @@ public class EnemyRegistry : MonoBehaviour
             return;
         }
 
+        if (_spatialGrid == null)
+        {
+            _spatialGrid = new SpatialGrid(_gridCellSize);
+        }
+
         _enemies.Add(enemy);
         _spatialGrid.Register(enemy);
     }

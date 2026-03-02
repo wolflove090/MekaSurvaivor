@@ -87,6 +87,16 @@ public class HealthComponent : MonoBehaviour, IDamageable
             return;
         }
 
+        MonoBehaviour[] components = GetComponents<MonoBehaviour>();
+        foreach (MonoBehaviour component in components)
+        {
+            if (component is IDamageGuard damageGuard &&
+                damageGuard.ShouldIgnoreDamage(damage, knockbackDirection))
+            {
+                return;
+            }
+        }
+
         int baseDamage = Mathf.Max(0, damage);
         CharacterStatValues currentValues = _characterStats != null ? _characterStats.CurrentValues : CharacterStatValues.Default;
         int defense = currentValues.Def;

@@ -9,6 +9,10 @@ public class PlayerController : MonoBehaviour
 {
     static PlayerController _instance;
 
+    [SerializeField]
+    [Tooltip("開始時に初期武器を自動付与するかどうか")]
+    bool _grantDefaultWeaponOnStart = true;
+
     HealthComponent _healthComponent;
     PlayerMovement _playerMovement;
     CharacterStats _characterStats;
@@ -132,7 +136,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        _weapon.Tick(Time.deltaTime);
+        _weapon?.Tick(Time.deltaTime);
 
         _playerExperience?.TickStyleEffect(_styleEffectContext, Time.deltaTime);
     }
@@ -150,6 +154,30 @@ public class PlayerController : MonoBehaviour
         }
 
         _weapon = _playerWeaponService.ApplyUpgrade(type, _weapon, _weapons);
+    }
+
+    /// <summary>
+    /// 指定した武器を現在所持しているかどうかを取得します。
+    /// </summary>
+    /// <param name="type">確認する武器種別</param>
+    /// <returns>所持している場合はtrue</returns>
+    public bool HasWeapon(WeaponUpgradeUiController.UpgradeCardType type)
+    {
+        return _playerWeaponService != null &&
+            _playerWeaponService.HasWeapon(type, _weapons);
+    }
+
+    /// <summary>
+    /// 指定した武器の現在レベルを取得します。
+    /// </summary>
+    /// <param name="type">確認する武器種別</param>
+    /// <param name="level">取得できた現在レベル</param>
+    /// <returns>武器を所持していてレベル取得できた場合はtrue</returns>
+    public bool TryGetWeaponLevel(WeaponUpgradeUiController.UpgradeCardType type, out int level)
+    {
+        level = 0;
+        return _playerWeaponService != null &&
+            _playerWeaponService.TryGetWeaponLevel(type, _weapons, out level);
     }
 
     /// <summary>
@@ -276,6 +304,11 @@ public class PlayerController : MonoBehaviour
     /// <param name="other">接触したCollider</param>
     void OnTriggerEnter(Collider other)
     {
+        if (other.GetComponent<SandboxDummyEnemy>() != null)
+        {
+            return;
+        }
+
         if (other.CompareTag("Enemy"))
         {
             Vector3 knockbackDirection = transform.position - other.transform.position;
@@ -351,9 +384,13 @@ public class PlayerController : MonoBehaviour
             GetFacingDirection,
             enemyRegistry,
             breakableObjectSpawner);
-        _weapon = _playerWeaponService.ApplyUpgrade(
-            WeaponUpgradeUiController.UpgradeCardType.Shooter,
-            null,
-            _weapons);
+
+        if (_grantDefaultWeaponOnStart)
+        {
+            _weapon = _playerWeaponService.ApplyUpgrade(
+                WeaponUpgradeUiController.UpgradeCardType.Shooter,
+                null,
+                _weapons);
+        }
     }
 }
