@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -128,6 +129,60 @@ public class WeaponServiceTests
 
             Assert.That(result, Is.SameAs(currentWeapon));
             Assert.That(weapons[typeof(BulletWeapon)].UpgradeLevel, Is.EqualTo(2));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(player);
+        }
+    }
+
+    /// <summary>
+    /// 強化候補一覧に新規武器3種を含む全武器種が返ることを検証します。
+    /// </summary>
+    [Test]
+    public void GetAvailableUpgradeTypes_ReturnsAllSupportedWeaponTypes()
+    {
+        WeaponService service = new WeaponService();
+
+        IReadOnlyList<WeaponUpgradeUiController.UpgradeCardType> types = service.GetAvailableUpgradeTypes();
+
+        Assert.That(types, Is.EqualTo(new[]
+        {
+            WeaponUpgradeUiController.UpgradeCardType.Shooter,
+            WeaponUpgradeUiController.UpgradeCardType.Throwing,
+            WeaponUpgradeUiController.UpgradeCardType.DamageField,
+            WeaponUpgradeUiController.UpgradeCardType.Drone,
+            WeaponUpgradeUiController.UpgradeCardType.BoundBall,
+            WeaponUpgradeUiController.UpgradeCardType.FlameBottle
+        }));
+    }
+
+    /// <summary>
+    /// 新規武器を選択すると対応する武器が生成されることを検証します。
+    /// </summary>
+    [TestCase(WeaponUpgradeUiController.UpgradeCardType.Drone, typeof(DroneWeapon))]
+    [TestCase(WeaponUpgradeUiController.UpgradeCardType.BoundBall, typeof(BoundBallWeapon))]
+    [TestCase(WeaponUpgradeUiController.UpgradeCardType.FlameBottle, typeof(FlameBottleWeapon))]
+    public void ApplyUpgrade_WhenSelectingNewWeaponType_CreatesExpectedWeapon(
+        WeaponUpgradeUiController.UpgradeCardType upgradeType,
+        Type expectedWeaponType)
+    {
+        GameObject player = new GameObject("Player");
+
+        try
+        {
+            WeaponService service = new WeaponService(
+                player.transform,
+                null,
+                () => 4,
+                () => Vector3.right);
+            Dictionary<Type, WeaponBase> weapons = new Dictionary<Type, WeaponBase>();
+
+            WeaponBase activeWeapon = service.ApplyUpgrade(upgradeType, null, weapons);
+
+            Assert.That(activeWeapon, Is.TypeOf(expectedWeaponType));
+            Assert.That(weapons.ContainsKey(expectedWeaponType), Is.True);
+            Assert.That(weapons[expectedWeaponType], Is.SameAs(activeWeapon));
         }
         finally
         {

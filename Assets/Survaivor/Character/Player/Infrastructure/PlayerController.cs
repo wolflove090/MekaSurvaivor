@@ -153,6 +153,20 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
+    /// 現在選択可能な武器強化候補一覧を取得します。
+    /// </summary>
+    /// <returns>武器強化候補一覧</returns>
+    public IReadOnlyList<WeaponUpgradeUiController.UpgradeCardType> GetAvailableWeaponUpgradeTypes()
+    {
+        if (_playerWeaponService == null)
+        {
+            return Array.Empty<WeaponUpgradeUiController.UpgradeCardType>();
+        }
+
+        return _playerWeaponService.GetAvailableUpgradeTypes();
+    }
+
+    /// <summary>
     /// プレイヤーのスタイル効果を切り替えます
     /// </summary>
     /// <param name="styleType">適用するスタイル種別</param>

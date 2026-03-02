@@ -7,6 +7,16 @@ using UnityEngine;
 /// </summary>
 public class WeaponService
 {
+    static readonly WeaponUpgradeUiController.UpgradeCardType[] AVAILABLE_UPGRADE_TYPES =
+    {
+        WeaponUpgradeUiController.UpgradeCardType.Shooter,
+        WeaponUpgradeUiController.UpgradeCardType.Throwing,
+        WeaponUpgradeUiController.UpgradeCardType.DamageField,
+        WeaponUpgradeUiController.UpgradeCardType.Drone,
+        WeaponUpgradeUiController.UpgradeCardType.BoundBall,
+        WeaponUpgradeUiController.UpgradeCardType.FlameBottle
+    };
+
     readonly Transform _weaponOrigin;
     readonly Dictionary<WeaponUpgradeUiController.UpgradeCardType, Func<WeaponBase, WeaponBase>> _weaponBuilders;
     readonly Dictionary<WeaponUpgradeUiController.UpgradeCardType, Type> _weaponTypes;
@@ -64,13 +74,41 @@ public class WeaponService
                     rideWeapon,
                     effectExecutor,
                     sourcePowProvider)
+            },
+            {
+                WeaponUpgradeUiController.UpgradeCardType.Drone,
+                rideWeapon => new DroneWeapon(
+                    _weaponOrigin,
+                    rideWeapon,
+                    effectExecutor,
+                    sourcePowProvider)
+            },
+            {
+                WeaponUpgradeUiController.UpgradeCardType.BoundBall,
+                rideWeapon => new BoundBallWeapon(
+                    _weaponOrigin,
+                    rideWeapon,
+                    effectExecutor,
+                    sourcePowProvider)
+            },
+            {
+                WeaponUpgradeUiController.UpgradeCardType.FlameBottle,
+                rideWeapon => new FlameBottleWeapon(
+                    _weaponOrigin,
+                    rideWeapon,
+                    effectExecutor,
+                    sourcePowProvider,
+                    facingDirectionProvider)
             }
         };
         _weaponTypes = new Dictionary<WeaponUpgradeUiController.UpgradeCardType, Type>
         {
             { WeaponUpgradeUiController.UpgradeCardType.Shooter, typeof(BulletWeapon) },
             { WeaponUpgradeUiController.UpgradeCardType.Throwing, typeof(ThrowingWeapon) },
-            { WeaponUpgradeUiController.UpgradeCardType.DamageField, typeof(DamageFieldWeapon) }
+            { WeaponUpgradeUiController.UpgradeCardType.DamageField, typeof(DamageFieldWeapon) },
+            { WeaponUpgradeUiController.UpgradeCardType.Drone, typeof(DroneWeapon) },
+            { WeaponUpgradeUiController.UpgradeCardType.BoundBall, typeof(BoundBallWeapon) },
+            { WeaponUpgradeUiController.UpgradeCardType.FlameBottle, typeof(FlameBottleWeapon) }
         };
     }
 
@@ -155,5 +193,14 @@ public class WeaponService
 
         float normalizedCooldownDuration = Mathf.Max(0f, cooldownDuration);
         state.SetCooldownRemaining(Mathf.Min(state.CooldownRemaining, normalizedCooldownDuration));
+    }
+
+    /// <summary>
+    /// 強化UIで提示可能な全武器候補一覧を取得します。
+    /// </summary>
+    /// <returns>提示可能な武器候補一覧</returns>
+    public IReadOnlyList<WeaponUpgradeUiController.UpgradeCardType> GetAvailableUpgradeTypes()
+    {
+        return AVAILABLE_UPGRADE_TYPES;
     }
 }

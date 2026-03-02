@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -15,8 +16,13 @@ public class WeaponUpgradeUiController : MonoBehaviour
     {
         Shooter = 0,
         Throwing = 1,
-        DamageField = 2
+        DamageField = 2,
+        Drone = 3,
+        BoundBall = 4,
+        FlameBottle = 5
     }
+
+    const int DISPLAY_CARD_COUNT = 3;
 
     [SerializeField]
     [Tooltip("武器強化UIのUXMLアセット")]
@@ -34,6 +40,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
     WeaponUpgradePresenter _presenter;
     Button[] _upgradeCards;
     Action[] _cardClickHandlers;
+    UpgradeCardType[] _displayedTypes;
     bool _isUpgradeUiOpen;
     float _timeScaleBeforePause;
     float _defaultSortOrder;
@@ -41,7 +48,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
     /// <summary>
     /// 強化カードが押下された時に発火するイベント。
     /// </summary>
-    public event Action<int> OnUpgradeCardSelected;
+    public event Action<UpgradeCardType> OnUpgradeCardSelected;
 
     /// <summary>
     /// 初期化時にUI構築と参照取得を実行します。
@@ -50,6 +57,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
     {
         _uiDocument = GetComponent<UIDocument>();
         _defaultSortOrder = _uiDocument.sortingOrder;
+        _displayedTypes = new UpgradeCardType[DISPLAY_CARD_COUNT];
         BuildUi();
         CacheElements();
         BuildCardClickHandlers();
@@ -120,7 +128,7 @@ public class WeaponUpgradeUiController : MonoBehaviour
     /// </summary>
     void BuildCardClickHandlers()
     {
-        _cardClickHandlers = new Action[3];
+        _cardClickHandlers = new Action[DISPLAY_CARD_COUNT];
 
         for (int i = 0; i < _cardClickHandlers.Length; i++)
         {
@@ -184,9 +192,109 @@ public class WeaponUpgradeUiController : MonoBehaviour
             return;
         }
 
-        Debug.Log($"WeaponUpgradeUiController: 強化カード {cardIndex + 1} が選択されました。");
-        OnUpgradeCardSelected?.Invoke(cardIndex);
+        Debug.Log($"WeaponUpgradeUiController: 強化カード {cardIndex + 1} が選択されました。 type={_displayedTypes[cardIndex]}");
+        OnUpgradeCardSelected?.Invoke(_displayedTypes[cardIndex]);
         CloseUpgradeUi();
+    }
+
+    /// <summary>
+    /// 候補一覧から表示用の武器カードを抽選してUIへ反映します。
+    /// </summary>
+    /// <param name="availableTypes">抽選元となる武器候補一覧</param>
+    public void PrepareUpgradeCandidates(IReadOnlyList<UpgradeCardType> availableTypes)
+    {
+        SetUpgradeCandidates(BuildRandomizedCandidates(availableTypes));
+    }
+
+    /// <summary>
+    /// 表示対象の武器カードを設定し、各ボタンの表示内容を更新します。
+    /// </summary>
+    /// <param name="candidates">表示する武器カード候補</param>
+    public void SetUpgradeCandidates(IReadOnlyList<UpgradeCardType> candidates)
+    {
+        if (_upgradeCards == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < _upgradeCards.Length; i++)
+        {
+            Button card = _upgradeCards[i];
+            if (card == null)
+            {
+                continue;
+            }
+
+            bool hasCandidate = candidates != null && i < candidates.Count;
+            UpgradeCardType cardType = hasCandidate ? candidates[i] : UpgradeCardType.Shooter;
+            _displayedTypes[i] = cardType;
+            card.text = hasCandidate ? GetCardLabel(cardType) : "-";
+            card.SetEnabled(hasCandidate);
+        }
+    }
+
+    /// <summary>
+    /// 武器候補一覧から重複なしで最大3件をランダム抽選します。
+    /// </summary>
+    /// <param name="availableTypes">抽選元となる候補一覧</param>
+    /// <returns>表示に使用する候補一覧</returns>
+    public static IReadOnlyList<UpgradeCardType> BuildRandomizedCandidates(IReadOnlyList<UpgradeCardType> availableTypes)
+    {
+        if (availableTypes == null || availableTypes.Count == 0)
+        {
+            return Array.Empty<UpgradeCardType>();
+        }
+
+        List<UpgradeCardType> pool = new List<UpgradeCardType>(availableTypes.Count);
+        for (int i = 0; i < availableTypes.Count; i++)
+        {
+            UpgradeCardType type = availableTypes[i];
+            if (!pool.Contains(type))
+            {
+                pool.Add(type);
+            }
+        }
+
+        for (int i = pool.Count - 1; i > 0; i--)
+        {
+            int swapIndex = UnityEngine.Random.Range(0, i + 1);
+            (pool[i], pool[swapIndex]) = (pool[swapIndex], pool[i]);
+        }
+
+        int resultCount = Mathf.Min(DISPLAY_CARD_COUNT, pool.Count);
+        UpgradeCardType[] result = new UpgradeCardType[resultCount];
+        for (int i = 0; i < resultCount; i++)
+        {
+            result[i] = pool[i];
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// カード表示用の名称を取得します。
+    /// </summary>
+    /// <param name="type">表示する武器種別</param>
+    /// <returns>UIへ表示するラベル</returns>
+    public static string GetCardLabel(UpgradeCardType type)
+    {
+        switch (type)
+        {
+            case UpgradeCardType.Shooter:
+                return "Shooter";
+            case UpgradeCardType.Throwing:
+                return "Throwing";
+            case UpgradeCardType.DamageField:
+                return "Damage Field";
+            case UpgradeCardType.Drone:
+                return "Drone";
+            case UpgradeCardType.BoundBall:
+                return "Bound Ball";
+            case UpgradeCardType.FlameBottle:
+                return "Flame Bottle";
+            default:
+                return type.ToString();
+        }
     }
 
     /// <summary>

@@ -73,7 +73,7 @@ public class WeaponUpgradePresenter
         }
     }
 
-    void OnUpgradeCardSelected(int cardIndex)
+    void OnUpgradeCardSelected(WeaponUpgradeUiController.UpgradeCardType cardType)
     {
         if (_playerController == null)
         {
@@ -81,7 +81,7 @@ public class WeaponUpgradePresenter
             return;
         }
 
-        _playerController.ApplyWeaponUpgrade((WeaponUpgradeUiController.UpgradeCardType)cardIndex);
+        _playerController.ApplyWeaponUpgrade(cardType);
     }
 
     void OnPlayerLevelUp(int newLevel)
@@ -91,6 +91,12 @@ public class WeaponUpgradePresenter
             return;
         }
 
-        _view?.OpenUpgradeUi();
+        if (_view != null)
+        {
+            _view.PrepareUpgradeCandidates(_playerController != null
+                ? _playerController.GetAvailableWeaponUpgradeTypes()
+                : null);
+            _view.OpenUpgradeUi();
+        }
     }
 }

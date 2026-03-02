@@ -80,14 +80,7 @@ public abstract class ProjectileController : MonoBehaviour
     {
         if (IsDamageTarget(other))
         {
-            IDamageable damageable = other.GetComponent<IDamageable>();
-            if (damageable != null && !damageable.IsDead)
-            {
-                Vector3 knockbackDirection = _direction;
-                knockbackDirection.y = 0f;
-                damageable.TakeDamage(CalculateDamage(), knockbackDirection);
-            }
-
+            ApplyDamage(other);
             ReturnToPoolOrDestroy();
         }
     }
@@ -97,16 +90,31 @@ public abstract class ProjectileController : MonoBehaviour
     /// </summary>
     /// <param name="other">衝突したCollider</param>
     /// <returns>対象タグに一致する場合はtrue</returns>
-    bool IsDamageTarget(Collider other)
+    protected bool IsDamageTarget(Collider other)
     {
         return other.CompareTag("Enemy") || other.CompareTag(_breakableObjectTag);
+    }
+
+    /// <summary>
+    /// 対象Colliderへダメージを適用します。
+    /// </summary>
+    /// <param name="other">ダメージを与える対象</param>
+    protected void ApplyDamage(Collider other)
+    {
+        IDamageable damageable = other.GetComponent<IDamageable>();
+        if (damageable != null && !damageable.IsDead)
+        {
+            Vector3 knockbackDirection = _direction;
+            knockbackDirection.y = 0f;
+            damageable.TakeDamage(CalculateDamage(), knockbackDirection);
+        }
     }
 
     /// <summary>
     /// 攻撃元の攻撃力を反映したダメージ値を計算します
     /// </summary>
     /// <returns>適用する最終ダメージ値</returns>
-    int CalculateDamage()
+    protected int CalculateDamage()
     {
         return Mathf.Max(1, _damage + (_sourcePow - 1));
     }
