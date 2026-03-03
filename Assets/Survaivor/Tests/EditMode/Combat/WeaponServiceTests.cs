@@ -191,6 +191,41 @@ public class WeaponServiceTests
     }
 
     /// <summary>
+    /// ドローン武器を新規取得した直後の最初のTickで展開されることを検証します。
+    /// </summary>
+    [Test]
+    public void ApplyUpgrade_WhenAddingDrone_FirstTickDeploysDroneImmediately()
+    {
+        GameObject player = new GameObject("Player");
+
+        try
+        {
+            RecordingWeaponEffectExecutor effectExecutor = new RecordingWeaponEffectExecutor();
+            WeaponService service = new WeaponService(
+                player.transform,
+                effectExecutor,
+                () => 4,
+                () => Vector3.right);
+            Dictionary<Type, WeaponBase> weapons = new Dictionary<Type, WeaponBase>();
+
+            WeaponBase activeWeapon = service.ApplyUpgrade(
+                WeaponUpgradeUiController.UpgradeCardType.Drone,
+                null,
+                weapons);
+
+            activeWeapon.Tick(0f);
+
+            Assert.That(effectExecutor.DeployDroneCallCount, Is.EqualTo(1));
+            Assert.That(effectExecutor.LastDroneRequest, Is.Not.Null);
+            Assert.That(effectExecutor.LastDroneRequest.FollowTarget, Is.EqualTo(player.transform));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(player);
+        }
+    }
+
+    /// <summary>
     /// 目標レベル一覧から武器チェーンを再構築できることを検証します。
     /// </summary>
     [Test]
@@ -226,6 +261,80 @@ public class WeaponServiceTests
         finally
         {
             UnityEngine.Object.DestroyImmediate(player);
+        }
+    }
+
+    /// <summary>
+    /// テスト用に武器発動要求を記録する実装です。
+    /// </summary>
+    sealed class RecordingWeaponEffectExecutor : IWeaponEffectExecutor
+    {
+        /// <summary>
+        /// ドローン展開が呼ばれた回数を取得します。
+        /// </summary>
+        public int DeployDroneCallCount { get; private set; }
+
+        /// <summary>
+        /// 最後に受け取ったドローン展開要求を取得します。
+        /// </summary>
+        public DroneSpawnRequest LastDroneRequest { get; private set; }
+
+        /// <summary>
+        /// 通常弾の発射要求を受け取ります。
+        /// </summary>
+        /// <param name="request">受け取った要求</param>
+        public void FireBullet(BulletFireRequest request)
+        {
+        }
+
+        /// <summary>
+        /// 投擲弾の発射要求を受け取ります。
+        /// </summary>
+        /// <param name="request">受け取った要求</param>
+        public void FireThrowing(ThrowingFireRequest request)
+        {
+        }
+
+        /// <summary>
+        /// ダメージフィールド生成要求を受け取ります。
+        /// </summary>
+        /// <param name="request">受け取った要求</param>
+        public void SpawnDamageField(DamageFieldSpawnRequest request)
+        {
+        }
+
+        /// <summary>
+        /// ドローン展開要求を記録します。
+        /// </summary>
+        /// <param name="request">受け取った要求</param>
+        public void DeployDrone(DroneSpawnRequest request)
+        {
+            DeployDroneCallCount++;
+            LastDroneRequest = request;
+        }
+
+        /// <summary>
+        /// バウンドボールの発射要求を受け取ります。
+        /// </summary>
+        /// <param name="request">受け取った要求</param>
+        public void FireBoundBall(BoundBallFireRequest request)
+        {
+        }
+
+        /// <summary>
+        /// 火炎瓶の発射要求を受け取ります。
+        /// </summary>
+        /// <param name="request">受け取った要求</param>
+        public void FireFlameBottle(FlameBottleFireRequest request)
+        {
+        }
+
+        /// <summary>
+        /// 炎エリア生成要求を受け取ります。
+        /// </summary>
+        /// <param name="request">受け取った要求</param>
+        public void SpawnFlameArea(FlameAreaSpawnRequest request)
+        {
         }
     }
 }

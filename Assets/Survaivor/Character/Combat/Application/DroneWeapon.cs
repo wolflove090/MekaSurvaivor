@@ -39,6 +39,7 @@ public class DroneWeapon : WeaponBase
         Func<int> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
     {
         _sourcePowProvider = sourcePowProvider;
+        ReadyCooldownForImmediateTrigger();
     }
 
     /// <summary>
