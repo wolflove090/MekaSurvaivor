@@ -6,19 +6,31 @@ using UnityEngine;
 /// </summary>
 public class BoundBallWeapon : WeaponBase
 {
+    static readonly float[] SHOOT_INTERVALS =
+    {
+        2.0f,
+        1.5f,
+        1.0f,
+        0.8f,
+        0.4f
+    };
+
+    static readonly int[] MAX_BOUNCE_COUNTS =
+    {
+        1,
+        1,
+        2,
+        2,
+        3
+    };
+
     readonly Func<int> _sourcePowProvider;
 
     [Tooltip("発射間隔（秒）")]
-    float _shootInterval = 1.75f;
-
-    [Tooltip("強化1段階ごとの発射間隔短縮率")]
-    float _intervalReductionPerLevel = 0.1f;
-
-    [Tooltip("発射間隔の最小値（秒）")]
-    float _minShootInterval = 0.35f;
+    float _shootInterval = SHOOT_INTERVALS[0];
 
     [Tooltip("最大バウンド回数")]
-    int _maxBounceCount = 3;
+    int _maxBounceCount = MAX_BOUNCE_COUNTS[0];
 
     protected override float CooldownDuration => _shootInterval;
 
@@ -39,7 +51,7 @@ public class BoundBallWeapon : WeaponBase
     }
 
     /// <summary>
-    /// ワールド固定の右下方向へバウンドボールを発射します。
+    /// ワールド固定の真下方向へバウンドボールを発射します。
     /// </summary>
     protected override void Fire()
     {
@@ -49,7 +61,7 @@ public class BoundBallWeapon : WeaponBase
         }
 
         int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
-        Vector3 direction = new Vector3(1f, 0f, -1f).normalized;
+        Vector3 direction = Vector3.back;
         _effectExecutor.FireBoundBall(
             new BoundBallFireRequest(
                 GetOriginPosition(),
@@ -64,11 +76,22 @@ public class BoundBallWeapon : WeaponBase
     public override void LevelUp()
     {
         _weaponState.IncrementUpgradeLevel();
-
-        float reducedInterval = _shootInterval * (1f - _intervalReductionPerLevel);
-        _shootInterval = Mathf.Max(_minShootInterval, reducedInterval);
+        _shootInterval = GetShootIntervalForCurrentLevel();
+        _maxBounceCount = GetMaxBounceCountForCurrentLevel();
         ClampCooldownTimerToDuration();
 
-        Debug.Log($"BoundBallWeapon: レベル {UpgradeLevel} に強化。発射間隔: {_shootInterval:0.00}s");
+        Debug.Log($"BoundBallWeapon: レベル {UpgradeLevel} に強化。発射間隔: {_shootInterval:0.00}s, バウンド回数: {_maxBounceCount}");
+    }
+
+    float GetShootIntervalForCurrentLevel()
+    {
+        int levelIndex = Mathf.Clamp(UpgradeLevel - 1, 0, SHOOT_INTERVALS.Length - 1);
+        return SHOOT_INTERVALS[levelIndex];
+    }
+
+    int GetMaxBounceCountForCurrentLevel()
+    {
+        int levelIndex = Mathf.Clamp(UpgradeLevel - 1, 0, MAX_BOUNCE_COUNTS.Length - 1);
+        return MAX_BOUNCE_COUNTS[levelIndex];
     }
 }

@@ -27,13 +27,15 @@ public class DroneController : MonoBehaviour
     /// <param name="sourcePow">攻撃元の攻撃力</param>
     /// <param name="orbitRadius">周回半径</param>
     /// <param name="shotInterval">射撃間隔</param>
+    /// <param name="phaseOffsetDegrees">周回開始位相のオフセット角度</param>
     public void Initialize(
         Transform followTarget,
         EnemyRegistry enemyRegistry,
         IWeaponEffectExecutor effectExecutor,
         int sourcePow,
         float orbitRadius,
-        float shotInterval)
+        float shotInterval,
+        float phaseOffsetDegrees)
     {
         _followTarget = followTarget;
         _enemyRegistry = enemyRegistry;
@@ -42,6 +44,8 @@ public class DroneController : MonoBehaviour
         _orbitRadius = Mathf.Max(0.1f, orbitRadius);
         _shotInterval = Mathf.Max(0.1f, shotInterval);
         _shotTimer = 0f;
+        // 初期位相を明示設定しておくことで、2機展開時も常に対角を維持できる。
+        _orbitAngle = Mathf.Repeat(phaseOffsetDegrees, 360f);
     }
 
     void Update()

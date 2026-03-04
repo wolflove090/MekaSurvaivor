@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -15,12 +16,12 @@ public class WeaponEffectExecutor : IWeaponEffectExecutor
     ObjectPool<BoundBallController> _boundBallPool;
     ObjectPool<FlameBottleProjectileController> _flameBottlePool;
     ObjectPool<DamageFieldController> _flameAreaPool;
-    DroneController _activeDroneController;
+    readonly Dictionary<int, DroneController> _activeDroneControllersByPhase = new Dictionary<int, DroneController>();
 
     const int BULLET_POOL_SIZE = 20;
     const int THROWING_POOL_SIZE = 12;
     const int DAMAGE_FIELD_POOL_SIZE = 2;
-    const int DRONE_POOL_SIZE = 1;
+    const int DRONE_POOL_SIZE = 2;
     const int BOUND_BALL_POOL_SIZE = 8;
     const int FLAME_BOTTLE_POOL_SIZE = 6;
     const int FLAME_AREA_POOL_SIZE = 4;
@@ -115,16 +116,20 @@ public class WeaponEffectExecutor : IWeaponEffectExecutor
             return;
         }
 
-        if (_activeDroneController != null && _activeDroneController.gameObject.activeSelf)
+        int phaseKey = NormalizePhaseKey(request.PhaseOffsetDegrees);
+        if (_activeDroneControllersByPhase.TryGetValue(phaseKey, out DroneController activeDroneController) &&
+            activeDroneController != null &&
+            activeDroneController.gameObject.activeSelf)
         {
-            PrepareSpawnedObject(_activeDroneController.transform, request.Origin);
-            _activeDroneController.Initialize(
+            PrepareSpawnedObject(activeDroneController.transform, request.Origin);
+            activeDroneController.Initialize(
                 request.FollowTarget,
                 _bulletFactory != null ? _bulletFactory.EnemyRegistry : null,
                 this,
                 request.SourcePow,
                 request.OrbitRadius,
-                request.ShotInterval);
+                request.ShotInterval,
+                request.PhaseOffsetDegrees);
             return;
         }
 
@@ -134,7 +139,8 @@ public class WeaponEffectExecutor : IWeaponEffectExecutor
             return;
         }
 
-        _activeDroneController = droneController;
+        // 位相ごとにドローンを保持し、Lv5の2機展開時も同じ個体を安定再利用する。
+        _activeDroneControllersByPhase[phaseKey] = droneController;
         PrepareSpawnedObject(droneController.transform, request.Origin);
         droneController.Initialize(
             request.FollowTarget,
@@ -142,7 +148,8 @@ public class WeaponEffectExecutor : IWeaponEffectExecutor
             this,
             request.SourcePow,
             request.OrbitRadius,
-            request.ShotInterval);
+            request.ShotInterval,
+            request.PhaseOffsetDegrees);
     }
 
     /// <summary>
@@ -400,5 +407,11 @@ public class WeaponEffectExecutor : IWeaponEffectExecutor
 
         spawnedTransform.position = position;
         spawnedTransform.rotation = Quaternion.identity;
+    }
+
+    int NormalizePhaseKey(float phaseOffsetDegrees)
+    {
+        float normalized = Mathf.Repeat(phaseOffsetDegrees, 360f);
+        return Mathf.RoundToInt(normalized);
     }
 }

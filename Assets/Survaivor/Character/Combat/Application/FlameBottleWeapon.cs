@@ -6,17 +6,32 @@ using UnityEngine;
 /// </summary>
 public class FlameBottleWeapon : WeaponBase
 {
+    static readonly float[] THROW_INTERVALS =
+    {
+        1.5f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f
+    };
+
+    static readonly int[] PROJECTILE_COUNTS =
+    {
+        1,
+        1,
+        2,
+        3,
+        4
+    };
+
     readonly Func<int> _sourcePowProvider;
     readonly Func<Vector3> _facingDirectionProvider;
 
     [Tooltip("投擲間隔（秒）")]
-    float _throwInterval = 2.5f;
+    float _throwInterval = THROW_INTERVALS[0];
 
-    [Tooltip("強化1段階ごとの投擲間隔短縮率")]
-    float _intervalReductionPerLevel = 0.1f;
-
-    [Tooltip("投擲間隔の最小値（秒）")]
-    float _minThrowInterval = 0.5f;
+    [Tooltip("1本ごとの扇状角度ステップ")]
+    float _fanAngleStep = 12f;
 
     [Tooltip("水平初速")]
     float _horizontalSpeed = 4f;
@@ -33,8 +48,8 @@ public class FlameBottleWeapon : WeaponBase
     [Tooltip("炎エリア半径")]
     float _flameRadius = 2f;
 
-    [Tooltip("強化1段階ごとの炎エリア持続時間増加量")]
-    float _durationIncreasePerLevel = 0.5f;
+    [Tooltip("1回の投擲で発射する火炎瓶数")]
+    int _projectileCount = PROJECTILE_COUNTS[0];
 
     protected override float CooldownDuration => _throwInterval;
 
@@ -76,31 +91,47 @@ public class FlameBottleWeapon : WeaponBase
 
         horizontalDirection.Normalize();
 
-        Vector3 initialVelocity = horizontalDirection * _horizontalSpeed + Vector3.up * _upwardSpeed;
         int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
         Vector3 origin = GetOriginPosition() + horizontalDirection * _forwardSpawnOffset;
-        _effectExecutor.FireFlameBottle(
-            new FlameBottleFireRequest(
-                origin,
-                initialVelocity,
-                sourcePow,
-                origin.y,
-                _flameDuration,
-                _flameRadius));
+        float centerIndex = (_projectileCount - 1) * 0.5f;
+        for (int i = 0; i < _projectileCount; i++)
+        {
+            float angleOffset = (i - centerIndex) * _fanAngleStep;
+            Vector3 spreadDirection = Quaternion.Euler(0f, angleOffset, 0f) * horizontalDirection;
+            Vector3 initialVelocity = spreadDirection * _horizontalSpeed + Vector3.up * _upwardSpeed;
+            _effectExecutor.FireFlameBottle(
+                new FlameBottleFireRequest(
+                    origin,
+                    initialVelocity,
+                    sourcePow,
+                    origin.y,
+                    _flameDuration,
+                    _flameRadius));
+        }
     }
 
     /// <summary>
-    /// 武器を1段階強化し、投擲間隔を短縮して炎エリア持続時間を延長します。
+    /// 武器を1段階強化し、投擲間隔と投射本数を更新します。
     /// </summary>
     public override void LevelUp()
     {
         _weaponState.IncrementUpgradeLevel();
-
-        float reducedInterval = _throwInterval * (1f - _intervalReductionPerLevel);
-        _throwInterval = Mathf.Max(_minThrowInterval, reducedInterval);
-        _flameDuration += _durationIncreasePerLevel;
+        _throwInterval = GetThrowIntervalForCurrentLevel();
+        _projectileCount = GetProjectileCountForCurrentLevel();
         ClampCooldownTimerToDuration();
 
-        Debug.Log($"FlameBottleWeapon: レベル {UpgradeLevel} に強化。投擲間隔: {_throwInterval:0.00}s, 持続時間: {_flameDuration:0.00}s");
+        Debug.Log($"FlameBottleWeapon: レベル {UpgradeLevel} に強化。投擲間隔: {_throwInterval:0.00}s, 投射数: {_projectileCount}");
+    }
+
+    float GetThrowIntervalForCurrentLevel()
+    {
+        int levelIndex = Mathf.Clamp(UpgradeLevel - 1, 0, THROW_INTERVALS.Length - 1);
+        return THROW_INTERVALS[levelIndex];
+    }
+
+    int GetProjectileCountForCurrentLevel()
+    {
+        int levelIndex = Mathf.Clamp(UpgradeLevel - 1, 0, PROJECTILE_COUNTS.Length - 1);
+        return PROJECTILE_COUNTS[levelIndex];
     }
 }

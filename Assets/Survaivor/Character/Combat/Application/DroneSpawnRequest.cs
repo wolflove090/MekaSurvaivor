@@ -21,6 +21,11 @@ public sealed class DroneSpawnRequest : WeaponFireRequest
     public float ShotInterval { get; }
 
     /// <summary>
+    /// 周回開始時の位相オフセット角度を取得します。
+    /// </summary>
+    public float PhaseOffsetDegrees { get; }
+
+    /// <summary>
     /// ドローン展開要求を初期化します。
     /// </summary>
     /// <param name="origin">展開位置</param>
@@ -28,15 +33,18 @@ public sealed class DroneSpawnRequest : WeaponFireRequest
     /// <param name="sourcePow">攻撃元の攻撃力</param>
     /// <param name="orbitRadius">周回半径</param>
     /// <param name="shotInterval">攻撃間隔</param>
+    /// <param name="phaseOffsetDegrees">周回開始位相のオフセット角度</param>
     public DroneSpawnRequest(
         Vector3 origin,
         Transform followTarget,
         int sourcePow,
         float orbitRadius,
-        float shotInterval) : base(origin, sourcePow)
+        float shotInterval,
+        float phaseOffsetDegrees) : base(origin, sourcePow)
     {
         FollowTarget = followTarget;
         OrbitRadius = orbitRadius;
         ShotInterval = shotInterval;
+        PhaseOffsetDegrees = phaseOffsetDegrees;
     }
 }

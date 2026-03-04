@@ -6,18 +6,23 @@ using UnityEngine;
 /// </summary>
 public class DamageFieldWeapon : WeaponBase
 {
+    static readonly float[] AREA_SCALES =
+    {
+        3.0f,
+        3.5f,
+        4.0f,
+        4.5f,
+        5.0f
+    };
+
     readonly Func<int> _sourcePowProvider;
 
     [Tooltip("生成間隔（秒）")]
     float _spawnInterval = 3f;
 
-    [Tooltip("強化1段階ごとのダメージエリア拡大率")]
-    float _areaScaleGrowthPerLevel = 1f;
-
     [Tooltip("生成位置のオフセット")]
     Vector3 _spawnOffset = Vector3.zero;
-    const float DEFAULT_AREA_SCALE = 3f;
-    float _currentAreaScale = DEFAULT_AREA_SCALE;
+    float _currentAreaScale = AREA_SCALES[0];
 
     /// <summary>
     /// 生成間隔を取得または設定します
@@ -68,8 +73,14 @@ public class DamageFieldWeapon : WeaponBase
     public override void LevelUp()
     {
         _weaponState.IncrementUpgradeLevel();
-        _currentAreaScale = DEFAULT_AREA_SCALE + _areaScaleGrowthPerLevel * (UpgradeLevel - 1);
+        _currentAreaScale = GetAreaScaleForCurrentLevel();
 
         Debug.Log($"DamageFieldWeapon: レベル {UpgradeLevel} に強化。エリア倍率: {_currentAreaScale:0.00}x");
+    }
+
+    float GetAreaScaleForCurrentLevel()
+    {
+        int levelIndex = Mathf.Clamp(UpgradeLevel - 1, 0, AREA_SCALES.Length - 1);
+        return AREA_SCALES[levelIndex];
     }
 }

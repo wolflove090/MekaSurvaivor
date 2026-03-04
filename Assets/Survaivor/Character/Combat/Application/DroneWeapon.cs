@@ -6,19 +6,22 @@ using UnityEngine;
 /// </summary>
 public class DroneWeapon : WeaponBase
 {
+    static readonly float[] SHOT_INTERVALS =
+    {
+        2.0f,
+        1.5f,
+        1.0f,
+        0.8f,
+        0.4f
+    };
+
     readonly Func<int> _sourcePowProvider;
 
     [Tooltip("ドローンの再展開・再設定間隔（秒）")]
     float _deployInterval = 5f;
 
     [Tooltip("ドローンの攻撃間隔（秒）")]
-    float _droneShotInterval = 1.25f;
-
-    [Tooltip("強化1段階ごとの攻撃間隔短縮率")]
-    float _shotIntervalReductionPerLevel = 0.15f;
-
-    [Tooltip("ドローン攻撃間隔の最小値（秒）")]
-    float _minShotInterval = 0.25f;
+    float _droneShotInterval = SHOT_INTERVALS[0];
 
     [Tooltip("プレイヤーからの周回半径")]
     float _orbitRadius = 1.5f;
@@ -53,13 +56,20 @@ public class DroneWeapon : WeaponBase
         }
 
         int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
-        _effectExecutor.DeployDrone(
-            new DroneSpawnRequest(
-                GetOriginPosition(),
-                _originTransform,
-                sourcePow,
-                _orbitRadius,
-                _droneShotInterval));
+        int droneCount = UpgradeLevel >= 5 ? 2 : 1;
+        for (int index = 0; index < droneCount; index++)
+        {
+            // Lv5では2機を180度ずらして展開し、常に対角配置で周回させる。
+            float phaseOffsetDegrees = droneCount == 2 && index == 1 ? 180f : 0f;
+            _effectExecutor.DeployDrone(
+                new DroneSpawnRequest(
+                    GetOriginPosition(),
+                    _originTransform,
+                    sourcePow,
+                    _orbitRadius,
+                    _droneShotInterval,
+                    phaseOffsetDegrees));
+        }
     }
 
     /// <summary>
@@ -68,10 +78,14 @@ public class DroneWeapon : WeaponBase
     public override void LevelUp()
     {
         _weaponState.IncrementUpgradeLevel();
-
-        float reducedInterval = _droneShotInterval * (1f - _shotIntervalReductionPerLevel);
-        _droneShotInterval = Mathf.Max(_minShotInterval, reducedInterval);
+        _droneShotInterval = GetShotIntervalForCurrentLevel();
 
         Debug.Log($"DroneWeapon: レベル {UpgradeLevel} に強化。攻撃間隔: {_droneShotInterval:0.00}s");
+    }
+
+    float GetShotIntervalForCurrentLevel()
+    {
+        int levelIndex = Mathf.Clamp(UpgradeLevel - 1, 0, SHOT_INTERVALS.Length - 1);
+        return SHOT_INTERVALS[levelIndex];
     }
 }
