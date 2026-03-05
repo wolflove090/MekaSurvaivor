@@ -8,11 +8,11 @@ public class FlameBottleWeapon : WeaponBase
 {
     static readonly float[] THROW_INTERVALS =
     {
+        2.0f,
         1.5f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f
+        1.5f,
+        1.5f,
+        1.5f
     };
 
     static readonly int[] PROJECTILE_COUNTS =
@@ -31,13 +31,13 @@ public class FlameBottleWeapon : WeaponBase
     float _throwInterval = THROW_INTERVALS[0];
 
     [Tooltip("1本ごとの扇状角度ステップ")]
-    float _fanAngleStep = 12f;
+    float _fanAngleStep = 40f;
 
     [Tooltip("水平初速")]
-    float _horizontalSpeed = 4f;
+    float _horizontalSpeed = 8f;
 
     [Tooltip("上方向初速")]
-    float _upwardSpeed = 3f;
+    float _upwardSpeed = 6f;
 
     [Tooltip("プレイヤー前方へ出す投擲開始位置オフセット")]
     float _forwardSpawnOffset = 0.75f;
