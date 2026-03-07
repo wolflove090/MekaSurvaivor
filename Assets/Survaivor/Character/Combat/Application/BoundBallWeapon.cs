@@ -6,21 +6,23 @@ using UnityEngine;
 /// </summary>
 public class BoundBallWeapon : WeaponBase
 {
+    const int VERTICAL_SPLIT_LEVEL = 5;
+
     static readonly float[] SHOOT_INTERVALS =
     {
         2.0f,
         1.5f,
-        1.0f,
+        1.5f,
         0.8f,
-        0.4f
+        0.8f
     };
 
     static readonly int[] MAX_BOUNCE_COUNTS =
     {
-        1,
-        1,
         2,
         2,
+        3,
+        3,
         3
     };
 
@@ -51,7 +53,7 @@ public class BoundBallWeapon : WeaponBase
     }
 
     /// <summary>
-    /// ワールド固定の真下方向へバウンドボールを発射します。
+    /// ワールド固定方向へバウンドボールを発射します。
     /// </summary>
     protected override void Fire()
     {
@@ -61,11 +63,28 @@ public class BoundBallWeapon : WeaponBase
         }
 
         int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
-        Vector3 direction = Vector3.back;
+        Vector3 origin = GetOriginPosition();
+        if (UpgradeLevel >= VERTICAL_SPLIT_LEVEL)
+        {
+            _effectExecutor.FireBoundBall(
+                new BoundBallFireRequest(
+                    origin,
+                    Vector3.forward,
+                    sourcePow,
+                    _maxBounceCount));
+            _effectExecutor.FireBoundBall(
+                new BoundBallFireRequest(
+                    origin,
+                    Vector3.back,
+                    sourcePow,
+                    _maxBounceCount));
+            return;
+        }
+
         _effectExecutor.FireBoundBall(
             new BoundBallFireRequest(
-                GetOriginPosition(),
-                direction,
+                origin,
+                Vector3.back,
                 sourcePow,
                 _maxBounceCount));
     }

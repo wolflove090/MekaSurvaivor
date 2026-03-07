@@ -77,6 +77,49 @@ public class WeaponLevelTuningTests
     }
 
     /// <summary>
+    /// ThrowingWeaponがレベル5で左右2方向へ投擲することを検証します。
+    /// </summary>
+    [Test]
+    public void ThrowingWeapon_LevelFiveFiresTwoSideProjectiles()
+    {
+        GameObject player = new GameObject("Player");
+        try
+        {
+            RecordingWeaponEffectExecutor levelFourEffectExecutor = new RecordingWeaponEffectExecutor();
+            ThrowingWeapon levelFourWeapon = new ThrowingWeapon(
+                player.transform,
+                null,
+                levelFourEffectExecutor,
+                () => 1,
+                () => Vector3.right);
+
+            LevelUpTo(levelFourWeapon, 4);
+            levelFourWeapon.Tick(10f);
+            Assert.That(levelFourEffectExecutor.ThrowingRequests.Count, Is.EqualTo(1));
+            Assert.That(levelFourEffectExecutor.ThrowingRequests[0].Direction, Is.EqualTo(Vector3.right));
+
+            RecordingWeaponEffectExecutor levelFiveEffectExecutor = new RecordingWeaponEffectExecutor();
+            ThrowingWeapon levelFiveWeapon = new ThrowingWeapon(
+                player.transform,
+                null,
+                levelFiveEffectExecutor,
+                () => 1,
+                () => Vector3.right);
+
+            LevelUpTo(levelFiveWeapon, 5);
+            levelFiveWeapon.Tick(10f);
+
+            Assert.That(levelFiveEffectExecutor.ThrowingRequests.Count, Is.EqualTo(2));
+            Assert.That(levelFiveEffectExecutor.ThrowingRequests[0].Direction, Is.EqualTo(Vector3.right));
+            Assert.That(levelFiveEffectExecutor.ThrowingRequests[1].Direction, Is.EqualTo(Vector3.left));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(player);
+        }
+    }
+
+    /// <summary>
     /// DamageFieldWeaponがレベルごとの固定サイズを適用することを検証します。
     /// </summary>
     [Test]
@@ -109,13 +152,13 @@ public class WeaponLevelTuningTests
     }
 
     /// <summary>
-    /// BoundBallWeaponがレベルごとの間隔・バウンド回数と真下方向発射を適用することを検証します。
+    /// BoundBallWeaponがレベルごとの間隔・バウンド回数と方向本数を適用することを検証します。
     /// </summary>
     [Test]
     public void BoundBallWeapon_IntervalAndBounceAndDirectionMatchTable()
     {
-        float[] expectedIntervals = { 2.0f, 1.5f, 1.0f, 0.8f, 0.4f };
-        int[] expectedBounces = { 1, 1, 2, 2, 3 };
+        float[] expectedIntervals = { 2.0f, 1.5f, 1.5f, 0.8f, 0.8f };
+        int[] expectedBounces = { 2, 2, 3, 3, 3 };
 
         GameObject player = new GameObject("Player");
         try
@@ -135,10 +178,22 @@ public class WeaponLevelTuningTests
                 float interval = GetPrivateField<float>(weapon, "_shootInterval");
                 Assert.That(interval, Is.EqualTo(expectedIntervals[level - 1]).Within(0.0001f), $"level={level}");
 
-                Assert.That(effectExecutor.BoundBallRequests.Count, Is.EqualTo(1), $"level={level}");
-                BoundBallFireRequest request = effectExecutor.BoundBallRequests[0];
-                Assert.That(request.MaxBounceCount, Is.EqualTo(expectedBounces[level - 1]), $"level={level}");
-                Assert.That(request.Direction, Is.EqualTo(Vector3.back));
+                int expectedRequestCount = level >= 5 ? 2 : 1;
+                Assert.That(effectExecutor.BoundBallRequests.Count, Is.EqualTo(expectedRequestCount), $"level={level}");
+                foreach (BoundBallFireRequest request in effectExecutor.BoundBallRequests)
+                {
+                    Assert.That(request.MaxBounceCount, Is.EqualTo(expectedBounces[level - 1]), $"level={level}");
+                }
+
+                if (level >= 5)
+                {
+                    Assert.That(effectExecutor.BoundBallRequests[0].Direction, Is.EqualTo(Vector3.forward));
+                    Assert.That(effectExecutor.BoundBallRequests[1].Direction, Is.EqualTo(Vector3.back));
+                }
+                else
+                {
+                    Assert.That(effectExecutor.BoundBallRequests[0].Direction, Is.EqualTo(Vector3.back));
+                }
             }
         }
         finally
@@ -264,7 +319,7 @@ public class WeaponLevelTuningTests
             Assert.That(GetPrivateField<float>((ThrowingWeapon)weapons[typeof(ThrowingWeapon)], "_shootInterval"), Is.EqualTo(0.8f).Within(0.0001f));
             Assert.That(GetPrivateField<float>((DamageFieldWeapon)weapons[typeof(DamageFieldWeapon)], "_currentAreaScale"), Is.EqualTo(4.0f).Within(0.0001f));
             Assert.That(GetPrivateField<float>((DroneWeapon)weapons[typeof(DroneWeapon)], "_droneShotInterval"), Is.EqualTo(0.4f).Within(0.0001f));
-            Assert.That(GetPrivateField<float>((BoundBallWeapon)weapons[typeof(BoundBallWeapon)], "_shootInterval"), Is.EqualTo(0.4f).Within(0.0001f));
+            Assert.That(GetPrivateField<float>((BoundBallWeapon)weapons[typeof(BoundBallWeapon)], "_shootInterval"), Is.EqualTo(0.8f).Within(0.0001f));
             Assert.That(GetPrivateField<int>((BoundBallWeapon)weapons[typeof(BoundBallWeapon)], "_maxBounceCount"), Is.EqualTo(3));
             Assert.That(GetPrivateField<float>((FlameBottleWeapon)weapons[typeof(FlameBottleWeapon)], "_throwInterval"), Is.EqualTo(1.0f).Within(0.0001f));
             Assert.That(GetPrivateField<int>((FlameBottleWeapon)weapons[typeof(FlameBottleWeapon)], "_projectileCount"), Is.EqualTo(3));
@@ -314,6 +369,11 @@ public class WeaponLevelTuningTests
         public List<DroneSpawnRequest> DroneRequests { get; } = new List<DroneSpawnRequest>();
 
         /// <summary>
+        /// 受け取った投擲弾発射要求一覧を取得します。
+        /// </summary>
+        public List<ThrowingFireRequest> ThrowingRequests { get; } = new List<ThrowingFireRequest>();
+
+        /// <summary>
         /// 受け取ったバウンドボール発射要求一覧を取得します。
         /// </summary>
         public List<BoundBallFireRequest> BoundBallRequests { get; } = new List<BoundBallFireRequest>();
@@ -337,6 +397,7 @@ public class WeaponLevelTuningTests
         /// <param name="request">受け取った要求</param>
         public void FireThrowing(ThrowingFireRequest request)
         {
+            ThrowingRequests.Add(request);
         }
 
         /// <summary>

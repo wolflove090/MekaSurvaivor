@@ -12,7 +12,7 @@ public class DroneWeapon : WeaponBase
         1.5f,
         1.0f,
         0.8f,
-        0.4f
+        0.8f
     };
 
     readonly Func<int> _sourcePowProvider;

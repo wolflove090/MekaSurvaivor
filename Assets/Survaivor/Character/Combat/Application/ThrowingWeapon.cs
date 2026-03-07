@@ -6,6 +6,8 @@ using UnityEngine;
 /// </summary>
 public class ThrowingWeapon : WeaponBase
 {
+    const int SIDE_THROW_LEVEL = 5;
+
     static readonly float[] SHOOT_INTERVALS =
     {
         2.0f,
@@ -57,7 +59,21 @@ public class ThrowingWeapon : WeaponBase
 
         Vector3 spawnPosition = GetOriginPosition() + _shootOffset;
         Vector3 direction = _facingDirectionProvider != null ? _facingDirectionProvider() : Vector3.right;
+        direction.y = 0f;
+        if (direction.sqrMagnitude <= Mathf.Epsilon)
+        {
+            direction = Vector3.right;
+        }
+
+        direction.Normalize();
         int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
+        if (UpgradeLevel >= SIDE_THROW_LEVEL)
+        {
+            _effectExecutor.FireThrowing(new ThrowingFireRequest(spawnPosition, direction, sourcePow));
+            _effectExecutor.FireThrowing(new ThrowingFireRequest(spawnPosition, -direction, sourcePow));
+            return;
+        }
+
         _effectExecutor.FireThrowing(new ThrowingFireRequest(spawnPosition, direction, sourcePow));
     }
 
