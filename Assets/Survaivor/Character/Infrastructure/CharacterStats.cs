@@ -33,7 +33,7 @@ public class CharacterStats : MonoBehaviour
     /// <summary>
     /// 攻撃力を取得します
     /// </summary>
-    public int Pow => CurrentValues.Pow;
+    public float Pow => CurrentValues.Pow;
 
     /// <summary>
     /// 防御力を取得します

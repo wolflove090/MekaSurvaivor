@@ -12,7 +12,7 @@ public class CharacterStatsData : ScriptableObject
 
     [SerializeField]
     [Tooltip("攻撃力")]
-    int _pow = 1;
+    float _pow = 1f;
 
     [SerializeField]
     [Tooltip("防御力")]
@@ -30,7 +30,7 @@ public class CharacterStatsData : ScriptableObject
     /// <summary>
     /// 攻撃力を取得します
     /// </summary>
-    public int Pow => _pow;
+    public float Pow => _pow;
 
     /// <summary>
     /// 防御力を取得します
@@ -54,7 +54,7 @@ public class CharacterStatsData : ScriptableObject
     void OnValidate()
     {
         _maxHp = Mathf.Max(1, _maxHp);
-        _pow = Mathf.Max(0, _pow);
+        _pow = Mathf.Max(0f, _pow);
         _def = Mathf.Max(0, _def);
         _spd = Mathf.Max(0f, _spd);
     }

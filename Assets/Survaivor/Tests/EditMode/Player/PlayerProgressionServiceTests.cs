@@ -90,6 +90,24 @@ public class PlayerProgressionServiceTests
     }
 
     /// <summary>
+    /// 空効果スタイルへ切り替えた場合も、前スタイルの倍率が残らないことを検証します。
+    /// </summary>
+    [Test]
+    public void ChangeStyle_SwitchingToMaid_ClearsPreviousStyleMultipliers()
+    {
+        PlayerState state = new PlayerState(1);
+        PlayerProgressionService service = new PlayerProgressionService(state, 10, 1.5f);
+        PlayerStyleEffectContext context = new PlayerStyleEffectContext(null, state);
+
+        service.ChangeStyle(PlayerStyleType.Celeb, context);
+        service.ChangeStyle(PlayerStyleType.Maid, context);
+
+        Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Maid));
+        Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1f));
+        Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
+    }
+
+    /// <summary>
     /// 巫女スタイルから切り替えた後は回復タイマーが残らず、旧効果が継続しないことを検証します。
     /// </summary>
     [Test]

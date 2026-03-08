@@ -26,7 +26,7 @@ public class BoundBallWeapon : WeaponBase
         3
     };
 
-    readonly Func<int> _sourcePowProvider;
+    readonly Func<float> _sourcePowProvider;
 
     [Tooltip("発射間隔（秒）")]
     float _shootInterval = SHOOT_INTERVALS[0];
@@ -47,7 +47,7 @@ public class BoundBallWeapon : WeaponBase
         Transform originTransform,
         WeaponBase rideWeapon,
         IWeaponEffectExecutor effectExecutor,
-        Func<int> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
+        Func<float> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
     {
         _sourcePowProvider = sourcePowProvider;
     }
@@ -62,7 +62,7 @@ public class BoundBallWeapon : WeaponBase
             return;
         }
 
-        int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
+        float sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1f;
         Vector3 origin = GetOriginPosition();
         if (UpgradeLevel >= VERTICAL_SPLIT_LEVEL)
         {

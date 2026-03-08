@@ -37,7 +37,7 @@ public class EnemyController : MonoBehaviour
     /// <summary>
     /// 接触時の攻撃力を取得します
     /// </summary>
-    public int Pow => _characterStats != null ? _characterStats.Pow : 1;
+    public float Pow => _characterStats != null ? _characterStats.Pow : 1f;
 
     /// <summary>
     /// 現在の追跡ターゲットを取得します

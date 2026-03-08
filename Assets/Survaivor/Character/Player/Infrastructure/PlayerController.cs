@@ -50,7 +50,7 @@ public class PlayerController : MonoBehaviour
     /// <summary>
     /// プレイヤーの攻撃力を取得します
     /// </summary>
-    public int Pow => _characterStats != null ? _characterStats.Pow : 1;
+    public float Pow => _characterStats != null ? _characterStats.Pow : 1f;
 
     /// <summary>
     /// ゲームオーバー状態かどうかを取得します
@@ -349,11 +349,11 @@ public class PlayerController : MonoBehaviour
             Vector3 knockbackDirection = transform.position - other.transform.position;
             knockbackDirection.y = 0f;
             CharacterStats enemyStats = other.GetComponent<CharacterStats>();
-            int enemyPow = enemyStats != null ? enemyStats.Pow : 1;
+            float enemyPow = enemyStats != null ? enemyStats.Pow : 1f;
 
             if (_healthComponent != null)
             {
-                _healthComponent.TakeDamage(enemyPow, knockbackDirection);
+                _healthComponent.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(enemyPow)), knockbackDirection);
             }
         }
     }

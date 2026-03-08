@@ -22,7 +22,7 @@ public sealed class BoundBallFireRequest : WeaponFireRequest
     /// <param name="direction">発射方向</param>
     /// <param name="sourcePow">攻撃元の攻撃力</param>
     /// <param name="maxBounceCount">最大バウンド回数</param>
-    public BoundBallFireRequest(Vector3 origin, Vector3 direction, int sourcePow, int maxBounceCount) : base(origin, sourcePow)
+    public BoundBallFireRequest(Vector3 origin, Vector3 direction, float sourcePow, int maxBounceCount) : base(origin, sourcePow)
     {
         Direction = direction;
         MaxBounceCount = maxBounceCount;

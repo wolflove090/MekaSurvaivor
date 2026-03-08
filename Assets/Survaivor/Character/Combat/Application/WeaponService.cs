@@ -40,7 +40,7 @@ public class WeaponService
     public WeaponService(
         Transform weaponOrigin,
         IWeaponEffectExecutor effectExecutor,
-        Func<int> sourcePowProvider,
+        Func<float> sourcePowProvider,
         Func<Vector3> facingDirectionProvider,
         EnemyRegistry enemyRegistry = null,
         BreakableObjectSpawner breakableObjectSpawner = null)

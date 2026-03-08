@@ -24,7 +24,7 @@ public class FlameBottleWeapon : WeaponBase
         4
     };
 
-    readonly Func<int> _sourcePowProvider;
+    readonly Func<float> _sourcePowProvider;
     readonly Func<Vector3> _facingDirectionProvider;
 
     [Tooltip("投擲間隔（秒）")]
@@ -65,7 +65,7 @@ public class FlameBottleWeapon : WeaponBase
         Transform originTransform,
         WeaponBase rideWeapon,
         IWeaponEffectExecutor effectExecutor,
-        Func<int> sourcePowProvider,
+        Func<float> sourcePowProvider,
         Func<Vector3> facingDirectionProvider) : base(originTransform, rideWeapon, effectExecutor)
     {
         _sourcePowProvider = sourcePowProvider;
@@ -91,7 +91,7 @@ public class FlameBottleWeapon : WeaponBase
 
         horizontalDirection.Normalize();
 
-        int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
+        float sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1f;
         Vector3 origin = GetOriginPosition() + horizontalDirection * _forwardSpawnOffset;
         float centerIndex = (_projectileCount - 1) * 0.5f;
         for (int i = 0; i < _projectileCount; i++)

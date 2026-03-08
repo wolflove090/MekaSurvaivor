@@ -37,7 +37,7 @@ public sealed class FlameBottleFireRequest : WeaponFireRequest
     public FlameBottleFireRequest(
         Vector3 origin,
         Vector3 initialVelocity,
-        int sourcePow,
+        float sourcePow,
         float groundY,
         float flameDuration,
         float flameRadius) : base(origin, sourcePow)

@@ -15,7 +15,7 @@ public class DroneWeapon : WeaponBase
         0.8f
     };
 
-    readonly Func<int> _sourcePowProvider;
+    readonly Func<float> _sourcePowProvider;
 
     [Tooltip("ドローンの再展開・再設定間隔（秒）")]
     float _deployInterval = 5f;
@@ -39,7 +39,7 @@ public class DroneWeapon : WeaponBase
         Transform originTransform,
         WeaponBase rideWeapon,
         IWeaponEffectExecutor effectExecutor,
-        Func<int> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
+        Func<float> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
     {
         _sourcePowProvider = sourcePowProvider;
         ReadyCooldownForImmediateTrigger();
@@ -55,7 +55,7 @@ public class DroneWeapon : WeaponBase
             return;
         }
 
-        int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
+        float sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1f;
         int droneCount = UpgradeLevel >= 5 ? 2 : 1;
         for (int index = 0; index < droneCount; index++)
         {

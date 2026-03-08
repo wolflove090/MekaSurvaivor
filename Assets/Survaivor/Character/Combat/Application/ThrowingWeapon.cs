@@ -17,7 +17,7 @@ public class ThrowingWeapon : WeaponBase
         0.4f
     };
 
-    readonly Func<int> _sourcePowProvider;
+    readonly Func<float> _sourcePowProvider;
     readonly Func<Vector3> _facingDirectionProvider;
 
     [Tooltip("発射間隔（秒）")]
@@ -40,7 +40,7 @@ public class ThrowingWeapon : WeaponBase
         Transform originTransform,
         WeaponBase rideWeapon,
         IWeaponEffectExecutor effectExecutor,
-        Func<int> sourcePowProvider,
+        Func<float> sourcePowProvider,
         Func<Vector3> facingDirectionProvider) : base(originTransform, rideWeapon, effectExecutor)
     {
         _sourcePowProvider = sourcePowProvider;
@@ -66,7 +66,7 @@ public class ThrowingWeapon : WeaponBase
         }
 
         direction.Normalize();
-        int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
+        float sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1f;
         if (UpgradeLevel >= SIDE_THROW_LEVEL)
         {
             _effectExecutor.FireThrowing(new ThrowingFireRequest(spawnPosition, direction, sourcePow));

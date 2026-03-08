@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -8,19 +9,36 @@ using UnityEngine.UIElements;
 [RequireComponent(typeof(UIDocument))]
 public class StyleChangeUiController : MonoBehaviour
 {
-    enum StyleCardType
+    const int DISPLAY_CARD_COUNT = 3;
+
+    public enum StyleCardType
     {
         Miko = 0,
-        Idol = 1,
-        Celeb = 2
+        Maid = 1,
+        Nurse = 2,
+        Pirate = 3,
+        Cowgirl = 4,
+        Celeb = 5
     }
 
-    static readonly string[] CARD_TITLES = { "巫女", "アイドル", "セレブ" };
+    static readonly string[] CARD_TITLES = { "巫女", "メイド", "ナース", "海賊", "カウガール", "セレブ" };
     static readonly string[] CARD_DESCRIPTIONS =
     {
-        "神秘の加護でバランスよく戦う",
-        "華やかなパフォーマンスで素早く立ち回る",
-        "豪華絢爛に攻撃力を押し上げる"
+        "HP120 / DEF2 / POW10",
+        "HP120 / DEF2 / POW12.5",
+        "HP140 / DEF0 / POW10",
+        "HP100 / DEF0 / POW20",
+        "HP100 / DEF4 / POW15",
+        "HP120 / DEF4 / POW10"
+    };
+    static readonly StyleCardType[] ALL_STYLE_TYPES =
+    {
+        StyleCardType.Miko,
+        StyleCardType.Maid,
+        StyleCardType.Nurse,
+        StyleCardType.Pirate,
+        StyleCardType.Cowgirl,
+        StyleCardType.Celeb
     };
 
     [SerializeField]
@@ -36,8 +54,20 @@ public class StyleChangeUiController : MonoBehaviour
     CharacterStatsData _mikoStyleStats;
 
     [SerializeField]
-    [Tooltip("アイドルスタイルのステータス")]
-    CharacterStatsData _idolStyleStats;
+    [Tooltip("メイドスタイルのステータス")]
+    CharacterStatsData _maidStyleStats;
+
+    [SerializeField]
+    [Tooltip("ナーススタイルのステータス")]
+    CharacterStatsData _nurseStyleStats;
+
+    [SerializeField]
+    [Tooltip("海賊スタイルのステータス")]
+    CharacterStatsData _pirateStyleStats;
+
+    [SerializeField]
+    [Tooltip("カウガールスタイルのステータス")]
+    CharacterStatsData _cowgirlStyleStats;
 
     [SerializeField]
     [Tooltip("セレブスタイルのステータス")]
@@ -48,8 +78,20 @@ public class StyleChangeUiController : MonoBehaviour
     Sprite _mikoRightSprite;
 
     [SerializeField]
-    [Tooltip("アイドルスタイルの右向き画像")]
-    Sprite _idolRightSprite;
+    [Tooltip("メイドスタイルの右向き画像")]
+    Sprite _maidRightSprite;
+
+    [SerializeField]
+    [Tooltip("ナーススタイルの右向き画像")]
+    Sprite _nurseRightSprite;
+
+    [SerializeField]
+    [Tooltip("海賊スタイルの右向き画像")]
+    Sprite _pirateRightSprite;
+
+    [SerializeField]
+    [Tooltip("カウガールスタイルの右向き画像")]
+    Sprite _cowgirlRightSprite;
 
     [SerializeField]
     [Tooltip("セレブスタイルの右向き画像")]
@@ -64,6 +106,7 @@ public class StyleChangeUiController : MonoBehaviour
     Label[] _titleLabels;
     Label[] _descriptionLabels;
     Action[] _cardClickHandlers;
+    StyleCardType[] _displayedStyleTypes;
     GameMessageBus _gameMessageBus;
     PlayerController _playerController;
     HealthComponent _playerHealthComponent;
@@ -189,6 +232,8 @@ public class StyleChangeUiController : MonoBehaviour
             root.Q<Label>("upgrade-card-2-description"),
             root.Q<Label>("upgrade-card-3-description")
         };
+
+        _displayedStyleTypes = new StyleCardType[_styleCards.Length];
     }
 
     /// <summary>
@@ -196,16 +241,24 @@ public class StyleChangeUiController : MonoBehaviour
     /// </summary>
     void ApplyCardTexts()
     {
-        for (int i = 0; i < CARD_TITLES.Length; i++)
+        for (int i = 0; i < _styleCards.Length; i++)
         {
+            bool hasCandidate = _displayedStyleTypes != null && i < _displayedStyleTypes.Length;
+            StyleCardType cardType = hasCandidate ? _displayedStyleTypes[i] : default;
+
             if (_titleLabels != null && i < _titleLabels.Length && _titleLabels[i] != null)
             {
-                _titleLabels[i].text = CARD_TITLES[i];
+                _titleLabels[i].text = hasCandidate ? GetStyleName(cardType) : "-";
             }
 
             if (_descriptionLabels != null && i < _descriptionLabels.Length && _descriptionLabels[i] != null)
             {
-                _descriptionLabels[i].text = CARD_DESCRIPTIONS[i];
+                _descriptionLabels[i].text = hasCandidate ? GetStyleDescription(cardType) : string.Empty;
+            }
+
+            if (_styleCards != null && i < _styleCards.Length && _styleCards[i] != null)
+            {
+                _styleCards[i].SetEnabled(hasCandidate);
             }
         }
     }
@@ -215,7 +268,7 @@ public class StyleChangeUiController : MonoBehaviour
     /// </summary>
     void BuildCardClickHandlers()
     {
-        _cardClickHandlers = new Action[3];
+        _cardClickHandlers = new Action[_styleCards != null ? _styleCards.Length : CARD_TITLES.Length];
 
         for (int i = 0; i < _cardClickHandlers.Length; i++)
         {
@@ -225,7 +278,7 @@ public class StyleChangeUiController : MonoBehaviour
     }
 
     /// <summary>
-    /// 3枚のカードボタンに押下コールバックを登録します。
+    /// カードボタンに押下コールバックを登録します。
     /// </summary>
     void RegisterCallbacks()
     {
@@ -247,7 +300,7 @@ public class StyleChangeUiController : MonoBehaviour
     }
 
     /// <summary>
-    /// 3枚のカードボタンから押下コールバックを解除します。
+    /// カードボタンから押下コールバックを解除します。
     /// </summary>
     void UnregisterCallbacks()
     {
@@ -302,18 +355,18 @@ public class StyleChangeUiController : MonoBehaviour
             return false;
         }
 
-        if (cardIndex < 0 || cardIndex >= CARD_TITLES.Length)
+        if (!TryGetDisplayedStyleType(cardIndex, out StyleCardType styleType))
         {
             Debug.LogWarning($"StyleChangeUiController: 未対応のカードインデックスです。 index={cardIndex}");
             return false;
         }
 
-        CharacterStatsData statsData = GetStyleStatsData((StyleCardType)cardIndex);
-        Sprite rightSprite = GetRightSprite((StyleCardType)cardIndex);
+        CharacterStatsData statsData = GetStyleStatsData(styleType);
+        Sprite rightSprite = GetRightSprite(styleType);
 
         if (statsData == null)
         {
-            string styleName = GetStyleName((StyleCardType)cardIndex);
+            string styleName = GetStyleName(styleType);
             Debug.LogWarning($"StyleChangeUiController: {styleName}のCharacterStatsDataが未設定です。");
             return false;
         }
@@ -322,7 +375,7 @@ public class StyleChangeUiController : MonoBehaviour
 
         if (rightSprite == null)
         {
-            string styleName = GetStyleName((StyleCardType)cardIndex);
+            string styleName = GetStyleName(styleType);
             Debug.LogWarning($"StyleChangeUiController: {styleName}の右向き画像が未設定です。現在の画像を維持します。");
             return true;
         }
@@ -366,13 +419,28 @@ public class StyleChangeUiController : MonoBehaviour
     /// <returns>変換に成功した場合はtrue</returns>
     bool TryConvertToPlayerStyleType(int cardIndex, out PlayerStyleType styleType)
     {
-        switch ((StyleCardType)cardIndex)
+        if (!TryGetDisplayedStyleType(cardIndex, out StyleCardType displayedType))
+        {
+            styleType = default;
+            return false;
+        }
+
+        switch (displayedType)
         {
             case StyleCardType.Miko:
                 styleType = PlayerStyleType.Miko;
                 return true;
-            case StyleCardType.Idol:
-                styleType = PlayerStyleType.Idol;
+            case StyleCardType.Maid:
+                styleType = PlayerStyleType.Maid;
+                return true;
+            case StyleCardType.Nurse:
+                styleType = PlayerStyleType.Nurse;
+                return true;
+            case StyleCardType.Pirate:
+                styleType = PlayerStyleType.Pirate;
+                return true;
+            case StyleCardType.Cowgirl:
+                styleType = PlayerStyleType.Cowgirl;
                 return true;
             case StyleCardType.Celeb:
                 styleType = PlayerStyleType.Celeb;
@@ -432,6 +500,7 @@ public class StyleChangeUiController : MonoBehaviour
             return;
         }
 
+        UpdateDisplayedStyleCandidates();
         _isStyleUiOpen = true;
         _timeScaleBeforePause = Time.timeScale;
         Time.timeScale = 0f;
@@ -504,17 +573,19 @@ public class StyleChangeUiController : MonoBehaviour
     /// <returns>スタイル名</returns>
     string GetStyleName(StyleCardType cardType)
     {
-        switch (cardType)
-        {
-            case StyleCardType.Miko:
-                return "巫女";
-            case StyleCardType.Idol:
-                return "アイドル";
-            case StyleCardType.Celeb:
-                return "セレブ";
-            default:
-                return "不明";
-        }
+        int index = (int)cardType;
+        return index >= 0 && index < CARD_TITLES.Length ? CARD_TITLES[index] : "不明";
+    }
+
+    /// <summary>
+    /// カード種別に対応する説明文を取得します。
+    /// </summary>
+    /// <param name="cardType">カード種別</param>
+    /// <returns>説明文</returns>
+    string GetStyleDescription(StyleCardType cardType)
+    {
+        int index = (int)cardType;
+        return index >= 0 && index < CARD_DESCRIPTIONS.Length ? CARD_DESCRIPTIONS[index] : string.Empty;
     }
 
     /// <summary>
@@ -528,8 +599,14 @@ public class StyleChangeUiController : MonoBehaviour
         {
             case StyleCardType.Miko:
                 return _mikoStyleStats;
-            case StyleCardType.Idol:
-                return _idolStyleStats;
+            case StyleCardType.Maid:
+                return _maidStyleStats;
+            case StyleCardType.Nurse:
+                return _nurseStyleStats;
+            case StyleCardType.Pirate:
+                return _pirateStyleStats;
+            case StyleCardType.Cowgirl:
+                return _cowgirlStyleStats;
             case StyleCardType.Celeb:
                 return _celebStyleStats;
             default:
@@ -548,13 +625,98 @@ public class StyleChangeUiController : MonoBehaviour
         {
             case StyleCardType.Miko:
                 return _mikoRightSprite;
-            case StyleCardType.Idol:
-                return _idolRightSprite;
+            case StyleCardType.Maid:
+                return _maidRightSprite;
+            case StyleCardType.Nurse:
+                return _nurseRightSprite;
+            case StyleCardType.Pirate:
+                return _pirateRightSprite;
+            case StyleCardType.Cowgirl:
+                return _cowgirlRightSprite;
             case StyleCardType.Celeb:
                 return _celebRightSprite;
             default:
                 return null;
         }
+    }
+
+    /// <summary>
+    /// 現在表示するスタイル候補をランダム抽選し、カード文言を更新します。
+    /// </summary>
+    void UpdateDisplayedStyleCandidates()
+    {
+        if (_displayedStyleTypes == null || _displayedStyleTypes.Length == 0)
+        {
+            return;
+        }
+
+        IReadOnlyList<StyleCardType> candidates = BuildRandomizedCandidates(ALL_STYLE_TYPES);
+        int count = Mathf.Min(_displayedStyleTypes.Length, candidates.Count);
+
+        for (int i = 0; i < count; i++)
+        {
+            _displayedStyleTypes[i] = candidates[i];
+        }
+
+        ApplyCardTexts();
+    }
+
+    /// <summary>
+    /// 候補一覧から重複なしで最大3件をランダム抽選します。
+    /// </summary>
+    /// <param name="availableTypes">抽選元候補</param>
+    /// <returns>表示候補一覧</returns>
+    public static IReadOnlyList<StyleCardType> BuildRandomizedCandidates(IReadOnlyList<StyleCardType> availableTypes)
+    {
+        if (availableTypes == null || availableTypes.Count == 0)
+        {
+            return Array.Empty<StyleCardType>();
+        }
+
+        System.Collections.Generic.List<StyleCardType> pool =
+            new System.Collections.Generic.List<StyleCardType>(availableTypes.Count);
+
+        for (int i = 0; i < availableTypes.Count; i++)
+        {
+            StyleCardType type = availableTypes[i];
+            if (!pool.Contains(type))
+            {
+                pool.Add(type);
+            }
+        }
+
+        for (int i = pool.Count - 1; i > 0; i--)
+        {
+            int swapIndex = UnityEngine.Random.Range(0, i + 1);
+            (pool[i], pool[swapIndex]) = (pool[swapIndex], pool[i]);
+        }
+
+        int resultCount = Mathf.Min(DISPLAY_CARD_COUNT, pool.Count);
+        StyleCardType[] result = new StyleCardType[resultCount];
+        for (int i = 0; i < resultCount; i++)
+        {
+            result[i] = pool[i];
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 表示中カードインデックスに対応するスタイル種別を取得します。
+    /// </summary>
+    /// <param name="cardIndex">表示中カードインデックス</param>
+    /// <param name="styleType">対応するスタイル種別</param>
+    /// <returns>取得できた場合はtrue</returns>
+    bool TryGetDisplayedStyleType(int cardIndex, out StyleCardType styleType)
+    {
+        if (_displayedStyleTypes != null && cardIndex >= 0 && cardIndex < _displayedStyleTypes.Length)
+        {
+            styleType = _displayedStyleTypes[cardIndex];
+            return true;
+        }
+
+        styleType = default;
+        return false;
     }
 
 }

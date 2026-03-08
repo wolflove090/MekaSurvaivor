@@ -16,7 +16,7 @@ public sealed class ThrowingFireRequest : WeaponFireRequest
     /// <param name="origin">発動元の位置</param>
     /// <param name="direction">発射方向</param>
     /// <param name="sourcePow">攻撃元の攻撃力</param>
-    public ThrowingFireRequest(Vector3 origin, Vector3 direction, int sourcePow) : base(origin, sourcePow)
+    public ThrowingFireRequest(Vector3 origin, Vector3 direction, float sourcePow) : base(origin, sourcePow)
     {
         Direction = direction;
     }

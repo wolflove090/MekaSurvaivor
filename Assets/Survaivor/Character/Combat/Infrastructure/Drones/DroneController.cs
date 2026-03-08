@@ -16,7 +16,7 @@ public class DroneController : MonoBehaviour
     float _shotInterval = 1f;
     float _shotTimer;
     float _orbitAngle;
-    int _sourcePow = 1;
+    float _sourcePow = 1f;
 
     /// <summary>
     /// ドローンの追従先と戦闘設定を初期化します。
@@ -32,7 +32,7 @@ public class DroneController : MonoBehaviour
         Transform followTarget,
         EnemyRegistry enemyRegistry,
         IWeaponEffectExecutor effectExecutor,
-        int sourcePow,
+        float sourcePow,
         float orbitRadius,
         float shotInterval,
         float phaseOffsetDegrees)
@@ -40,7 +40,7 @@ public class DroneController : MonoBehaviour
         _followTarget = followTarget;
         _enemyRegistry = enemyRegistry;
         _effectExecutor = effectExecutor;
-        _sourcePow = Mathf.Max(1, sourcePow);
+        _sourcePow = Mathf.Max(1f, sourcePow);
         _orbitRadius = Mathf.Max(0.1f, orbitRadius);
         _shotInterval = Mathf.Max(0.1f, shotInterval);
         _shotTimer = 0f;

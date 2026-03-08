@@ -15,7 +15,7 @@ public class DamageFieldWeapon : WeaponBase
         5.0f
     };
 
-    readonly Func<int> _sourcePowProvider;
+    readonly Func<float> _sourcePowProvider;
 
     [Tooltip("生成間隔（秒）")]
     float _spawnInterval = 3f;
@@ -46,7 +46,7 @@ public class DamageFieldWeapon : WeaponBase
         Transform originTransform,
         WeaponBase rideWeapon,
         IWeaponEffectExecutor effectExecutor,
-        Func<int> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
+        Func<float> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
     {
         _sourcePowProvider = sourcePowProvider;
     }
@@ -62,7 +62,7 @@ public class DamageFieldWeapon : WeaponBase
         }
 
         Vector3 spawnPosition = GetOriginPosition() + _spawnOffset;
-        int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
+        float sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1f;
         _effectExecutor.SpawnDamageField(
             new DamageFieldSpawnRequest(spawnPosition, _originTransform, sourcePow, _currentAreaScale));
     }
