@@ -1,219 +1,154 @@
-# 武器レベル段階調整 実装計画
+# ナース回復アイテム強化 実装計画
 
 ## 実装方針
-- 既存の割合短縮ベース強化を廃止し、各武器クラス内で「レベルごとの固定性能テーブル」を持つ構成へ統一する。`LevelUp()` は現在値に倍率をかけるのではなく、現在レベルに対応する値を再設定する。
-- 取得直後の武器はレベル1として扱われるため、コンストラクタ内の初期値もレベル1仕様へ合わせる。`RebuildWeapons()` は新規インスタンス生成後に `LevelUp()` を積む実装のため、初期値がレベル1になっていれば既存の再構築ロジックをそのまま活用できる。
-- クールダウンを持つ武器は、固定値への更新後に `ClampCooldownTimerToDuration()` を呼んで既存の待機時間補正を維持する。
-- ドローンのみ「攻撃間隔固定値化」に加えて、レベル5で2機展開という構造変更が必要である。現在の `WeaponEffectExecutor` は単一ドローン前提なので、複数アクティブドローン管理へ拡張する。
-- ドローンの2機化は、位相差・再利用管理・周回位置維持の意図がコードだけでは追いづらいため、`DroneWeapon`、`WeaponEffectExecutor`、`DroneController` の要点には簡潔な説明コメントを残す。
-- 火炎瓶の複数投射は `FlameBottleWeapon.Fire()` 内で1回の発動につき複数回 `FireFlameBottle()` を発行し、扇状に初速ベクトルを分配する。`WeaponEffectExecutor` と `FlameBottleProjectileController` は既存の単発投射処理を再利用する。
-- 今回は武器レベル調整が対象であり、`PlayerController` の武器取得導線、`WeaponService.ApplyUpgrade()` / `RebuildWeapons()` のレベル管理フローは原則維持する。
+- 回復アイテム倍率はプレイヤーのランタイム状態として `PlayerState` に保持する。既存の経験値倍率・移動速度倍率と同じ責務に揃え、スタイル効果の適用先を一元化する。
+- ナース固有効果の付与と解除は既存の `PlayerController.ChangeStyle` -> `PlayerExperience.ChangeStyle` -> `PlayerProgressionService.ChangeStyle` フローに追従する。`NurseStyleEffect` は `ApplyParameters` で倍率を設定し、他スタイルへ切り替わる際は `ResetStyleParameters` で基準値 `1.0` に戻す。
+- `HealPickup` はスタイル種別を判定せず、取得時点のプレイヤー側倍率のみ参照して回復量を計算する。これにより、生成済みアイテムでも取得時点のスタイルが反映される。
+- 巫女の定期回復や `HealthComponent.Heal(int)` を直接呼ぶ他経路には影響を広げない。倍率適用は `HealPickup.CollectPickup` の中だけに限定する。
+- 要件書本文は `Mathf.RoundToInt` を前提としているため、計画書もそれに合わせる。ただし要件書末尾に「切り捨てにして」のメモが残っているため、実装着手前に確定が必要な確認事項として扱う。
 
 ## 変更対象ファイル一覧
 
 ### 改修対象
-- `Assets/Survaivor/Character/Combat/Application/BulletWeapon.cs`
-  - 発射間隔をレベル固定テーブル `1.5 / 1.0 / 0.8 / 0.4 / 0.2` に変更する。
-  - 既存の割合短縮フィールド（`_intervalReductionPerLevel` など）を削減または未使用にし、レベルから直接 `ShootInterval` を算出する。
-- `Assets/Survaivor/Character/Combat/Application/ThrowingWeapon.cs`
-  - 発射間隔をレベル固定テーブル `2.0 / 1.5 / 1.0 / 0.8 / 0.4` に変更する。
-  - 既存の割合短縮ロジックを固定値更新へ置き換える。
-- `Assets/Survaivor/Character/Combat/Application/DamageFieldWeapon.cs`
-  - サイズをレベル固定テーブル `3.0 / 3.5 / 4.0 / 4.5 / 5.0` に変更する。
-  - 既存の `_areaScaleGrowthPerLevel` による線形加算を、テーブル参照へ置き換える。
-- `Assets/Survaivor/Character/Combat/Application/DroneWeapon.cs`
-  - ドローン攻撃間隔をレベル固定テーブル `2.0 / 1.5 / 1.0 / 0.8 / 0.4` に変更する。
-  - レベル5で展開数を2機に切り替える状態を持たせる。
-  - `Fire()` で必要機数ぶん `DeployDrone()` を要求し、各ドローンに位相差情報を渡す。
-  - 2機化の分岐理由と位相割り当て意図が分かるコメントを残す。
-- `Assets/Survaivor/Character/Combat/Application/DroneSpawnRequest.cs`
-  - 2機の正反対配置を表現するため、ドローンごとの位相オフセットまたはインデックス情報を追加する。
-- `Assets/Survaivor/Character/Combat/Application/BoundBallWeapon.cs`
-  - 発射間隔をレベル固定テーブル `2.0 / 1.5 / 1.0 / 0.8 / 0.4` に変更する。
-  - バウンド回数をレベルごとの固定値（Lv1=1, Lv2=1, Lv3=2, Lv4=2, Lv5=3）へ変更する。
-  - 発射方向を右下固定から真下固定（`Vector3.back` 基準）へ変更する。
-- `Assets/Survaivor/Character/Combat/Application/FlameBottleWeapon.cs`
-  - 投擲間隔をレベル固定テーブル `1.5 / 1.0 / 1.0 / 1.0 / 1.0` に変更する。
-  - 投射物数をレベルごとの固定値（Lv1=1, Lv2=1, Lv3=2, Lv4=3, Lv5=4）へ変更する。
-  - `Fire()` 内で扇状拡散になるよう、正面基準で左右へ角度分散した複数の初速ベクトルを組み立てる。
-- `Assets/Survaivor/Character/Combat/Infrastructure/WeaponEffectExecutor.cs`
-  - `_activeDroneController` / `DRONE_POOL_SIZE = 1` の単一前提をやめ、複数ドローンを同時維持できる構造に変更する。
-  - ドローンインスタンスを識別して再利用できるコレクション管理へ変更する。
-  - 位相ごとにインスタンスを維持する理由が分かるコメントを残す。
-- `Assets/Survaivor/Character/Combat/Infrastructure/Drones/DroneController.cs`
-  - 初期位相オフセットを受け取れるようにし、2機時に180度ずれた位置を維持する。
-  - 同一半径・異なる位相で周回し続けるため、初期角度の設定処理を追加する。
-  - 周回角度の初期化と更新意図が分かるコメントを残す。
+- `Assets/Survaivor/Character/Player/Domain/PlayerState.cs`
+  - 回復アイテム倍率プロパティを追加する。
+  - 設定メソッドと初期値復帰メソッドを追加し、既存の倍率管理 API と並べる。
+- `Assets/Survaivor/Character/Player/Application/PlayerProgressionService.cs`
+  - `ResetStyleParameters()` に回復アイテム倍率の初期化を追加する。
+  - スタイル切替時に既存倍率が残らない前提をナース効果まで拡張する。
+- `Assets/Survaivor/Character/Player/Application/StyleEffects/NurseStyleEffect.cs`
+  - 空実装をやめ、`ApplyParameters` で回復アイテム倍率 `1.5f` を設定する。
+  - `Tick` は引き続き noop のまま維持する。
+- `Assets/Survaivor/Items/Infrastructure/HealPickup/HealPickup.cs`
+  - `HealthComponent` だけでなく `PlayerExperience` または `PlayerState` へ到達できる参照も取得する。
+  - 取得時に基礎回復量 `3` と倍率から最終回復量を算出し、`HealthComponent.Heal()` へ渡す。
+  - スタイル判定は追加せず、倍率未取得時は `1.0` フォールバックにする。
 
 ### テスト追加・更新対象
-- `Assets/Survaivor/Tests/EditMode/Player/PlayerControllerWeaponDebugTests.cs`
-  - 既存の `TrySetWeaponLevel()` / `RebuildWeapons()` を活用し、各武器レベルの再構築後に固定値が適用されることを確認するテストを追加または更新する。
-- `Assets/Survaivor/Tests/EditMode/...` 配下の武器系テスト（新規作成を含む）
-  - 各武器クラス単体のレベル境界値テストを追加する。
-  - ドローン2機化、バウンド回数、火炎瓶投射数の特例を検証する。
+- `Assets/Survaivor/Tests/EditMode/Player/PlayerProgressionServiceTests.cs`
+  - ナース変更時に回復アイテム倍率が `1.5f` になることを検証する。
+  - ナースから他スタイルへ切り替えた際に倍率が `1.0f` へ戻ることを検証する。
+  - 既存の経験値倍率・移動速度倍率の回帰がないことを確認する。
+- `Assets/Survaivor/Tests/EditMode/...` 配下の新規または既存テスト
+  - `HealPickup` の取得時回復量を検証するテストを追加する。
+  - ナース時は `3 * 1.5` が丸め後 `5` になることを確認する。
+  - ナース以外では基礎値 `3` のままであることを確認する。
+  - 最大HP超過時も `HealthComponent` 側の上限処理が維持されることを確認する。
 
 ### 変更不要想定
-- `Assets/Survaivor/Character/Combat/Application/WeaponService.cs`
-  - `ApplyUpgrade()` と `RebuildWeapons()` は、各武器の初期値と `LevelUp()` が正しければそのまま使える。
+- `Assets/Survaivor/Character/Infrastructure/HealthComponent.cs`
+  - 回復上限処理は既存実装で満たしているため変更しない。
 - `Assets/Survaivor/Character/Player/Infrastructure/PlayerController.cs`
-  - 武器レベル適用経路は現状の `ApplyWeaponUpgrade()` / `TrySetWeaponLevel()` を継続利用できるため、今回の主変更対象ではない。
+  - スタイル切替導線は既存のままで足りる想定。倍率保持先を `PlayerState` に寄せるため、変更は原則不要とする。
+- `Assets/Survaivor/Character/Player/Application/StyleEffects/MikoStyleEffect.cs`
+  - 巫女の定期回復は `HealthComponent.Heal(1)` を直接呼ぶ既存仕様を維持し、倍率適用対象外とする。
 
 ## データフロー / 処理フロー
 
-### 1. 通常の武器取得
-1. `PlayerController.ApplyWeaponUpgrade(type)` が呼ばれる。
-2. `WeaponService.ApplyUpgrade()` が未所持なら該当 `WeaponBase` 派生クラスを新規生成する。
-3. 新規生成された武器は、コンストラクタ直後の内部状態がレベル1テーブル値になる。
-4. 以後 `WeaponBase.Tick()` により、そのレベル1性能で発動する。
+### 1. スタイル変更時
+1. `PlayerController.ChangeStyle(PlayerStyleType.Nurse)` が呼ばれる。
+2. `PlayerExperience.ChangeStyle()` から `PlayerProgressionService.ChangeStyle()` へ到達する。
+3. `PlayerProgressionService.ResetStyleParameters()` が先に走り、移動速度倍率・経験値倍率・回復アイテム倍率を基準値へ戻す。
+4. `State.SetCurrentStyle(styleType)` 実行後、`PlayerStyleEffectFactory` が `NurseStyleEffect` を生成する。
+5. `NurseStyleEffect.ApplyParameters()` が `PlayerState` の回復アイテム倍率を `1.5f` に設定する。
 
-### 2. 既存武器のレベルアップ
-1. `PlayerController.ApplyWeaponUpgrade(type)` が所持済み武器に対して呼ばれる。
-2. `WeaponService.ApplyUpgrade()` が既存インスタンスの `LevelUp()` を1回呼ぶ。
-3. `LevelUp()` は `UpgradeLevel` を進める。
-4. 武器クラスは、更新後レベルに対応する固定テーブル値を参照して、発射間隔・サイズ・バウンド回数・投射物数・展開数を再設定する。
-5. クールダウン武器は `ClampCooldownTimerToDuration()` を呼び、残り時間を新しいクールダウン上限へ補正する。
+### 2. 回復アイテム取得時
+1. `HealPickup.OnEnable()` でプレイヤー参照を取得する。
+2. プレイヤー接触時に `CollectPickup()` が呼ばれる。
+3. `HealPickup` が基礎回復量 `_healAmount` と、プレイヤーが持つ現在倍率を取得する。
+4. 最終回復量を `Mathf.RoundToInt(_healAmount * multiplier)` で算出する。
+5. 算出値を `HealthComponent.Heal(finalAmount)` に渡し、上限処理は `HealthComponent` へ委譲する。
+6. アイテムは既存どおりプール返却または破棄される。
 
-### 3. `TrySetWeaponLevel()` による再構築
-1. `PlayerController.TrySetWeaponLevel(type, targetLevel)` が呼ばれる。
-2. `WeaponService.RebuildWeapons()` が各武器をレベル1状態で作り直す。
-3. 目標レベルまで `LevelUp()` を繰り返す。
-4. 各武器が固定テーブルで状態を上書きするため、段階をまたいでも累積誤差なく正しい値へ到達する。
-
-### 4. ドローンのレベル5発動
-1. `DroneWeapon.Fire()` が現在レベルを参照する。
-2. レベル1-4では1回だけ `DeployDrone()` を呼ぶ。
-3. レベル5では2回 `DeployDrone()` を呼び、片方は位相0度、もう片方は位相180度で要求する。
-4. `WeaponEffectExecutor` が各位相に対応するドローンインスタンスを取得または再初期化する。
-5. `DroneController` は共通半径で周回しつつ、初期位相差により常に円の正反対を維持する。
-
-### 5. 火炎瓶の扇状複数投射
-1. `FlameBottleWeapon.Fire()` が現在レベルに応じた投射物数を取得する。
-2. プレイヤー前方ベクトルを中心軸とし、投射数に応じて左右へ対称な角度オフセットを計算する。
-3. 各角度ごとに水平初速を回転させ、同一の上方向初速を加えた `initialVelocity` を作る。
-4. 生成した本数ぶん `IWeaponEffectExecutor.FireFlameBottle()` を呼ぶ。
-5. 各 `FlameBottleProjectileController` は既存どおり着地後に炎エリアを生成する。
+### 3. ナース解除時
+1. ナース以外のスタイルへ変更すると、再度 `PlayerProgressionService.ChangeStyle()` が呼ばれる。
+2. `ResetStyleParameters()` により回復アイテム倍率が `1.0f` へ戻る。
+3. 新スタイルが回復アイテム倍率を設定しない限り、以後の `HealPickup` は基礎回復量 `3` を使用する。
 
 ## 実装ステップ
 
-### Phase 1: 固定性能テーブル化
-- `BulletWeapon`、`ThrowingWeapon`、`DamageFieldWeapon`、`BoundBallWeapon`、`FlameBottleWeapon`、`DroneWeapon` それぞれにレベル別固定値テーブルを定義する。
-- コンストラクタ初期値をレベル1へ合わせる。
-- `LevelUp()` を「現在レベルに応じた値を反映する処理」へ差し替える。
-- レベル5以降で `LevelUp()` が呼ばれても、配列上限を超えないよう clamp する。
+### Phase 1: 状態モデル拡張
+- `PlayerState` に回復アイテム倍率プロパティと setter/resetter を追加する。
+- 初期値は `1.0f` とし、既存コンストラクタで初期化する。
+- `PlayerProgressionService.ResetStyleParameters()` から確実に初期値へ戻せるようにする。
 
-### Phase 2: バウンドボールと火炎瓶の挙動差分反映
-- `BoundBallWeapon` の発射方向を真下へ変更する。
-- `BoundBallWeapon` のレベルごとの最大バウンド回数を固定値で反映する。
-- `FlameBottleWeapon` の投射物数制御を追加する。
-- 火炎瓶の扇状拡散角度の決め方を実装する。左右対称の固定角度ステップを使い、レベルに応じて中心1本から最大4本まで広げる。
+### Phase 2: ナース効果実装
+- `NurseStyleEffect.ApplyParameters()` で `PlayerState` に倍率 `1.5f` を設定する。
+- `context` や `PlayerState` が未解決の場合は安全に何もしない。
+- 同一スタイル再適用時も加算ではなく代入にすることで、倍率の重複適用を防ぐ。
 
-### Phase 3: ドローン複数展開対応
-- `DroneSpawnRequest` に位相情報を追加する。
-- `DroneWeapon` が現在レベルに応じて展開数と位相一覧を決定する。
-- `WeaponEffectExecutor` を複数アクティブドローン管理へ変更し、最低2機を同時維持できるプールサイズへ増やす。
-- `DroneController.Initialize()` に初期角度または位相オフセットを渡し、2機が正反対で周回するようにする。
-- ドローン関連の複雑な分岐には、読み手が追跡しやすい最小限のコメントを追加する。
+### Phase 3: 回復アイテム適用
+- `HealPickup` にプレイヤーの進行状態へアクセスする経路を追加する。
+- 取得時点の倍率参照で最終回復量を算出する実装へ変更する。
+- プレイヤー参照の一部が取得できない場合は `1.0f` を使い、既存挙動を壊さない。
 
 ### Phase 4: テスト整備
-- 各武器クラスのレベル1-5境界値を検証する EditMode テストを追加する。
-- `TrySetWeaponLevel()` により任意レベルへ再構築した場合も、固定テーブル値が一致することを確認する。
-- レベル5ドローンで2機化すること、2機が異なる位相を持つことを検証する。
-- 火炎瓶のレベル3-5で投射本数が2・3・4になることを検証する。
-- バウンドボールの方向とバウンド回数がレベルに応じて更新されることを検証する。
+- `PlayerProgressionServiceTests` にナース倍率付与・解除のケースを追加する。
+- `HealPickup` の回復量テストを追加し、丸め結果・最大HP上限・スタイル切替後の解除を検証する。
+- 巫女の定期回復がナース倍率の影響を受けないことを回帰テストで担保する。
 
 ## リスクと対策
-- リスク: 初期値をレベル1へ合わせ忘れると、未強化武器だけ仕様外のままになる。
-  - 対策: コンストラクタ直後の値もテスト対象に含める。
-- リスク: `RebuildWeapons()` はレベル1からの積み上げなので、`LevelUp()` が累積加算のままだと誤差や二重適用が残る。
-  - 対策: `LevelUp()` 内で毎回「現在レベルから直接再計算」する実装に統一する。
-- リスク: ドローンの複数化で既存の単一 `_activeDroneController` 参照が残ると、2機目生成時に1機目が上書きされる。
-  - 対策: コレクション管理へ置き換え、位相単位で再利用対象を分離する。
-- リスク: ドローンプール数を増やさないと、2機要求時に同一インスタンスが再利用されて重なる。
-  - 対策: プールサイズを2以上へ増やし、同一フレーム内の複数取得を前提に確認する。
-- リスク: 火炎瓶の扇状拡散角度が過大だと、前方投擲の意図から外れる。
-  - 対策: 固定の小さめ角度ステップを採用し、左右対称に限定する。
-- リスク: バウンドボールの真下方向定義を `Vector3.down` にすると3D移動面と軸がずれる。
-  - 対策: 現行ゲーム面（XZ平面移動）に合わせて、前後軸の下方向として `z` マイナス方向を使う。
+- リスク: `ResetStyleParameters()` に回復アイテム倍率の初期化を入れ忘れると、ナース解除後も倍率が残留する。
+  - 対策: スタイル切替テストでナース -> 他スタイルの戻り値を明示的に検証する。
+- リスク: `HealPickup` がスタイル種別や `PlayerController` に直接依存し始めると、責務が崩れて今後のスタイル追加で分岐が増える。
+  - 対策: `HealPickup` では倍率値だけを読む実装に限定し、スタイル名ベースの条件分岐を禁止する。
+- リスク: `OnEnable()` で `PlayerExperience` を取得できないケースがあると NullReference になりうる。
+  - 対策: `HealthComponent` と同様に null 安全に扱い、倍率取得不可時は `1.0f` にフォールバックする。
+- リスク: 端数処理方針が未確定のまま実装すると、要件書とテスト期待値が食い違う。
+  - 対策: 計画段階では `Mathf.RoundToInt` を採用し、実装前に要件書の未確定事項を解消する。
+- リスク: `HealPickup` テストで MonoBehaviour 初期化順に依存すると不安定になる。
+  - 対策: EditMode テストでは最小構成の `GameObject` を組み立て、必要コンポーネントを明示的に追加して検証する。
 
 ## 検証方針
 - EditMode テスト
-  - `BulletWeapon` がレベル1-5で `1.5 / 1.0 / 0.8 / 0.4 / 0.2` 秒になること。
-  - `ThrowingWeapon` がレベル1-5で `2.0 / 1.5 / 1.0 / 0.8 / 0.4` 秒になること。
-  - `DamageFieldWeapon` がレベル1-5で `3.0 / 3.5 / 4.0 / 4.5 / 5.0` のサイズになること。
-  - `BoundBallWeapon` がレベルごとに正しい発射間隔とバウンド回数を持ち、方向が真下であること。
-  - `FlameBottleWeapon` がレベルごとに正しい投擲間隔と投射物数を持つこと。
-  - `DroneWeapon` がレベル5で2機要求を行い、位相0度/180度を使うこと。
-  - `PlayerController.TrySetWeaponLevel()` 経由の再構築後も、同じ値に到達すること。
+  - `ChangeStyle(PlayerStyleType.Nurse)` 後に `PlayerState` の回復アイテム倍率が `1.5f` になること。
+  - ナースから `Idol` や `Maid` に変更した後、回復アイテム倍率が `1.0f` に戻ること。
+  - `HealPickup` 取得時に基礎回復量 `3` が通常時 `3`、ナース時 `5` になること。
+  - HP が最大値付近でも回復後に `MaxHp` を超えないこと。
+  - 巫女スタイルの定期回復がナース倍率を参照しないこと。
 - 手動確認
-  - ゲーム内で各武器をレベル1から5まで上げた際、体感挙動がテーブルどおり変化すること。
-  - レベル5ドローンで2機が重ならず、円の正反対を周回すること。
-  - レベル3-5火炎瓶で扇状に本数が増えること。
+  - ナース選択中に既存配置済みの回復アイテムを取得しても `5` 回復になること。
+  - ナース解除後に新規・既存どちらの回復アイテムでも `3` 回復へ戻ること。
 - Unity 確認
-  - `u tests run edit` で EditMode テストが通ること。
-  - `u console get -l E` で関連エラーが出ていないこと。
+  - `u tests run edit` で関連 EditMode テストが通ること。
+  - `u console get -l E` でスタイル切替および回復取得時のエラーが出ていないこと。
 
 ## コードスニペット（主要変更イメージ）
 ```csharp
-public class BulletWeapon : WeaponBase
+public class PlayerState
 {
-    static readonly float[] SHOOT_INTERVALS = { 1.5f, 1.0f, 0.8f, 0.4f, 0.2f };
+    public float HealPickupMultiplier { get; private set; }
 
-    public BulletWeapon(...) : base(originTransform, rideWeapon, effectExecutor)
+    public void SetHealPickupMultiplier(float multiplier)
     {
-        _shootInterval = SHOOT_INTERVALS[0];
+        HealPickupMultiplier = Mathf.Max(0f, multiplier);
     }
 
-    public override void LevelUp()
+    public void ResetHealPickupMultiplier()
     {
-        _weaponState.IncrementUpgradeLevel();
-        int levelIndex = Mathf.Clamp(UpgradeLevel - 1, 0, SHOOT_INTERVALS.Length - 1);
-        _shootInterval = SHOOT_INTERVALS[levelIndex];
-        ClampCooldownTimerToDuration();
+        HealPickupMultiplier = 1f;
     }
 }
 ```
 
 ```csharp
-public class DroneWeapon : WeaponBase
+public class NurseStyleEffect : IPlayerStyleEffect
 {
-    static readonly float[] SHOT_INTERVALS = { 2.0f, 1.5f, 1.0f, 0.8f, 0.4f };
+    const float HEAL_PICKUP_MULTIPLIER = 1.5f;
 
-    protected override void Fire()
+    public void ApplyParameters(PlayerStyleEffectContext context)
     {
-        int droneCount = UpgradeLevel >= 5 ? 2 : 1;
-
-        for (int index = 0; index < droneCount; index++)
-        {
-            // Lv5 のみ 2 機展開し、2機目は 180 度ずらして重なりを避ける。
-            float phaseDegrees = droneCount == 2 && index == 1 ? 180f : 0f;
-            _effectExecutor.DeployDrone(
-                new DroneSpawnRequest(
-                    GetOriginPosition(),
-                    _originTransform,
-                    sourcePow,
-                    _orbitRadius,
-                    _droneShotInterval,
-                    phaseDegrees));
-        }
+        context?.PlayerState?.SetHealPickupMultiplier(HEAL_PICKUP_MULTIPLIER);
     }
 }
 ```
 
 ```csharp
-public class FlameBottleWeapon : WeaponBase
+void CollectPickup()
 {
-    static readonly int[] PROJECTILE_COUNTS = { 1, 1, 2, 3, 4 };
-
-    protected override void Fire()
-    {
-        int projectileCount = PROJECTILE_COUNTS[Mathf.Clamp(UpgradeLevel - 1, 0, PROJECTILE_COUNTS.Length - 1)];
-
-        foreach (float angleOffset in BuildFanAngles(projectileCount))
-        {
-            Vector3 horizontalDirection = Quaternion.Euler(0f, angleOffset, 0f) * baseDirection;
-            Vector3 initialVelocity = horizontalDirection * _horizontalSpeed + Vector3.up * _upwardSpeed;
-            _effectExecutor.FireFlameBottle(new FlameBottleFireRequest(origin, initialVelocity, sourcePow, origin.y, _flameDuration, _flameRadius));
-        }
-    }
+    float multiplier = _playerState != null ? _playerState.HealPickupMultiplier : 1f;
+    int finalHealAmount = Mathf.RoundToInt(_healAmount * multiplier);
+    _playerHealthComponent?.Heal(finalHealAmount);
+    ReturnToPoolOrDestroy();
 }
 ```
