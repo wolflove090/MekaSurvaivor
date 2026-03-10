@@ -1,47 +1,50 @@
-# 武器レベル段階調整 ToDo
+# ナース回復アイテム強化 ToDo
 
-## Phase 1: 固定性能テーブルへ置き換える
-- [x] `Assets/Survaivor/Character/Combat/Application/BulletWeapon.cs` の発射間隔をレベル固定値 `1.5 / 1.0 / 0.8 / 0.4 / 0.2` に変更する。
-- [x] `Assets/Survaivor/Character/Combat/Application/ThrowingWeapon.cs` の発射間隔をレベル固定値 `2.0 / 1.5 / 1.0 / 0.8 / 0.4` に変更する。
-- [x] `Assets/Survaivor/Character/Combat/Application/DamageFieldWeapon.cs` のサイズをレベル固定値 `3.0 / 3.5 / 4.0 / 4.5 / 5.0` に変更する。
-- [x] `Assets/Survaivor/Character/Combat/Application/BoundBallWeapon.cs` の発射間隔をレベル固定値 `2.0 / 1.5 / 1.0 / 0.8 / 0.4` に変更する。
-- [x] `Assets/Survaivor/Character/Combat/Application/FlameBottleWeapon.cs` の投擲間隔をレベル固定値 `1.5 / 1.0 / 1.0 / 1.0 / 1.0` に変更する。
-- [x] `Assets/Survaivor/Character/Combat/Application/DroneWeapon.cs` の攻撃間隔をレベル固定値 `2.0 / 1.5 / 1.0 / 0.8 / 0.4` に変更する。
-- [x] 各武器のコンストラクタ初期値がレベル1仕様と一致することを確認する。
-- [x] 各武器の `LevelUp()` が「現在レベルから固定値を引く」処理になっており、割合短縮や累積加算を使わないことを確認する。
-- [x] レベル5超過時に配列外参照せず、レベル5の値を維持する clamp を入れる。
+## Phase 0: 実装前確認
+- [ ] `Documentation/要件書/nurse-style-heal-item-requirements.md` の端数処理方針を確定する。
+- [ ] `Mathf.RoundToInt` を採用するか、切り捨てへ変更するかを要件書へ反映する。
+- [ ] 要件書・計画書・ToDo の用語が一致していることを確認する。
 
-## Phase 2: 武器ごとの特殊挙動を反映する
-- [x] `Assets/Survaivor/Character/Combat/Application/BoundBallWeapon.cs` の発射方向を真下へ変更する。
-- [x] `Assets/Survaivor/Character/Combat/Application/BoundBallWeapon.cs` にレベル別バウンド回数 `1 / 1 / 2 / 2 / 3` を反映する。
-- [x] `Assets/Survaivor/Character/Combat/Application/FlameBottleWeapon.cs` にレベル別投射物数 `1 / 1 / 2 / 3 / 4` を反映する。
-- [x] `Assets/Survaivor/Character/Combat/Application/FlameBottleWeapon.cs` で扇状拡散の角度計算を追加する。
-- [x] 火炎瓶の扇状拡散がプレイヤー前方中心の左右対称になるようにする。
+## Phase 1: プレイヤー状態に回復アイテム倍率を追加する
+- [ ] `Assets/Survaivor/Character/Player/Domain/PlayerState.cs` に回復アイテム倍率プロパティを追加する。
+- [ ] `Assets/Survaivor/Character/Player/Domain/PlayerState.cs` に倍率設定メソッドを追加する。
+- [ ] `Assets/Survaivor/Character/Player/Domain/PlayerState.cs` に倍率初期化メソッドを追加する。
+- [ ] 回復アイテム倍率の初期値が `1.0f` になるようにコンストラクタを更新する。
 
-## Phase 3: ドローン2機化へ対応する
-- [x] `Assets/Survaivor/Character/Combat/Application/DroneSpawnRequest.cs` に位相オフセットまたは同等の識別情報を追加する。
-- [x] `Assets/Survaivor/Character/Combat/Application/DroneWeapon.cs` がレベル5で2回 `DeployDrone()` を呼ぶようにする。
-- [x] 2機ドローンに 0 度 / 180 度の位相を割り当てる。
-- [x] `Assets/Survaivor/Character/Combat/Infrastructure/WeaponEffectExecutor.cs` の単一 `_activeDroneController` 前提を複数管理へ変更する。
-- [x] `Assets/Survaivor/Character/Combat/Infrastructure/WeaponEffectExecutor.cs` のドローンプール数を2以上へ見直す。
-- [x] `Assets/Survaivor/Character/Combat/Infrastructure/Drones/DroneController.cs` が初期位相を受け取り、同一半径で周回できるようにする。
-- [x] ドローン関連の複雑な位相管理と再利用処理に、意図が分かる簡潔なコメントを追加する。
-- [x] レベル5の2機が円周上の正反対に配置され、重ならないことを確認する。
+## Phase 2: スタイル切替時の付与と解除を実装する
+- [ ] `Assets/Survaivor/Character/Player/Application/PlayerProgressionService.cs` の `ResetStyleParameters()` に回復アイテム倍率の初期化を追加する。
+- [ ] `Assets/Survaivor/Character/Player/Application/StyleEffects/NurseStyleEffect.cs` の空実装を置き換える。
+- [ ] `Assets/Survaivor/Character/Player/Application/StyleEffects/NurseStyleEffect.cs` の `ApplyParameters()` で回復アイテム倍率 `1.5f` を設定する。
+- [ ] `Assets/Survaivor/Character/Player/Application/StyleEffects/NurseStyleEffect.cs` が `context` 未解決時でも安全に動作することを確認する。
+- [ ] 同一スタイル再適用時に倍率が重複加算されないことを確認する。
 
-## Phase 4: テストを追加・更新する
-- [x] 武器レベル固定値を検証する EditMode テストを追加する。
-- [x] `BulletWeapon` のレベル1-5発射間隔テストを追加する。
-- [x] `ThrowingWeapon` のレベル1-5発射間隔テストを追加する。
-- [x] `DamageFieldWeapon` のレベル1-5サイズテストを追加する。
-- [x] `BoundBallWeapon` のレベル別発射間隔・バウンド回数・方向テストを追加する。
-- [x] `FlameBottleWeapon` のレベル別投擲間隔・投射物数テストを追加する。
-- [x] `DroneWeapon` のレベル別攻撃間隔テストを追加する。
-- [x] `DroneWeapon` のレベル5で2機要求になることを検証するテストを追加する。
-- [x] `PlayerController.TrySetWeaponLevel()` または `WeaponService.RebuildWeapons()` 経由でも固定値が崩れないことを検証する。
+## Phase 3: 回復アイテム取得処理へ倍率を適用する
+- [ ] `Assets/Survaivor/Items/Infrastructure/HealPickup/HealPickup.cs` でプレイヤーの進行状態へアクセスする参照を取得する。
+- [ ] `Assets/Survaivor/Items/Infrastructure/HealPickup/HealPickup.cs` の `CollectPickup()` で取得時点の倍率を参照する。
+- [ ] `Assets/Survaivor/Items/Infrastructure/HealPickup/HealPickup.cs` で基礎回復量 `3` と倍率から最終回復量を算出する。
+- [ ] 最終回復量の算出に要件で確定した端数処理を適用する。
+- [ ] プレイヤー参照が不足している場合は倍率 `1.0f` にフォールバックする。
+- [ ] `HealPickup` にスタイル種別の直接判定を追加していないことを確認する。
+
+## Phase 4: 回帰テストを追加・更新する
+- [ ] `Assets/Survaivor/Tests/EditMode/Player/PlayerProgressionServiceTests.cs` にナース変更時の倍率 `1.5f` 検証を追加する。
+- [ ] `Assets/Survaivor/Tests/EditMode/Player/PlayerProgressionServiceTests.cs` にナース解除後の倍率 `1.0f` 検証を追加する。
+- [ ] `Assets/Survaivor/Tests/EditMode/...` 配下に `HealPickup` 回復量検証テストを追加または更新する。
+- [ ] 通常時の回復量が基礎値 `3` であることを検証する。
+- [ ] ナース時の回復量が要件どおり `5` になることを検証する。
+- [ ] 最大HPを超えて回復しないことを検証する。
+- [ ] ナース選択前に生成された回復アイテムでも、取得時点の倍率が使われることを検証する。
+- [ ] 巫女の定期回復がナース倍率の影響を受けないことを回帰テストで確認する。
 
 ## Phase 5: 動作確認
-- [ ] `u tests run edit` で EditMode テストを実行する。
-- [ ] 実機確認または PlayMode で、各武器がレベル1から5で指定どおりに変化することを確認する。
-- [ ] レベル5ドローンで2機が正反対を周回することを確認する。
-- [ ] レベル3-5火炎瓶で扇状拡散の本数が 2 / 3 / 4 になることを確認する。
+- [ ] `u tests run edit` で関連 EditMode テストを実行する。
+- [ ] ナース選択中に回復アイテム取得で `5` 回復することを手動確認する。
+- [ ] ナースから別スタイルへ変更後に回復量が `3` へ戻ることを手動確認する。
+- [ ] 既存配置済み回復アイテムでも、取得時点のスタイルに応じた回復量になることを手動確認する。
 - [ ] `u console get -l E` で関連エラーが出ていないことを確認する。
+
+## 完了条件
+- [ ] ナーススタイルの固有効果として回復アイテム倍率 `1.5f` が実装されている。
+- [ ] 回復アイテム以外の回復経路へ倍率が波及していない。
+- [ ] スタイル切替時の倍率解除が機能している。
+- [ ] テストと手動確認結果が要件書の受け入れ条件と一致している。
