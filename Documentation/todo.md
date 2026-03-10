@@ -1,47 +1,48 @@
-# 武器レベル段階調整 ToDo
+# 海賊スタイル召喚能力 ToDo
 
-## Phase 1: 固定性能テーブルへ置き換える
-- [x] `Assets/Survaivor/Character/Combat/Application/BulletWeapon.cs` の発射間隔をレベル固定値 `1.5 / 1.0 / 0.8 / 0.4 / 0.2` に変更する。
-- [x] `Assets/Survaivor/Character/Combat/Application/ThrowingWeapon.cs` の発射間隔をレベル固定値 `2.0 / 1.5 / 1.0 / 0.8 / 0.4` に変更する。
-- [x] `Assets/Survaivor/Character/Combat/Application/DamageFieldWeapon.cs` のサイズをレベル固定値 `3.0 / 3.5 / 4.0 / 4.5 / 5.0` に変更する。
-- [x] `Assets/Survaivor/Character/Combat/Application/BoundBallWeapon.cs` の発射間隔をレベル固定値 `2.0 / 1.5 / 1.0 / 0.8 / 0.4` に変更する。
-- [x] `Assets/Survaivor/Character/Combat/Application/FlameBottleWeapon.cs` の投擲間隔をレベル固定値 `1.5 / 1.0 / 1.0 / 1.0 / 1.0` に変更する。
-- [x] `Assets/Survaivor/Character/Combat/Application/DroneWeapon.cs` の攻撃間隔をレベル固定値 `2.0 / 1.5 / 1.0 / 0.8 / 0.4` に変更する。
-- [x] 各武器のコンストラクタ初期値がレベル1仕様と一致することを確認する。
-- [x] 各武器の `LevelUp()` が「現在レベルから固定値を引く」処理になっており、割合短縮や累積加算を使わないことを確認する。
-- [x] レベル5超過時に配列外参照せず、レベル5の値を維持する clamp を入れる。
+## Phase 1: スタイル効果の基盤を拡張する
+- [ ] `Assets/Survaivor/Character/Player/Application/StyleEffects/IPlayerStyleEffect.cs` に終了処理フックを追加する。
+- [ ] `Assets/Survaivor/Character/Player/Application/PlayerProgressionService.cs` で旧スタイルのクリーンアップを呼ぶ。
+- [ ] `Assets/Survaivor/Character/Player/Application/StyleEffects/PlayerStyleEffectContext.cs` にプレイヤー Transform、向き、`EnemyRegistry`、戦闘員管理参照を追加する。
+- [ ] `Assets/Survaivor/Character/Player/Infrastructure/PlayerController.cs` で戦闘員管理コンポーネントを初期化し、コンテキストへ注入する。
 
-## Phase 2: 武器ごとの特殊挙動を反映する
-- [x] `Assets/Survaivor/Character/Combat/Application/BoundBallWeapon.cs` の発射方向を真下へ変更する。
-- [x] `Assets/Survaivor/Character/Combat/Application/BoundBallWeapon.cs` にレベル別バウンド回数 `1 / 1 / 2 / 2 / 3` を反映する。
-- [x] `Assets/Survaivor/Character/Combat/Application/FlameBottleWeapon.cs` にレベル別投射物数 `1 / 1 / 2 / 3 / 4` を反映する。
-- [x] `Assets/Survaivor/Character/Combat/Application/FlameBottleWeapon.cs` で扇状拡散の角度計算を追加する。
-- [x] 火炎瓶の扇状拡散がプレイヤー前方中心の左右対称になるようにする。
+## Phase 2: 戦闘員管理とプレハブを追加する
+- [ ] `Assets/Survaivor/Character/Player/Infrastructure/PirateCrewSummonController.cs` を作成し、プール初期化と全返却を実装する。
+- [ ] `Assets/Survaivor/Character/Player/Infrastructure/PirateCrewRegistry.cs` を作成し、アクティブ戦闘員一覧を管理する。
+- [ ] `Assets/Survaivor/Character/Player/Infrastructure/PirateCrewTarget.cs` を作成し、敵が識別できるマーカーを追加する。
+- [ ] `Assets/Survaivor/Character/Player/Prefabs/PirateCrewMember.prefab` を追加する。
+- [ ] `Assets/GameResources/Player/PirateCrewMemberStatsData.asset` を追加し、HP30 を設定する。
+- [ ] 生成失敗時に警告ログだけ出して継続する処理を入れる。
 
-## Phase 3: ドローン2機化へ対応する
-- [x] `Assets/Survaivor/Character/Combat/Application/DroneSpawnRequest.cs` に位相オフセットまたは同等の識別情報を追加する。
-- [x] `Assets/Survaivor/Character/Combat/Application/DroneWeapon.cs` がレベル5で2回 `DeployDrone()` を呼ぶようにする。
-- [x] 2機ドローンに 0 度 / 180 度の位相を割り当てる。
-- [x] `Assets/Survaivor/Character/Combat/Infrastructure/WeaponEffectExecutor.cs` の単一 `_activeDroneController` 前提を複数管理へ変更する。
-- [x] `Assets/Survaivor/Character/Combat/Infrastructure/WeaponEffectExecutor.cs` のドローンプール数を2以上へ見直す。
-- [x] `Assets/Survaivor/Character/Combat/Infrastructure/Drones/DroneController.cs` が初期位相を受け取り、同一半径で周回できるようにする。
-- [x] ドローン関連の複雑な位相管理と再利用処理に、意図が分かる簡潔なコメントを追加する。
-- [x] レベル5の2機が円周上の正反対に配置され、重ならないことを確認する。
+## Phase 3: 戦闘員の挙動を実装する
+- [ ] `Assets/Survaivor/Character/Player/Infrastructure/PirateCrewMemberController.cs` を作成する。
+- [ ] 最寄り敵追跡と敵不在時の前方直進を XZ 平面で実装する。
+- [ ] 戦闘員死亡時のレジストリ解除とプール返却を実装する。
+- [ ] 戦闘員が攻撃処理やダメージ生成を持たないことを確認する。
 
-## Phase 4: テストを追加・更新する
-- [x] 武器レベル固定値を検証する EditMode テストを追加する。
-- [x] `BulletWeapon` のレベル1-5発射間隔テストを追加する。
-- [x] `ThrowingWeapon` のレベル1-5発射間隔テストを追加する。
-- [x] `DamageFieldWeapon` のレベル1-5サイズテストを追加する。
-- [x] `BoundBallWeapon` のレベル別発射間隔・バウンド回数・方向テストを追加する。
-- [x] `FlameBottleWeapon` のレベル別投擲間隔・投射物数テストを追加する。
-- [x] `DroneWeapon` のレベル別攻撃間隔テストを追加する。
-- [x] `DroneWeapon` のレベル5で2機要求になることを検証するテストを追加する。
-- [x] `PlayerController.TrySetWeaponLevel()` または `WeaponService.RebuildWeapons()` 経由でも固定値が崩れないことを検証する。
+## Phase 4: 海賊スタイル効果を実装する
+- [ ] `Assets/Survaivor/Character/Player/Application/StyleEffects/PirateStyleEffect.cs` に 10 秒タイマーを実装する。
+- [ ] 1 回あたり 2 体召喚する処理を追加する。
+- [ ] `Time.timeScale == 0` の間はタイマーを停止する。
+- [ ] 再召喚時に前回分を返却する。
+- [ ] スタイル解除時に戦闘員を全破棄する。
 
-## Phase 5: 動作確認
+## Phase 5: 敵ターゲット優先を実装する
+- [ ] `Assets/Survaivor/Character/Enemy/Infrastructure/EnemyController.cs` に優先ターゲット解決処理を追加する。
+- [ ] 戦闘員がいる間はプレイヤーより戦闘員を優先する。
+- [ ] 戦闘員消滅後はプレイヤー追跡へ戻る。
+- [ ] 既存敵と新規スポーン敵で挙動差が出ないことを確認する。
+
+## Phase 6: テストを追加する
+- [ ] 海賊スタイルの 10 秒召喚と停止条件の EditMode テストを追加する。
+- [ ] 戦闘員再召喚時の全返却とプール再利用テストを追加する。
+- [ ] 戦闘員の移動フォールバックのテストを追加する。
+- [ ] 敵ターゲット優先切替のテストを追加する。
+- [ ] スタイル解除時の全破棄テストを追加する。
+
+## Phase 7: 動作確認を行う
 - [ ] `u tests run edit` で EditMode テストを実行する。
-- [ ] 実機確認または PlayMode で、各武器がレベル1から5で指定どおりに変化することを確認する。
-- [ ] レベル5ドローンで2機が正反対を周回することを確認する。
-- [ ] レベル3-5火炎瓶で扇状拡散の本数が 2 / 3 / 4 になることを確認する。
-- [ ] `u console get -l E` で関連エラーが出ていないことを確認する。
+- [ ] PlayMode で 10 秒ごとの 2 体召喚を確認する。
+- [ ] PlayMode で敵がおとりへ向かうことを確認する。
+- [ ] PlayMode でスタイル解除時に戦闘員が消えることを確認する。
+- [ ] `u console get -l E` で関連エラーがないことを確認する。

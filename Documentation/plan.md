@@ -1,219 +1,213 @@
-# 武器レベル段階調整 実装計画
+# 海賊スタイル召喚能力 実装計画
 
 ## 実装方針
-- 既存の割合短縮ベース強化を廃止し、各武器クラス内で「レベルごとの固定性能テーブル」を持つ構成へ統一する。`LevelUp()` は現在値に倍率をかけるのではなく、現在レベルに対応する値を再設定する。
-- 取得直後の武器はレベル1として扱われるため、コンストラクタ内の初期値もレベル1仕様へ合わせる。`RebuildWeapons()` は新規インスタンス生成後に `LevelUp()` を積む実装のため、初期値がレベル1になっていれば既存の再構築ロジックをそのまま活用できる。
-- クールダウンを持つ武器は、固定値への更新後に `ClampCooldownTimerToDuration()` を呼んで既存の待機時間補正を維持する。
-- ドローンのみ「攻撃間隔固定値化」に加えて、レベル5で2機展開という構造変更が必要である。現在の `WeaponEffectExecutor` は単一ドローン前提なので、複数アクティブドローン管理へ拡張する。
-- ドローンの2機化は、位相差・再利用管理・周回位置維持の意図がコードだけでは追いづらいため、`DroneWeapon`、`WeaponEffectExecutor`、`DroneController` の要点には簡潔な説明コメントを残す。
-- 火炎瓶の複数投射は `FlameBottleWeapon.Fire()` 内で1回の発動につき複数回 `FireFlameBottle()` を発行し、扇状に初速ベクトルを分配する。`WeaponEffectExecutor` と `FlameBottleProjectileController` は既存の単発投射処理を再利用する。
-- 今回は武器レベル調整が対象であり、`PlayerController` の武器取得導線、`WeaponService.ApplyUpgrade()` / `RebuildWeapons()` のレベル管理フローは原則維持する。
+- `PirateStyleEffect` 自体は「10秒ごとの召喚要求を出す責務」に絞り、戦闘員の生成・管理は専用ランタイムコンポーネントへ分離する。既存の `MikoStyleEffect` と同様にタイマーはスタイル効果側で持つが、召喚実体を直接生成しない。
+- 現状の `PlayerStyleEffectContext` は `HealthComponent` と `PlayerState` しか持たず、召喚や敵探索に必要な参照を渡せない。プレイヤー Transform、`EnemyRegistry`、戦闘員管理サービスをコンテキストへ追加し、`PlayerController.BuildStyleEffectContext()` で組み立てる。
+- 戦闘員はプレイヤー武器と同じく `ObjectPool<T>` を使って再利用し、スタイル切替時と次回召喚時に明示的に全返却する。短周期生成のたびに `Instantiate/Destroy` を繰り返さない構成にする。
+- 敵の追跡先は `EnemyController.SetTarget()` が単一 Transform 前提で、`EnemySpawner` も常にプレイヤーを直接セットしている。これを維持しつつ、敵側に「おとりターゲット優先解決」を追加し、戦闘員が存在する間だけプレイヤーより戦闘員を優先する。
+- 戦闘員は既存の敵レジストリを流用して最寄り敵を探索し、敵不在時はプレイヤーの向きに従って XZ 平面を直進する。攻撃コンポーネントやダメージ判定は持たせず、`Player` タグにも `Enemy` タグにも属さない専用識別を用意する。
+- 接触ダメージは現在 `PlayerController.OnTriggerEnter()` が `Enemy` タグに直接反応している。戦闘員が敵へダメージを与えないことを保証するため、戦闘員側にはプレイヤーと同じ接触ダメージ処理を持たせず、敵からのみダメージを受ける構成に限定する。
 
 ## 変更対象ファイル一覧
 
 ### 改修対象
-- `Assets/Survaivor/Character/Combat/Application/BulletWeapon.cs`
-  - 発射間隔をレベル固定テーブル `1.5 / 1.0 / 0.8 / 0.4 / 0.2` に変更する。
-  - 既存の割合短縮フィールド（`_intervalReductionPerLevel` など）を削減または未使用にし、レベルから直接 `ShootInterval` を算出する。
-- `Assets/Survaivor/Character/Combat/Application/ThrowingWeapon.cs`
-  - 発射間隔をレベル固定テーブル `2.0 / 1.5 / 1.0 / 0.8 / 0.4` に変更する。
-  - 既存の割合短縮ロジックを固定値更新へ置き換える。
-- `Assets/Survaivor/Character/Combat/Application/DamageFieldWeapon.cs`
-  - サイズをレベル固定テーブル `3.0 / 3.5 / 4.0 / 4.5 / 5.0` に変更する。
-  - 既存の `_areaScaleGrowthPerLevel` による線形加算を、テーブル参照へ置き換える。
-- `Assets/Survaivor/Character/Combat/Application/DroneWeapon.cs`
-  - ドローン攻撃間隔をレベル固定テーブル `2.0 / 1.5 / 1.0 / 0.8 / 0.4` に変更する。
-  - レベル5で展開数を2機に切り替える状態を持たせる。
-  - `Fire()` で必要機数ぶん `DeployDrone()` を要求し、各ドローンに位相差情報を渡す。
-  - 2機化の分岐理由と位相割り当て意図が分かるコメントを残す。
-- `Assets/Survaivor/Character/Combat/Application/DroneSpawnRequest.cs`
-  - 2機の正反対配置を表現するため、ドローンごとの位相オフセットまたはインデックス情報を追加する。
-- `Assets/Survaivor/Character/Combat/Application/BoundBallWeapon.cs`
-  - 発射間隔をレベル固定テーブル `2.0 / 1.5 / 1.0 / 0.8 / 0.4` に変更する。
-  - バウンド回数をレベルごとの固定値（Lv1=1, Lv2=1, Lv3=2, Lv4=2, Lv5=3）へ変更する。
-  - 発射方向を右下固定から真下固定（`Vector3.back` 基準）へ変更する。
-- `Assets/Survaivor/Character/Combat/Application/FlameBottleWeapon.cs`
-  - 投擲間隔をレベル固定テーブル `1.5 / 1.0 / 1.0 / 1.0 / 1.0` に変更する。
-  - 投射物数をレベルごとの固定値（Lv1=1, Lv2=1, Lv3=2, Lv4=3, Lv5=4）へ変更する。
-  - `Fire()` 内で扇状拡散になるよう、正面基準で左右へ角度分散した複数の初速ベクトルを組み立てる。
-- `Assets/Survaivor/Character/Combat/Infrastructure/WeaponEffectExecutor.cs`
-  - `_activeDroneController` / `DRONE_POOL_SIZE = 1` の単一前提をやめ、複数ドローンを同時維持できる構造に変更する。
-  - ドローンインスタンスを識別して再利用できるコレクション管理へ変更する。
-  - 位相ごとにインスタンスを維持する理由が分かるコメントを残す。
-- `Assets/Survaivor/Character/Combat/Infrastructure/Drones/DroneController.cs`
-  - 初期位相オフセットを受け取れるようにし、2機時に180度ずれた位置を維持する。
-  - 同一半径・異なる位相で周回し続けるため、初期角度の設定処理を追加する。
-  - 周回角度の初期化と更新意図が分かるコメントを残す。
+- `Assets/Survaivor/Character/Player/Application/StyleEffects/PirateStyleEffect.cs`
+  - 10秒タイマー、`Time.timeScale == 0` 停止、2体召喚要求、初期化時の内部状態リセットを実装する。
+  - 次回召喚前の既存戦闘員クリアを、コンテキスト経由の管理コンポーネント呼び出しに置き換える。
+- `Assets/Survaivor/Character/Player/Application/StyleEffects/PlayerStyleEffectContext.cs`
+  - 戦闘員召喚に必要な `Transform`、`EnemyRegistry`、戦闘員管理窓口を保持できるよう拡張する。
+- `Assets/Survaivor/Character/Player/Infrastructure/PlayerController.cs`
+  - 戦闘員管理コンポーネントの取得または生成を追加し、`BuildStyleEffectContext()` へ注入する。
+  - `OnDestroy()` でスタイル解除相当のクリーンアップが走るよう、戦闘員破棄経路を確保する。
+- `Assets/Survaivor/Character/Player/Application/PlayerProgressionService.cs`
+  - スタイル切替時に旧スタイルの後始末を確実に行うため、`ResetStyleParameters()` だけでなくアクティブ効果の停止フック追加を検討し、海賊スタイル解除時に戦闘員破棄が漏れない構造へ調整する。
+- `Assets/Survaivor/Character/Enemy/Infrastructure/EnemyController.cs`
+  - 「既定ターゲット」と「戦闘員優先ターゲット」を分離し、毎フレーム有効なおとりを解決して追跡対象へ反映する。
+  - 無効化済み戦闘員参照を保持し続けない null 安全処理を追加する。
+- `Assets/Survaivor/Character/Enemy/Infrastructure/EnemySpawner.cs`
+  - 新規スポーン敵にも戦闘員優先ロジックが効くよう、プレイヤー既定ターゲット設定と敵登録順の整合を確認し、必要なら新しい優先解決 API 初期化を追加する。
+- `Assets/Survaivor/Character/Enemy/Infrastructure/EnemyRegistry.cs`
+  - 戦闘員移動用の最寄り敵探索をそのまま利用する。必要であれば可視条件なし検索の使い分けをコメントで補足する。
+
+### 新規作成想定
+- `Assets/Survaivor/Character/Player/Infrastructure/PirateCrewSummonController.cs`
+  - 戦闘員プール初期化、2体同時召喚、全戦闘員返却、アクティブ戦闘員一覧管理を担当する。
+  - 召喚失敗時は警告ログを出して処理継続する。
+- `Assets/Survaivor/Character/Player/Infrastructure/PirateCrewMemberController.cs`
+  - 戦闘員の初期化、HP30設定、敵追跡移動、敵不在時の前方移動、死亡時のプール返却を担当する。
+- `Assets/Survaivor/Character/Player/Infrastructure/PirateCrewRegistry.cs`
+  - アクティブ戦闘員一覧と「最寄りの有効戦闘員」検索を管理し、敵 AI から参照できるようにする。
+- `Assets/Survaivor/Character/Player/Infrastructure/PirateCrewTarget.cs`
+  - 敵が追跡対象として扱うための軽量コンポーネントまたはマーカー。戦闘員識別と有効判定の責務を持たせる。
+- `Assets/Survaivor/Character/Player/Prefabs/PirateCrewMember.prefab`
+  - 戦闘員用プレハブ。`HealthComponent`、`CharacterStats`、必要な Collider / Rigidbody、プール返却対応を設定する。
+- `Assets/GameResources/Player/PirateCrewMemberStatsData.asset`
+  - HP30 を持つ戦闘員用の `CharacterStatsData`。攻撃力は使わないため最小値で保持する。
 
 ### テスト追加・更新対象
-- `Assets/Survaivor/Tests/EditMode/Player/PlayerControllerWeaponDebugTests.cs`
-  - 既存の `TrySetWeaponLevel()` / `RebuildWeapons()` を活用し、各武器レベルの再構築後に固定値が適用されることを確認するテストを追加または更新する。
-- `Assets/Survaivor/Tests/EditMode/...` 配下の武器系テスト（新規作成を含む）
-  - 各武器クラス単体のレベル境界値テストを追加する。
-  - ドローン2機化、バウンド回数、火炎瓶投射数の特例を検証する。
-
-### 変更不要想定
-- `Assets/Survaivor/Character/Combat/Application/WeaponService.cs`
-  - `ApplyUpgrade()` と `RebuildWeapons()` は、各武器の初期値と `LevelUp()` が正しければそのまま使える。
-- `Assets/Survaivor/Character/Player/Infrastructure/PlayerController.cs`
-  - 武器レベル適用経路は現状の `ApplyWeaponUpgrade()` / `TrySetWeaponLevel()` を継続利用できるため、今回の主変更対象ではない。
+- `Assets/Survaivor/Tests/EditMode/Player/PlayerProgressionServiceTests.cs`
+  - 海賊スタイル切替時に召喚タイマーが開始され、他スタイルへ変更後は継続しないことを検証する。
+- `Assets/Survaivor/Tests/EditMode/Enemy/EnemyRegistryTests.cs`
+  - 既存レジストリ探索を戦闘員移動へ流用した際の前提を崩していないことを確認する。
+- `Assets/Survaivor/Tests/EditMode/...` 配下の新規テスト
+  - `PirateStyleEffect` の10秒召喚、2体生成、停止条件を検証する。
+  - `PirateCrewSummonController` の再召喚時全破棄、警告ログ、プール再利用を検証する。
+  - `PirateCrewRegistry` / `EnemyController` の優先ターゲット切替を検証する。
 
 ## データフロー / 処理フロー
 
-### 1. 通常の武器取得
-1. `PlayerController.ApplyWeaponUpgrade(type)` が呼ばれる。
-2. `WeaponService.ApplyUpgrade()` が未所持なら該当 `WeaponBase` 派生クラスを新規生成する。
-3. 新規生成された武器は、コンストラクタ直後の内部状態がレベル1テーブル値になる。
-4. 以後 `WeaponBase.Tick()` により、そのレベル1性能で発動する。
+### 1. 海賊スタイル開始
+1. `PlayerController.ChangeStyle(PlayerStyleType.Pirate)` が呼ばれる。
+2. `PlayerProgressionService.ChangeStyle()` が既存スタイルの補正をリセットし、海賊スタイル効果を生成する。
+3. `PlayerController.BuildStyleEffectContext()` で組み立てたコンテキストが `PirateStyleEffect.ApplyParameters()` に渡される。
+4. `PirateStyleEffect` は内部タイマーを 0 に戻し、戦闘員管理側にも残存戦闘員クリアを要求する。
 
-### 2. 既存武器のレベルアップ
-1. `PlayerController.ApplyWeaponUpgrade(type)` が所持済み武器に対して呼ばれる。
-2. `WeaponService.ApplyUpgrade()` が既存インスタンスの `LevelUp()` を1回呼ぶ。
-3. `LevelUp()` は `UpgradeLevel` を進める。
-4. 武器クラスは、更新後レベルに対応する固定テーブル値を参照して、発射間隔・サイズ・バウンド回数・投射物数・展開数を再設定する。
-5. クールダウン武器は `ClampCooldownTimerToDuration()` を呼び、残り時間を新しいクールダウン上限へ補正する。
+### 2. 10秒ごとの召喚
+1. `PlayerController.Update()` から `PlayerExperience.TickStyleEffect()` が毎フレーム呼ばれる。
+2. `PirateStyleEffect.Tick()` は `Time.timeScale == 0` の間はタイマーを進めない。
+3. ゲーム内時間で 10 秒経過すると、戦闘員管理コンポーネントへ「既存戦闘員を返却してから2体召喚」を依頼する。
+4. 戦闘員管理はプレイヤー前方の扇状オフセットを計算し、プールから 2 体取得して初期化する。
+5. 生成失敗時はその個体だけ警告ログを出し、他個体とゲーム進行は継続する。
 
-### 3. `TrySetWeaponLevel()` による再構築
-1. `PlayerController.TrySetWeaponLevel(type, targetLevel)` が呼ばれる。
-2. `WeaponService.RebuildWeapons()` が各武器をレベル1状態で作り直す。
-3. 目標レベルまで `LevelUp()` を繰り返す。
-4. 各武器が固定テーブルで状態を上書きするため、段階をまたいでも累積誤差なく正しい値へ到達する。
+### 3. 戦闘員の行動
+1. 各 `PirateCrewMemberController` は `EnemyRegistry.FindNearestEnemy(transform.position)` で最寄り敵を探す。
+2. 敵が見つかればその方向へ XZ 平面移動する。
+3. 敵がいなければプレイヤーの向きベクトルを基準に直進する。
+4. 戦闘員は攻撃生成処理を持たず、接触時にも敵へダメージを与えない。
+5. HP が 0 になった個体はレジストリから外れ、プールへ返却される。
 
-### 4. ドローンのレベル5発動
-1. `DroneWeapon.Fire()` が現在レベルを参照する。
-2. レベル1-4では1回だけ `DeployDrone()` を呼ぶ。
-3. レベル5では2回 `DeployDrone()` を呼び、片方は位相0度、もう片方は位相180度で要求する。
-4. `WeaponEffectExecutor` が各位相に対応するドローンインスタンスを取得または再初期化する。
-5. `DroneController` は共通半径で周回しつつ、初期位相差により常に円の正反対を維持する。
+### 4. 敵の優先ターゲット切替
+1. `EnemySpawner` が敵を生成し、既定ターゲットとしてプレイヤー Transform をセットする。
+2. `EnemyController.Update()` は毎フレーム `PirateCrewRegistry` から「最も近い有効戦闘員」を問い合わせる。
+3. 見つかればその戦闘員 Transform を追跡対象に採用する。
+4. 見つからなければ既定ターゲットのプレイヤー Transform に戻る。
+5. 戦闘員が死亡・返却された場合も、次フレームで自動的に次候補またはプレイヤーへ復帰する。
 
-### 5. 火炎瓶の扇状複数投射
-1. `FlameBottleWeapon.Fire()` が現在レベルに応じた投射物数を取得する。
-2. プレイヤー前方ベクトルを中心軸とし、投射数に応じて左右へ対称な角度オフセットを計算する。
-3. 各角度ごとに水平初速を回転させ、同一の上方向初速を加えた `initialVelocity` を作る。
-4. 生成した本数ぶん `IWeaponEffectExecutor.FireFlameBottle()` を呼ぶ。
-5. 各 `FlameBottleProjectileController` は既存どおり着地後に炎エリアを生成する。
+### 5. 海賊スタイル終了
+1. プレイヤーが別スタイルへ変更される。
+2. `PlayerProgressionService.ChangeStyle()` の旧スタイル終了処理、または `PirateStyleEffect` 側の停止フックで、戦闘員管理へ全返却を指示する。
+3. 以後は召喚タイマーを進めず、新規召喚も行わない。
+4. 敵は有効な戦闘員がいなくなった時点で既定ターゲットのプレイヤーへ戻る。
 
 ## 実装ステップ
 
-### Phase 1: 固定性能テーブル化
-- `BulletWeapon`、`ThrowingWeapon`、`DamageFieldWeapon`、`BoundBallWeapon`、`FlameBottleWeapon`、`DroneWeapon` それぞれにレベル別固定値テーブルを定義する。
-- コンストラクタ初期値をレベル1へ合わせる。
-- `LevelUp()` を「現在レベルに応じた値を反映する処理」へ差し替える。
-- レベル5以降で `LevelUp()` が呼ばれても、配列上限を超えないよう clamp する。
+### Phase 1: 参照注入とライフサイクル整備
+- `PlayerStyleEffectContext` を拡張し、プレイヤー Transform、`EnemyRegistry`、戦闘員管理窓口を保持できるようにする。
+- `PlayerController` で必要コンポーネントを初期化し、スタイル効果コンテキスト再構築時に注入する。
+- スタイル切替時に旧スタイルの後始末を呼べる設計へ `PlayerProgressionService` と `IPlayerStyleEffect` を拡張する。
 
-### Phase 2: バウンドボールと火炎瓶の挙動差分反映
-- `BoundBallWeapon` の発射方向を真下へ変更する。
-- `BoundBallWeapon` のレベルごとの最大バウンド回数を固定値で反映する。
-- `FlameBottleWeapon` の投射物数制御を追加する。
-- 火炎瓶の扇状拡散角度の決め方を実装する。左右対称の固定角度ステップを使い、レベルに応じて中心1本から最大4本まで広げる。
+### Phase 2: 戦闘員生成・管理基盤
+- `PirateCrewSummonController`、`PirateCrewRegistry`、戦闘員プレハブを追加する。
+- `ObjectPool<PirateCrewMemberController>` で 2 体以上を再利用できる構成を作る。
+- 召喚位置計算、全返却、再召喚時の既存戦闘員クリア、生成失敗ログを実装する。
 
-### Phase 3: ドローン複数展開対応
-- `DroneSpawnRequest` に位相情報を追加する。
-- `DroneWeapon` が現在レベルに応じて展開数と位相一覧を決定する。
-- `WeaponEffectExecutor` を複数アクティブドローン管理へ変更し、最低2機を同時維持できるプールサイズへ増やす。
-- `DroneController.Initialize()` に初期角度または位相オフセットを渡し、2機が正反対で周回するようにする。
-- ドローン関連の複雑な分岐には、読み手が追跡しやすい最小限のコメントを追加する。
+### Phase 3: 戦闘員の移動と被ダメージ
+- `PirateCrewMemberController` に最寄り敵追跡と前方直進を実装する。
+- `CharacterStatsData` で HP30 を設定し、`HealthComponent` と組み合わせて死亡時返却を実装する。
+- 戦闘員が攻撃機能を持たないこと、既存プレイヤー武器が戦闘員を誤って攻撃対象にしないことを確認する。
 
-### Phase 4: テスト整備
-- 各武器クラスのレベル1-5境界値を検証する EditMode テストを追加する。
-- `TrySetWeaponLevel()` により任意レベルへ再構築した場合も、固定テーブル値が一致することを確認する。
-- レベル5ドローンで2機化すること、2機が異なる位相を持つことを検証する。
-- 火炎瓶のレベル3-5で投射本数が2・3・4になることを検証する。
-- バウンドボールの方向とバウンド回数がレベルに応じて更新されることを検証する。
+### Phase 4: 敵ターゲット優先
+- `EnemyController` に優先ターゲット解決処理を追加する。
+- `PirateCrewRegistry` から最寄りの有効戦闘員を引けるようにする。
+- 既存敵・新規敵ともに同じ優先ルールで動作することを確認する。
+
+### Phase 5: テストと確認
+- EditMode テストでスタイル効果、戦闘員管理、敵ターゲット切替を網羅する。
+- `u tests run edit` で回帰確認する。
+- 必要に応じて PlayMode で海賊スタイル選択後 10 秒周期、解除時破棄、敵のおとり切替を目視確認する。
 
 ## リスクと対策
-- リスク: 初期値をレベル1へ合わせ忘れると、未強化武器だけ仕様外のままになる。
-  - 対策: コンストラクタ直後の値もテスト対象に含める。
-- リスク: `RebuildWeapons()` はレベル1からの積み上げなので、`LevelUp()` が累積加算のままだと誤差や二重適用が残る。
-  - 対策: `LevelUp()` 内で毎回「現在レベルから直接再計算」する実装に統一する。
-- リスク: ドローンの複数化で既存の単一 `_activeDroneController` 参照が残ると、2機目生成時に1機目が上書きされる。
-  - 対策: コレクション管理へ置き換え、位相単位で再利用対象を分離する。
-- リスク: ドローンプール数を増やさないと、2機要求時に同一インスタンスが再利用されて重なる。
-  - 対策: プールサイズを2以上へ増やし、同一フレーム内の複数取得を前提に確認する。
-- リスク: 火炎瓶の扇状拡散角度が過大だと、前方投擲の意図から外れる。
-  - 対策: 固定の小さめ角度ステップを採用し、左右対称に限定する。
-- リスク: バウンドボールの真下方向定義を `Vector3.down` にすると3D移動面と軸がずれる。
-  - 対策: 現行ゲーム面（XZ平面移動）に合わせて、前後軸の下方向として `z` マイナス方向を使う。
+- リスク: `IPlayerStyleEffect` に終了フックがないままだと、海賊スタイル解除時の後始末が `ChangeStyle()` の外に散らばる。
+  - 対策: 効果の開始・更新・終了ライフサイクルを明示し、海賊固有の破棄処理を共通経路へ乗せる。
+- リスク: `EnemyController` が毎フレーム全戦闘員を総当たりすると、敵数増加時に負荷が伸びる。
+  - 対策: `PirateCrewRegistry` で有効戦闘員一覧を管理し、少数前提でも不要なアロケーションなしで探索する。
+- リスク: 戦闘員プレハブに `Enemy` タグを付けると、プレイヤー武器やダメージフィールドの攻撃対象になってしまう。
+  - 対策: 専用タグまたはマーカーを使い、敵攻撃対象の識別とプレイヤー武器対象の識別を分離する。
+- リスク: 既存の `PlayerController.OnTriggerEnter()` は `Enemy` タグ接触で直接プレイヤーへダメージを与えるため、戦闘員をおとりにしても敵がすり抜けるとプレイヤー被弾が残る。
+  - 対策: まずは追跡先変更で行動を戦闘員へ誘導し、必要なら敵側の接触ダメージ担当を将来的に `EnemyController` 側へ寄せやすい構造を意識して分離する。
+- リスク: プール返却時にレジストリ解除漏れがあると、敵が無効オブジェクトを追跡する。
+  - 対策: 戦闘員の `OnEnable/OnDisable` または明示的な `Initialize/Release` で登録解除を対にする。
+- リスク: 10 秒判定を `Time.deltaTime` ベースでそのまま積むと、一時停止明けや大きなフレーム落ちで複数回召喚が走る可能性がある。
+  - 対策: while で複数回消化するか、今回は 1 フレーム 1 回に制限するかを方針化し、要件どおり「10秒ごとに1回」を保つ実装にする。
 
 ## 検証方針
 - EditMode テスト
-  - `BulletWeapon` がレベル1-5で `1.5 / 1.0 / 0.8 / 0.4 / 0.2` 秒になること。
-  - `ThrowingWeapon` がレベル1-5で `2.0 / 1.5 / 1.0 / 0.8 / 0.4` 秒になること。
-  - `DamageFieldWeapon` がレベル1-5で `3.0 / 3.5 / 4.0 / 4.5 / 5.0` のサイズになること。
-  - `BoundBallWeapon` がレベルごとに正しい発射間隔とバウンド回数を持ち、方向が真下であること。
-  - `FlameBottleWeapon` がレベルごとに正しい投擲間隔と投射物数を持つこと。
-  - `DroneWeapon` がレベル5で2機要求を行い、位相0度/180度を使うこと。
-  - `PlayerController.TrySetWeaponLevel()` 経由の再構築後も、同じ値に到達すること。
+  - 海賊スタイル選択時のみ 10 秒ごとに召喚要求が発生すること。
+  - `Time.timeScale == 0` 相当では召喚タイマーが進まないこと。
+  - 1 回の召喚で 2 体生成され、再召喚時に前回分が返却されること。
+  - 別スタイルへ変更すると既存戦闘員が破棄され、新規召喚が止まること。
+  - 戦闘員が最寄り敵へ向かい、敵不在時は前方移動へフォールバックすること。
+  - 敵が戦闘員存在中はプレイヤーではなく戦闘員を優先し、全消滅後にプレイヤーへ戻ること。
 - 手動確認
-  - ゲーム内で各武器をレベル1から5まで上げた際、体感挙動がテーブルどおり変化すること。
-  - レベル5ドローンで2機が重ならず、円の正反対を周回すること。
-  - レベル3-5火炎瓶で扇状に本数が増えること。
+  - 海賊スタイル選択後、約10秒ごとにプレイヤー前方へ 2 体ずつ出現すること。
+  - 戦闘員が敵に近づくだけで攻撃しないこと。
+  - スタイル解除時に画面上の戦闘員が消え、以後増えないこと。
+  - 複数敵がいても、おとりがいる間は敵群が戦闘員へ引き寄せられること。
 - Unity 確認
-  - `u tests run edit` で EditMode テストが通ること。
-  - `u console get -l E` で関連エラーが出ていないこと。
+  - `u tests run edit` で関連テストが通ること。
+  - `u console get -l E` で海賊スタイル関連の例外が出ていないこと。
 
 ## コードスニペット（主要変更イメージ）
 ```csharp
-public class BulletWeapon : WeaponBase
+public interface IPlayerStyleEffect
 {
-    static readonly float[] SHOOT_INTERVALS = { 1.5f, 1.0f, 0.8f, 0.4f, 0.2f };
+    PlayerStyleType StyleType { get; }
+    void ApplyParameters(PlayerStyleEffectContext context);
+    void Tick(PlayerStyleEffectContext context, float deltaTime);
+    void Cleanup(PlayerStyleEffectContext context);
+}
+```
 
-    public BulletWeapon(...) : base(originTransform, rideWeapon, effectExecutor)
+```csharp
+public class PirateStyleEffect : IPlayerStyleEffect
+{
+    const float SUMMON_INTERVAL_SECONDS = 10f;
+    float _timer;
+
+    public void ApplyParameters(PlayerStyleEffectContext context)
     {
-        _shootInterval = SHOOT_INTERVALS[0];
+        _timer = 0f;
+        context?.PirateCrewSummonController?.ClearAll();
     }
 
-    public override void LevelUp()
+    public void Tick(PlayerStyleEffectContext context, float deltaTime)
     {
-        _weaponState.IncrementUpgradeLevel();
-        int levelIndex = Mathf.Clamp(UpgradeLevel - 1, 0, SHOOT_INTERVALS.Length - 1);
-        _shootInterval = SHOOT_INTERVALS[levelIndex];
-        ClampCooldownTimerToDuration();
+        if (context?.PirateCrewSummonController == null || Time.timeScale <= 0f)
+        {
+            return;
+        }
+
+        _timer += deltaTime;
+        while (_timer >= SUMMON_INTERVAL_SECONDS)
+        {
+            context.PirateCrewSummonController.ResummonCrew(
+                context.PlayerTransform.position,
+                context.PlayerFacingDirection);
+            _timer -= SUMMON_INTERVAL_SECONDS;
+        }
+    }
+
+    public void Cleanup(PlayerStyleEffectContext context)
+    {
+        context?.PirateCrewSummonController?.ClearAll();
     }
 }
 ```
 
 ```csharp
-public class DroneWeapon : WeaponBase
+public class EnemyController : MonoBehaviour
 {
-    static readonly float[] SHOT_INTERVALS = { 2.0f, 1.5f, 1.0f, 0.8f, 0.4f };
+    Transform _defaultTargetTransform;
+    PirateCrewRegistry _pirateCrewRegistry;
 
-    protected override void Fire()
+    void Update()
     {
-        int droneCount = UpgradeLevel >= 5 ? 2 : 1;
+        Transform resolvedTarget = _pirateCrewRegistry != null
+            ? _pirateCrewRegistry.FindNearestActiveCrew(transform.position)
+            : null;
 
-        for (int index = 0; index < droneCount; index++)
-        {
-            // Lv5 のみ 2 機展開し、2機目は 180 度ずらして重なりを避ける。
-            float phaseDegrees = droneCount == 2 && index == 1 ? 180f : 0f;
-            _effectExecutor.DeployDrone(
-                new DroneSpawnRequest(
-                    GetOriginPosition(),
-                    _originTransform,
-                    sourcePow,
-                    _orbitRadius,
-                    _droneShotInterval,
-                    phaseDegrees));
-        }
-    }
-}
-```
-
-```csharp
-public class FlameBottleWeapon : WeaponBase
-{
-    static readonly int[] PROJECTILE_COUNTS = { 1, 1, 2, 3, 4 };
-
-    protected override void Fire()
-    {
-        int projectileCount = PROJECTILE_COUNTS[Mathf.Clamp(UpgradeLevel - 1, 0, PROJECTILE_COUNTS.Length - 1)];
-
-        foreach (float angleOffset in BuildFanAngles(projectileCount))
-        {
-            Vector3 horizontalDirection = Quaternion.Euler(0f, angleOffset, 0f) * baseDirection;
-            Vector3 initialVelocity = horizontalDirection * _horizontalSpeed + Vector3.up * _upwardSpeed;
-            _effectExecutor.FireFlameBottle(new FlameBottleFireRequest(origin, initialVelocity, sourcePow, origin.y, _flameDuration, _flameRadius));
-        }
+        _targetTransform = resolvedTarget != null ? resolvedTarget : _defaultTargetTransform;
+        _enemyBehavior?.Execute(this);
     }
 }
 ```
