@@ -16,9 +16,11 @@ public class EnemyController : MonoBehaviour
     SpriteDirectionController _spriteDirectionController;
     CharacterStats _characterStats;
     Transform _targetTransform;
+    Transform _defaultTargetTransform;
     IEnemyBehavior _enemyBehavior;
     GameMessageBus _gameMessageBus;
     EnemyRegistry _enemyRegistry;
+    PirateCrewRegistry _pirateCrewRegistry;
 
     /// <summary>
     /// 移動速度を取得または設定します
@@ -50,7 +52,17 @@ public class EnemyController : MonoBehaviour
     /// <param name="target">追跡対象のTransform</param>
     public void SetTarget(Transform target)
     {
+        _defaultTargetTransform = target;
         _targetTransform = target;
+    }
+
+    /// <summary>
+    /// 海賊戦闘員レジストリを設定します
+    /// </summary>
+    /// <param name="pirateCrewRegistry">設定する海賊戦闘員レジストリ</param>
+    public void SetPirateCrewRegistry(PirateCrewRegistry pirateCrewRegistry)
+    {
+        _pirateCrewRegistry = pirateCrewRegistry;
     }
 
     /// <summary>
@@ -150,6 +162,7 @@ public class EnemyController : MonoBehaviour
     {
         _gameMessageBus?.RaiseEnemyDied(gameObject);
 
+        _pirateCrewRegistry?.ReleaseEnemyAssignment(this);
         _enemyRegistry?.UnregisterEnemy(gameObject);
 
         PooledObject pooledObject = GetComponent<PooledObject>();
@@ -164,6 +177,8 @@ public class EnemyController : MonoBehaviour
 
     void Update()
     {
+        RefreshTarget();
+
         if (_targetTransform != null)
         {
             if (_knockbackComponent == null || !_knockbackComponent.IsKnockedBack)
@@ -173,6 +188,18 @@ public class EnemyController : MonoBehaviour
 
             UpdateSprite();
         }
+    }
+
+    /// <summary>
+    /// 現在の追跡ターゲットを更新します
+    /// </summary>
+    public void RefreshTarget()
+    {
+        Transform prioritizedTarget = _pirateCrewRegistry != null
+            ? _pirateCrewRegistry.FindPreferredCrewTarget(this, transform.position)
+            : null;
+
+        _targetTransform = prioritizedTarget != null ? prioritizedTarget : _defaultTargetTransform;
     }
 
     /// <summary>

@@ -27,4 +27,12 @@ public class CelebStyleEffect : IPlayerStyleEffect
     public void Tick(PlayerStyleEffectContext context, float deltaTime)
     {
     }
+
+    /// <summary>
+    /// 終了時の後始末はありません
+    /// </summary>
+    /// <param name="context">スタイル効果コンテキスト</param>
+    public void Cleanup(PlayerStyleEffectContext context)
+    {
+    }
 }

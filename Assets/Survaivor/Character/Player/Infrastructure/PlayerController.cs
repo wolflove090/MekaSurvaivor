@@ -23,6 +23,8 @@ public class PlayerController : MonoBehaviour
     IWeaponEffectExecutor _weaponEffectExecutor;
     GameMessageBus _gameMessageBus;
     GameManager _gameManager;
+    PirateCrewSummonController _pirateCrewSummonController;
+    EnemyRegistry _enemyRegistry;
 
     WeaponBase _weapon;
     Dictionary<Type, WeaponBase> _weapons = new Dictionary<Type, WeaponBase>();
@@ -92,6 +94,11 @@ public class PlayerController : MonoBehaviour
         _playerExperience = GetComponent<PlayerExperience>();
         _playerState = _playerExperience != null ? _playerExperience.State : null;
         InitializeWeaponSystems();
+        _pirateCrewSummonController = GetComponent<PirateCrewSummonController>();
+        if (_pirateCrewSummonController == null)
+        {
+            _pirateCrewSummonController = gameObject.AddComponent<PirateCrewSummonController>();
+        }
 
         if (_characterStats == null)
         {
@@ -314,6 +321,7 @@ public class PlayerController : MonoBehaviour
 
     void OnDestroy()
     {
+        _playerExperience?.CleanupStyleEffect(_styleEffectContext);
         ResetStyleParameters();
 
         if (_healthComponent != null)
@@ -399,7 +407,15 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        _styleEffectContext = new PlayerStyleEffectContext(_healthComponent, _playerState);
+        _enemyRegistry = ResolveEnemyRegistry();
+        _pirateCrewSummonController?.Configure(transform, _enemyRegistry);
+        _styleEffectContext = new PlayerStyleEffectContext(
+            _healthComponent,
+            _playerState,
+            transform,
+            GetFacingDirection,
+            _enemyRegistry,
+            _pirateCrewSummonController);
     }
 
     /// <summary>
@@ -410,6 +426,7 @@ public class PlayerController : MonoBehaviour
         BulletFactory bulletFactory = GetComponent<BulletFactory>();
         EnemyRegistry enemyRegistry = bulletFactory != null ? bulletFactory.EnemyRegistry : null;
         BreakableObjectSpawner breakableObjectSpawner = bulletFactory != null ? bulletFactory.BreakableObjectSpawner : null;
+        _enemyRegistry = enemyRegistry != null ? enemyRegistry : FindFirstObjectByType<EnemyRegistry>();
 
         _weaponEffectExecutor = new WeaponEffectExecutor(bulletFactory, transform);
         _playerWeaponService = new WeaponService(
@@ -417,7 +434,7 @@ public class PlayerController : MonoBehaviour
             _weaponEffectExecutor,
             () => Pow,
             GetFacingDirection,
-            enemyRegistry,
+            _enemyRegistry,
             breakableObjectSpawner);
 
         if (_grantDefaultWeaponOnStart)
@@ -427,5 +444,27 @@ public class PlayerController : MonoBehaviour
                 null,
                 _weapons);
         }
+    }
+
+    /// <summary>
+    /// 利用可能な敵レジストリを解決します
+    /// </summary>
+    /// <returns>見つかった敵レジストリ。存在しない場合はnull</returns>
+    EnemyRegistry ResolveEnemyRegistry()
+    {
+        if (_enemyRegistry != null)
+        {
+            return _enemyRegistry;
+        }
+
+        BulletFactory bulletFactory = GetComponent<BulletFactory>();
+        if (bulletFactory != null && bulletFactory.EnemyRegistry != null)
+        {
+            _enemyRegistry = bulletFactory.EnemyRegistry;
+            return _enemyRegistry;
+        }
+
+        _enemyRegistry = FindFirstObjectByType<EnemyRegistry>();
+        return _enemyRegistry;
     }
 }

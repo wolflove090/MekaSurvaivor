@@ -20,4 +20,10 @@ public interface IPlayerStyleEffect
     /// <param name="context">スタイル効果コンテキスト</param>
     /// <param name="deltaTime">前フレームからの経過時間</param>
     void Tick(PlayerStyleEffectContext context, float deltaTime);
+
+    /// <summary>
+    /// 効果終了時の後始末を実行します
+    /// </summary>
+    /// <param name="context">スタイル効果コンテキスト</param>
+    void Cleanup(PlayerStyleEffectContext context);
 }

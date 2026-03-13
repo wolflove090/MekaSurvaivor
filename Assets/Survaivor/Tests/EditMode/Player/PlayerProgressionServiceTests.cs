@@ -6,6 +6,22 @@ using UnityEngine;
 /// </summary>
 public class PlayerProgressionServiceTests
 {
+    sealed class FakePirateCrewSummonController : IPirateCrewSummonController
+    {
+        public int ClearAllCount { get; private set; }
+        public int ResummonCount { get; private set; }
+
+        public void ResummonCrew(Vector3 playerPosition, Vector3 playerFacingDirection)
+        {
+            ResummonCount++;
+        }
+
+        public void ClearAll()
+        {
+            ClearAllCount++;
+        }
+    }
+
     /// <summary>
     /// 経験値倍率込みで加算し、レベルアップ時の繰り越しが正しく反映されることを検証します。
     /// </summary>
@@ -140,5 +156,29 @@ public class PlayerProgressionServiceTests
         {
             Object.DestroyImmediate(playerObject);
         }
+    }
+
+    /// <summary>
+    /// 海賊スタイル解除時に戦闘員のクリーンアップが必ず呼ばれることを検証します。
+    /// </summary>
+    [Test]
+    public void ChangeStyle_SwitchingFromPirate_CleansUpExistingCrew()
+    {
+        PlayerState state = new PlayerState(1);
+        PlayerProgressionService service = new PlayerProgressionService(state, 10, 1.5f);
+        FakePirateCrewSummonController fakeSummonController = new FakePirateCrewSummonController();
+        PlayerStyleEffectContext context = new PlayerStyleEffectContext(
+            null,
+            state,
+            null,
+            () => Vector3.right,
+            null,
+            fakeSummonController);
+
+        service.ChangeStyle(PlayerStyleType.Pirate, context);
+        service.ChangeStyle(PlayerStyleType.Idol, context);
+
+        Assert.That(fakeSummonController.ClearAllCount, Is.EqualTo(2));
+        Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Idol));
     }
 }

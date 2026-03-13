@@ -148,6 +148,16 @@ public class PlayerExperience : MonoBehaviour
     }
 
     /// <summary>
+    /// 現在のスタイル効果を終了し、後始末を実行します
+    /// </summary>
+    /// <param name="context">スタイル効果コンテキスト</param>
+    public void CleanupStyleEffect(PlayerStyleEffectContext context)
+    {
+        EnsureInitialized();
+        _playerProgressionService?.CleanupStyleEffect(context);
+    }
+
+    /// <summary>
     /// シーン内通知に使用するメッセージバスを設定します。
     /// </summary>
     /// <param name="gameMessageBus">設定する通知バス</param>
