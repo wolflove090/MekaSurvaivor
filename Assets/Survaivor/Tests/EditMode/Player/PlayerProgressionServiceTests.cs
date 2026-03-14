@@ -93,7 +93,7 @@ public class PlayerProgressionServiceTests
     }
 
     /// <summary>
-    /// 空効果スタイルへ切り替えた場合も、前スタイルの倍率が残らないことを検証します。
+    /// メイドへ切り替えた場合は旧倍率が消え、メイドの移動速度倍率だけが反映されることを検証します。
     /// </summary>
     [Test]
     public void ChangeStyle_SwitchingToMaid_ClearsPreviousStyleMultipliers()
@@ -106,7 +106,62 @@ public class PlayerProgressionServiceTests
         service.ChangeStyle(PlayerStyleType.Maid, context);
 
         Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Maid));
+        Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1.5f));
+        Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
+    }
+
+    /// <summary>
+    /// メイドからアイドルへ切り替えた後はメイド倍率が残らず、アイドル倍率に置き換わることを検証します。
+    /// </summary>
+    [Test]
+    public void ChangeStyle_SwitchingFromMaidToIdol_ReplacesMoveSpeedMultiplier()
+    {
+        PlayerState state = new PlayerState(1);
+        PlayerProgressionService service = new PlayerProgressionService(state, 10, 1.5f);
+        PlayerStyleEffectContext context = new PlayerStyleEffectContext(null, state);
+
+        service.ChangeStyle(PlayerStyleType.Maid, context);
+        service.ChangeStyle(PlayerStyleType.Idol, context);
+
+        Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Idol));
+        Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1.2f));
+        Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
+    }
+
+    /// <summary>
+    /// メイドからセレブへ切り替えた後は移動速度倍率が基準値に戻り、経験値倍率のみが反映されることを検証します。
+    /// </summary>
+    [Test]
+    public void ChangeStyle_SwitchingFromMaidToCeleb_ResetsMoveSpeedAndAppliesExperienceMultiplier()
+    {
+        PlayerState state = new PlayerState(1);
+        PlayerProgressionService service = new PlayerProgressionService(state, 10, 1.5f);
+        PlayerStyleEffectContext context = new PlayerStyleEffectContext(null, state);
+
+        service.ChangeStyle(PlayerStyleType.Maid, context);
+        service.ChangeStyle(PlayerStyleType.Celeb, context);
+
+        Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Celeb));
         Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1f));
+        Assert.That(state.ExperienceMultiplier, Is.EqualTo(2f));
+    }
+
+    /// <summary>
+    /// メイドを連続適用しても移動速度倍率が累積しないことを検証します。
+    /// </summary>
+    [Test]
+    public void ChangeStyle_ReapplyingMaid_DoesNotStackMoveSpeedMultiplier()
+    {
+        PlayerState state = new PlayerState(1);
+        PlayerProgressionService service = new PlayerProgressionService(state, 10, 1.5f);
+        PlayerStyleEffectContext context = new PlayerStyleEffectContext(null, state);
+
+        service.ChangeStyle(PlayerStyleType.Celeb, context);
+        service.ChangeStyle(PlayerStyleType.Maid, context);
+        service.ChangeStyle(PlayerStyleType.Maid, context);
+
+        Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Maid));
+        Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1.5f));
         Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
         Assert.That(state.HealPickupMultiplier, Is.EqualTo(1f));
     }

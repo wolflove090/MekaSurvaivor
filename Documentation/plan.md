@@ -1,154 +1,121 @@
-# ナース回復アイテム強化 実装計画
+# メイドスタイル移動速度強化 実装計画
 
 ## 実装方針
-- 回復アイテム倍率はプレイヤーのランタイム状態として `PlayerState` に保持する。既存の経験値倍率・移動速度倍率と同じ責務に揃え、スタイル効果の適用先を一元化する。
-- ナース固有効果の付与と解除は既存の `PlayerController.ChangeStyle` -> `PlayerExperience.ChangeStyle` -> `PlayerProgressionService.ChangeStyle` フローに追従する。`NurseStyleEffect` は `ApplyParameters` で倍率を設定し、他スタイルへ切り替わる際は `ResetStyleParameters` で基準値 `1.0` に戻す。
-- `HealPickup` はスタイル種別を判定せず、取得時点のプレイヤー側倍率のみ参照して回復量を計算する。これにより、生成済みアイテムでも取得時点のスタイルが反映される。
-- 巫女の定期回復や `HealthComponent.Heal(int)` を直接呼ぶ他経路には影響を広げない。倍率適用は `HealPickup.CollectPickup` の中だけに限定する。
-- 要件書本文は `Mathf.RoundToInt` を前提としているため、計画書もそれに合わせる。ただし要件書末尾に「切り捨てにして」のメモが残っているため、実装着手前に確定が必要な確認事項として扱う。
+- 既存のスタイル効果基盤をそのまま利用し、メイド固有効果は `MaidStyleEffect` の `ApplyParameters()` で `PlayerState.MoveSpeedMultiplier` を `1.5f` に設定して実現する。
+- スタイル切り替え時の排他制御は、既存の `PlayerProgressionService.ChangeStyle()` にある `ResetStyleParameters() -> SetCurrentStyle() -> ApplyParameters()` の順序を維持し、特殊分岐は追加しない。
+- 実効移動速度の反映は、既存の `PlayerController.ApplyMoveSpeedFromStats()` に委ねる。メイド専用の UI 層ロジックや追加イベントは作らない。
+- 実装方針は `IdolStyleEffect` の移動速度倍率付与と揃え、メイドだけ例外的な経路を増やさない。
+- 検証は EditMode テストを中心に行い、メイド選択時、他スタイルからの切り替え時、他スタイルへの切り替え時の 3 系統を明示的に確認する。
 
 ## 変更対象ファイル一覧
 
 ### 改修対象
-- `Assets/Survaivor/Character/Player/Domain/PlayerState.cs`
-  - 回復アイテム倍率プロパティを追加する。
-  - 設定メソッドと初期値復帰メソッドを追加し、既存の倍率管理 API と並べる。
-- `Assets/Survaivor/Character/Player/Application/PlayerProgressionService.cs`
-  - `ResetStyleParameters()` に回復アイテム倍率の初期化を追加する。
-  - スタイル切替時に既存倍率が残らない前提をナース効果まで拡張する。
-- `Assets/Survaivor/Character/Player/Application/StyleEffects/NurseStyleEffect.cs`
-  - 空実装をやめ、`ApplyParameters` で回復アイテム倍率 `1.5f` を設定する。
-  - `Tick` は引き続き noop のまま維持する。
-- `Assets/Survaivor/Items/Infrastructure/HealPickup/HealPickup.cs`
-  - `HealthComponent` だけでなく `PlayerExperience` または `PlayerState` へ到達できる参照も取得する。
-  - 取得時に基礎回復量 `3` と倍率から最終回復量を算出し、`HealthComponent.Heal()` へ渡す。
-  - スタイル判定は追加せず、倍率未取得時は `1.0` フォールバックにする。
-
-### テスト追加・更新対象
+- `Assets/Survaivor/Character/Player/Application/StyleEffects/MaidStyleEffect.cs`
+  - 定数 `1.5f` を持たせ、`ApplyParameters()` で `context?.PlayerState?.SetMoveSpeedMultiplier(1.5f)` を設定する。
+  - `Tick()` は現状どおり空実装を維持し、継続処理を追加しない。
 - `Assets/Survaivor/Tests/EditMode/Player/PlayerProgressionServiceTests.cs`
-  - ナース変更時に回復アイテム倍率が `1.5f` になることを検証する。
-  - ナースから他スタイルへ切り替えた際に倍率が `1.0f` へ戻ることを検証する。
-  - 既存の経験値倍率・移動速度倍率の回帰がないことを確認する。
-- `Assets/Survaivor/Tests/EditMode/...` 配下の新規または既存テスト
-  - `HealPickup` の取得時回復量を検証するテストを追加する。
-  - ナース時は `3 * 1.5` が丸め後 `5` になることを確認する。
-  - ナース以外では基礎値 `3` のままであることを確認する。
-  - 最大HP超過時も `HealthComponent` 側の上限処理が維持されることを確認する。
+  - 既存の「メイド切り替え時に前スタイル倍率が消える」テストの期待値を `1f` から `1.5f` へ更新する。
+  - メイドから別スタイルへ変更した際に `MoveSpeedMultiplier` が変更先の期待値へ切り替わるテストを追加する。
+  - メイド再適用や連続切り替えでも倍率が累積しないテストを追加する。
 
-### 変更不要想定
-- `Assets/Survaivor/Character/Infrastructure/HealthComponent.cs`
-  - 回復上限処理は既存実装で満たしているため変更しない。
+### 参照確認のみ
+- `Assets/Survaivor/Character/Player/Application/PlayerProgressionService.cs`
+  - 変更時の倍率リセット順序と既存責務を維持する前提を確認する。
 - `Assets/Survaivor/Character/Player/Infrastructure/PlayerController.cs`
-  - スタイル切替導線は既存のままで足りる想定。倍率保持先を `PlayerState` に寄せるため、変更は原則不要とする。
-- `Assets/Survaivor/Character/Player/Application/StyleEffects/MikoStyleEffect.cs`
-  - 巫女の定期回復は `HealthComponent.Heal(1)` を直接呼ぶ既存仕様を維持し、倍率適用対象外とする。
+  - `ApplyMoveSpeedFromStats()` が `CharacterStats.CurrentValues.Spd * PlayerState.MoveSpeedMultiplier` を反映していることを前提に再利用する。
+- `Assets/Survaivor/Character/Player/Domain/PlayerState.cs`
+  - `MoveSpeedMultiplier` の初期値、設定、リセット API を既存のまま利用する。
+- `Assets/Survaivor/Character/Player/Application/StyleEffects/IdolStyleEffect.cs`
+  - 移動速度倍率付与の実装パターンを揃える際の参照元とする。
 
 ## データフロー / 処理フロー
 
-### 1. スタイル変更時
-1. `PlayerController.ChangeStyle(PlayerStyleType.Nurse)` が呼ばれる。
-2. `PlayerExperience.ChangeStyle()` から `PlayerProgressionService.ChangeStyle()` へ到達する。
-3. `PlayerProgressionService.ResetStyleParameters()` が先に走り、移動速度倍率・経験値倍率・回復アイテム倍率を基準値へ戻す。
-4. `State.SetCurrentStyle(styleType)` 実行後、`PlayerStyleEffectFactory` が `NurseStyleEffect` を生成する。
-5. `NurseStyleEffect.ApplyParameters()` が `PlayerState` の回復アイテム倍率を `1.5f` に設定する。
+### 1. メイドスタイル適用
+1. `PlayerController.ChangeStyle(PlayerStyleType.Maid)` が呼ばれる。
+2. `PlayerExperience.ChangeStyle()` 経由で `PlayerProgressionService.ChangeStyle()` が呼ばれる。
+3. `PlayerProgressionService.ResetStyleParameters()` が `PlayerState.MoveSpeedMultiplier` と `ExperienceMultiplier` を基準値へ戻す。
+4. `PlayerProgressionService` が `PlayerStyleEffectFactory.Create(PlayerStyleType.Maid)` で `MaidStyleEffect` を生成し、`ApplyParameters()` を実行する。
+5. `MaidStyleEffect.ApplyParameters()` が `PlayerState.MoveSpeedMultiplier = 1.5f` を設定する。
+6. `PlayerController.ChangeStyle()` の末尾で `ApplyMoveSpeedFromStats()` が呼ばれ、`CharacterStats.CurrentValues.Spd * 1.5f` が `PlayerMovement.MoveSpeed` に反映される。
 
-### 2. 回復アイテム取得時
-1. `HealPickup.OnEnable()` でプレイヤー参照を取得する。
-2. プレイヤー接触時に `CollectPickup()` が呼ばれる。
-3. `HealPickup` が基礎回復量 `_healAmount` と、プレイヤーが持つ現在倍率を取得する。
-4. 最終回復量を `Mathf.RoundToInt(_healAmount * multiplier)` で算出する。
-5. 算出値を `HealthComponent.Heal(finalAmount)` に渡し、上限処理は `HealthComponent` へ委譲する。
-6. アイテムは既存どおりプール返却または破棄される。
+### 2. ステータス再反映時
+1. `CharacterStats.OnStatsDataChanged` が発火する。
+2. `PlayerController.OnStatsDataChanged()` から `ApplyMoveSpeedFromStats()` が呼ばれる。
+3. 現在の `PlayerState.MoveSpeedMultiplier` がそのまま乗算されるため、メイド選択中は再計算後も `1.5f` が維持される。
 
-### 3. ナース解除時
-1. ナース以外のスタイルへ変更すると、再度 `PlayerProgressionService.ChangeStyle()` が呼ばれる。
-2. `ResetStyleParameters()` により回復アイテム倍率が `1.0f` へ戻る。
-3. 新スタイルが回復アイテム倍率を設定しない限り、以後の `HealPickup` は基礎回復量 `3` を使用する。
+### 3. メイドから別スタイルへ切り替え
+1. `PlayerProgressionService.ChangeStyle()` 冒頭で倍率を基準値へリセットする。
+2. 変更先スタイルの `ApplyParameters()` が必要な倍率だけを再設定する。
+3. `PlayerController.ApplyMoveSpeedFromStats()` が最新の `MoveSpeedMultiplier` を用いて移動速度を再反映する。
+4. その結果、メイド由来の `1.5f` は残存せず、変更先が速度倍率を持たない場合は `1f`、アイドルなら `1.2f` になる。
 
 ## 実装ステップ
 
-### Phase 1: 状態モデル拡張
-- `PlayerState` に回復アイテム倍率プロパティと setter/resetter を追加する。
-- 初期値は `1.0f` とし、既存コンストラクタで初期化する。
-- `PlayerProgressionService.ResetStyleParameters()` から確実に初期値へ戻せるようにする。
+### Phase 1: メイド効果の実装
+- `MaidStyleEffect` に移動速度倍率定数を追加する。
+- `ApplyParameters()` で `PlayerState.SetMoveSpeedMultiplier(1.5f)` を呼ぶ。
+- 既存のドキュメントコメントは維持し、内容を実装に合わせて更新する。
 
-### Phase 2: ナース効果実装
-- `NurseStyleEffect.ApplyParameters()` で `PlayerState` に倍率 `1.5f` を設定する。
-- `context` や `PlayerState` が未解決の場合は安全に何もしない。
-- 同一スタイル再適用時も加算ではなく代入にすることで、倍率の重複適用を防ぐ。
-
-### Phase 3: 回復アイテム適用
-- `HealPickup` にプレイヤーの進行状態へアクセスする経路を追加する。
-- 取得時点の倍率参照で最終回復量を算出する実装へ変更する。
-- プレイヤー参照の一部が取得できない場合は `1.0f` を使い、既存挙動を壊さない。
-
-### Phase 4: テスト整備
-- `PlayerProgressionServiceTests` にナース倍率付与・解除のケースを追加する。
-- `HealPickup` の回復量テストを追加し、丸め結果・最大HP上限・スタイル切替後の解除を検証する。
-- 巫女の定期回復がナース倍率の影響を受けないことを回帰テストで担保する。
+### Phase 2: テスト更新
+- `ChangeStyle_SwitchingToMaid_ClearsPreviousStyleMultipliers()` の期待値を、経験値倍率 `1f` 維持と移動速度倍率 `1.5f` 反映に更新する。
+- メイドからアイドルなど速度倍率を持つ別スタイルへ切り替えた際、メイド倍率が残らないことを検証するテストを追加する。
+- `Celeb -> Maid -> Maid` のような連続切り替え、または `Maid -> Maid` の再適用で `1.5f` を超えて累積しないことを検証する。
 
 ## リスクと対策
-- リスク: `ResetStyleParameters()` に回復アイテム倍率の初期化を入れ忘れると、ナース解除後も倍率が残留する。
-  - 対策: スタイル切替テストでナース -> 他スタイルの戻り値を明示的に検証する。
-- リスク: `HealPickup` がスタイル種別や `PlayerController` に直接依存し始めると、責務が崩れて今後のスタイル追加で分岐が増える。
-  - 対策: `HealPickup` では倍率値だけを読む実装に限定し、スタイル名ベースの条件分岐を禁止する。
-- リスク: `OnEnable()` で `PlayerExperience` を取得できないケースがあると NullReference になりうる。
-  - 対策: `HealthComponent` と同様に null 安全に扱い、倍率取得不可時は `1.0f` にフォールバックする。
-- リスク: 端数処理方針が未確定のまま実装すると、要件書とテスト期待値が食い違う。
-  - 対策: 計画段階では `Mathf.RoundToInt` を採用し、実装前に要件書の未確定事項を解消する。
-- リスク: `HealPickup` テストで MonoBehaviour 初期化順に依存すると不安定になる。
-  - 対策: EditMode テストでは最小構成の `GameObject` を組み立て、必要コンポーネントを明示的に追加して検証する。
+- リスク: `MaidStyleEffect` のみを更新して `PlayerController` 側の再反映呼び出しを見落とすと、実装意図と計画書の責務分担がずれる。
+  - 対策: `ChangeStyle()` と `OnStatsDataChanged()` の既存フローを維持する前提を明記し、コード変更対象を最小化する。
+- リスク: 既存テストが「メイドは空効果」という前提で書かれているため、期待値更新を漏らすと失敗する。
+  - 対策: 既存メイドテストを先に更新し、メイド関連ケースをまとめて見直す。
+- リスク: 連続切り替え時に倍率が累積する不具合を見落とすと、要件の受け入れ条件を満たせない。
+  - 対策: 同一スタイル再適用と別スタイル往復の両方を EditMode テストに含める。
+- リスク: UI や表示文言が未更新でも誤って本対応に含めるとスコープが広がる。
+  - 対策: 今回の変更対象をゲームロジックと EditMode テストに限定し、UI 同期は別タスクとして扱う。
 
 ## 検証方針
 - EditMode テスト
-  - `ChangeStyle(PlayerStyleType.Nurse)` 後に `PlayerState` の回復アイテム倍率が `1.5f` になること。
-  - ナースから `Idol` や `Maid` に変更した後、回復アイテム倍率が `1.0f` に戻ること。
-  - `HealPickup` 取得時に基礎回復量 `3` が通常時 `3`、ナース時 `5` になること。
-  - HP が最大値付近でも回復後に `MaxHp` を超えないこと。
-  - 巫女スタイルの定期回復がナース倍率を参照しないこと。
+  - メイド選択直後に `PlayerState.MoveSpeedMultiplier == 1.5f` になること。
+  - `Celeb -> Maid` 切り替え後に `ExperienceMultiplier == 1f` かつ `MoveSpeedMultiplier == 1.5f` になること。
+  - `Maid -> Idol` 切り替え後に `MoveSpeedMultiplier == 1.2f` となり、メイド由来の `1.5f` が残らないこと。
+  - `Maid -> Celeb` 切り替え後に `MoveSpeedMultiplier == 1f` かつ `ExperienceMultiplier == 2f` になること。
+  - `Maid -> Maid` または連続切り替えを行っても `MoveSpeedMultiplier` が `1.5f` を超えて累積しないこと。
 - 手動確認
-  - ナース選択中に既存配置済みの回復アイテムを取得しても `5` 回復になること。
-  - ナース解除後に新規・既存どちらの回復アイテムでも `3` 回復へ戻ること。
+  - 必要に応じて Unity 上でメイド選択中の移動速度変化を確認する。
 - Unity 確認
   - `u tests run edit` で関連 EditMode テストが通ること。
-  - `u console get -l E` でスタイル切替および回復取得時のエラーが出ていないこと。
+  - `u console get -l E` で関連エラーが出ていないこと。
 
 ## コードスニペット（主要変更イメージ）
 ```csharp
-public class PlayerState
+public class MaidStyleEffect : IPlayerStyleEffect
 {
-    public float HealPickupMultiplier { get; private set; }
+    const float MOVE_SPEED_MULTIPLIER = 1.5f;
 
-    public void SetHealPickupMultiplier(float multiplier)
-    {
-        HealPickupMultiplier = Mathf.Max(0f, multiplier);
-    }
-
-    public void ResetHealPickupMultiplier()
-    {
-        HealPickupMultiplier = 1f;
-    }
-}
-```
-
-```csharp
-public class NurseStyleEffect : IPlayerStyleEffect
-{
-    const float HEAL_PICKUP_MULTIPLIER = 1.5f;
+    public PlayerStyleType StyleType => PlayerStyleType.Maid;
 
     public void ApplyParameters(PlayerStyleEffectContext context)
     {
-        context?.PlayerState?.SetHealPickupMultiplier(HEAL_PICKUP_MULTIPLIER);
+        context?.PlayerState?.SetMoveSpeedMultiplier(MOVE_SPEED_MULTIPLIER);
+    }
+
+    public void Tick(PlayerStyleEffectContext context, float deltaTime)
+    {
     }
 }
 ```
 
 ```csharp
-void CollectPickup()
+[Test]
+public void ChangeStyle_SwitchingToMaid_AppliesMaidMoveSpeedMultiplier()
 {
-    float multiplier = _playerState != null ? _playerState.HealPickupMultiplier : 1f;
-    int finalHealAmount = Mathf.RoundToInt(_healAmount * multiplier);
-    _playerHealthComponent?.Heal(finalHealAmount);
-    ReturnToPoolOrDestroy();
+    PlayerState state = new PlayerState(1);
+    PlayerProgressionService service = new PlayerProgressionService(state, 10, 1.5f);
+    PlayerStyleEffectContext context = new PlayerStyleEffectContext(null, state);
+
+    service.ChangeStyle(PlayerStyleType.Celeb, context);
+    service.ChangeStyle(PlayerStyleType.Maid, context);
+
+    Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Maid));
+    Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1.5f));
+    Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
 }
 ```
