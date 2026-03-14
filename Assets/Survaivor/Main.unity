@@ -363,6 +363,10 @@ MonoBehaviour:
   _bulletPrefab: {fileID: 4081888370426802533, guid: 7ea5a00f6225f490b81c817497f90dcc, type: 3}
   _throwingBulletPrefab: {fileID: 4081888370426802533, guid: b828ad8ff900547aa8907fa261f49f25, type: 3}
   _damageFieldPrefab: {fileID: 4081888370426802533, guid: 0de497e01b829453d8ed97563749aeab, type: 3}
+  _dronePrefab: {fileID: 4081888370426802533, guid: ad727b5632aff4a24a67e2026fae8346, type: 3}
+  _boundBallPrefab: {fileID: 4081888370426802533, guid: 687d95bf5af22455a98577ab9488a354, type: 3}
+  _flameBottlePrefab: {fileID: 4081888370426802533, guid: 71fc1231172fb496b867cfa30870135e, type: 3}
+  _flameAreaPrefab: {fileID: 4081888370426802533, guid: aef7f35928f6d41b684ad5b1d8edc1fe, type: 3}
 --- !u!1 &161327160
 GameObject:
   m_ObjectHideFlags: 0
@@ -1074,7 +1078,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  _timeLimit: 10
+  _timeLimit: 120
 --- !u!4 &1960855177
 Transform:
   m_ObjectHideFlags: 0

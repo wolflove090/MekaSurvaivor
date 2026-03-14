@@ -7,6 +7,16 @@ using UnityEngine;
 /// </summary>
 public class WeaponService
 {
+    static readonly WeaponUpgradeUiController.UpgradeCardType[] AVAILABLE_UPGRADE_TYPES =
+    {
+        WeaponUpgradeUiController.UpgradeCardType.Shooter,
+        WeaponUpgradeUiController.UpgradeCardType.Throwing,
+        WeaponUpgradeUiController.UpgradeCardType.DamageField,
+        WeaponUpgradeUiController.UpgradeCardType.Drone,
+        WeaponUpgradeUiController.UpgradeCardType.BoundBall,
+        WeaponUpgradeUiController.UpgradeCardType.FlameBottle
+    };
+
     readonly Transform _weaponOrigin;
     readonly Dictionary<WeaponUpgradeUiController.UpgradeCardType, Func<WeaponBase, WeaponBase>> _weaponBuilders;
     readonly Dictionary<WeaponUpgradeUiController.UpgradeCardType, Type> _weaponTypes;
@@ -64,13 +74,41 @@ public class WeaponService
                     rideWeapon,
                     effectExecutor,
                     sourcePowProvider)
+            },
+            {
+                WeaponUpgradeUiController.UpgradeCardType.Drone,
+                rideWeapon => new DroneWeapon(
+                    _weaponOrigin,
+                    rideWeapon,
+                    effectExecutor,
+                    sourcePowProvider)
+            },
+            {
+                WeaponUpgradeUiController.UpgradeCardType.BoundBall,
+                rideWeapon => new BoundBallWeapon(
+                    _weaponOrigin,
+                    rideWeapon,
+                    effectExecutor,
+                    sourcePowProvider)
+            },
+            {
+                WeaponUpgradeUiController.UpgradeCardType.FlameBottle,
+                rideWeapon => new FlameBottleWeapon(
+                    _weaponOrigin,
+                    rideWeapon,
+                    effectExecutor,
+                    sourcePowProvider,
+                    facingDirectionProvider)
             }
         };
         _weaponTypes = new Dictionary<WeaponUpgradeUiController.UpgradeCardType, Type>
         {
             { WeaponUpgradeUiController.UpgradeCardType.Shooter, typeof(BulletWeapon) },
             { WeaponUpgradeUiController.UpgradeCardType.Throwing, typeof(ThrowingWeapon) },
-            { WeaponUpgradeUiController.UpgradeCardType.DamageField, typeof(DamageFieldWeapon) }
+            { WeaponUpgradeUiController.UpgradeCardType.DamageField, typeof(DamageFieldWeapon) },
+            { WeaponUpgradeUiController.UpgradeCardType.Drone, typeof(DroneWeapon) },
+            { WeaponUpgradeUiController.UpgradeCardType.BoundBall, typeof(BoundBallWeapon) },
+            { WeaponUpgradeUiController.UpgradeCardType.FlameBottle, typeof(FlameBottleWeapon) }
         };
     }
 
@@ -142,6 +180,115 @@ public class WeaponService
     }
 
     /// <summary>
+    /// 指定した武器種別に対応する武器型を取得します。
+    /// </summary>
+    /// <param name="type">確認する武器種別</param>
+    /// <param name="weaponType">取得できた武器型</param>
+    /// <returns>対応する武器型がある場合はtrue</returns>
+    public bool TryGetWeaponType(WeaponUpgradeUiController.UpgradeCardType type, out Type weaponType)
+    {
+        weaponType = null;
+
+        if (_weaponTypes == null)
+        {
+            return false;
+        }
+
+        return _weaponTypes.TryGetValue(type, out weaponType);
+    }
+
+    /// <summary>
+    /// 指定した武器を現在所持しているかどうかを返します。
+    /// </summary>
+    /// <param name="type">確認する武器種別</param>
+    /// <param name="weapons">取得済み武器の管理テーブル</param>
+    /// <returns>所持している場合はtrue</returns>
+    public bool HasWeapon(
+        WeaponUpgradeUiController.UpgradeCardType type,
+        Dictionary<Type, WeaponBase> weapons)
+    {
+        return TryGetWeapon(type, weapons, out _);
+    }
+
+    /// <summary>
+    /// 指定した武器の現在レベルを取得します。
+    /// </summary>
+    /// <param name="type">確認する武器種別</param>
+    /// <param name="weapons">取得済み武器の管理テーブル</param>
+    /// <param name="level">取得できた現在レベル</param>
+    /// <returns>武器を所持していてレベル取得できた場合はtrue</returns>
+    public bool TryGetWeaponLevel(
+        WeaponUpgradeUiController.UpgradeCardType type,
+        Dictionary<Type, WeaponBase> weapons,
+        out int level)
+    {
+        level = 0;
+
+        if (!TryGetWeapon(type, weapons, out WeaponBase weapon))
+        {
+            return false;
+        }
+
+        level = weapon.UpgradeLevel;
+        return true;
+    }
+
+    /// <summary>
+    /// 指定した武器レベル一覧から武器チェーン全体を再構築します。
+    /// </summary>
+    /// <param name="targetLevels">適用する目標レベル一覧</param>
+    /// <param name="weapons">更新対象の取得済み武器テーブル</param>
+    /// <returns>再構築後のアクティブ武器チェーン先頭</returns>
+    public WeaponBase RebuildWeapons(
+        IReadOnlyDictionary<WeaponUpgradeUiController.UpgradeCardType, int> targetLevels,
+        Dictionary<Type, WeaponBase> weapons)
+    {
+        if (_weaponBuilders == null || _weaponTypes == null)
+        {
+            throw new InvalidOperationException("WeaponService: 武器強化管理用の初期化が行われていません。");
+        }
+
+        if (targetLevels == null)
+        {
+            throw new ArgumentNullException(nameof(targetLevels));
+        }
+
+        if (weapons == null)
+        {
+            throw new ArgumentNullException(nameof(weapons));
+        }
+
+        weapons.Clear();
+
+        WeaponBase activeWeapon = null;
+        foreach (WeaponUpgradeUiController.UpgradeCardType type in AVAILABLE_UPGRADE_TYPES)
+        {
+            if (!targetLevels.TryGetValue(type, out int targetLevel) || targetLevel <= 0)
+            {
+                continue;
+            }
+
+            if (!_weaponBuilders.TryGetValue(type, out Func<WeaponBase, WeaponBase> builder) ||
+                !_weaponTypes.TryGetValue(type, out Type weaponType))
+            {
+                Debug.LogWarning($"WeaponService: 未対応の武器種別です。 type={type}");
+                continue;
+            }
+
+            WeaponBase weapon = builder(activeWeapon);
+            for (int level = 1; level < targetLevel; level++)
+            {
+                weapon.LevelUp();
+            }
+
+            weapons[weaponType] = weapon;
+            activeWeapon = weapon;
+        }
+
+        return activeWeapon;
+    }
+
+    /// <summary>
     /// クールダウン残り時間を現在の発動間隔以内に補正します。
     /// </summary>
     /// <param name="state">対象の武器状態</param>
@@ -155,5 +302,34 @@ public class WeaponService
 
         float normalizedCooldownDuration = Mathf.Max(0f, cooldownDuration);
         state.SetCooldownRemaining(Mathf.Min(state.CooldownRemaining, normalizedCooldownDuration));
+    }
+
+    /// <summary>
+    /// 強化UIで提示可能な全武器候補一覧を取得します。
+    /// </summary>
+    /// <returns>提示可能な武器候補一覧</returns>
+    public IReadOnlyList<WeaponUpgradeUiController.UpgradeCardType> GetAvailableUpgradeTypes()
+    {
+        return AVAILABLE_UPGRADE_TYPES;
+    }
+
+    bool TryGetWeapon(
+        WeaponUpgradeUiController.UpgradeCardType type,
+        Dictionary<Type, WeaponBase> weapons,
+        out WeaponBase weapon)
+    {
+        weapon = null;
+
+        if (weapons == null)
+        {
+            return false;
+        }
+
+        if (!TryGetWeaponType(type, out Type weaponType))
+        {
+            return false;
+        }
+
+        return weapons.TryGetValue(weaponType, out weapon);
     }
 }

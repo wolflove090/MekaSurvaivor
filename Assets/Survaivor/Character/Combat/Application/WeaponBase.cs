@@ -77,6 +77,14 @@ public abstract class WeaponBase
     }
 
     /// <summary>
+    /// 次のTickで即時発動できる状態にします。
+    /// </summary>
+    protected void ReadyCooldownForImmediateTrigger()
+    {
+        _weaponState.SetCooldownRemaining(0f);
+    }
+
+    /// <summary>
     /// 現在の発動基準位置を取得します。
     /// </summary>
     /// <returns>発動基準位置</returns>

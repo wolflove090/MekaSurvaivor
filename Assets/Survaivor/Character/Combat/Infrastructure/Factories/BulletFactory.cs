@@ -17,6 +17,22 @@ public class BulletFactory : MonoBehaviour
     [Tooltip("ダメージフィールドのプレハブ")]
     GameObject _damageFieldPrefab;
 
+    [SerializeField]
+    [Tooltip("ドローンのプレハブ")]
+    GameObject _dronePrefab;
+
+    [SerializeField]
+    [Tooltip("バウンドボールのプレハブ")]
+    GameObject _boundBallPrefab;
+
+    [SerializeField]
+    [Tooltip("火炎瓶のプレハブ")]
+    GameObject _flameBottlePrefab;
+
+    [SerializeField]
+    [Tooltip("炎エリアのプレハブ")]
+    GameObject _flameAreaPrefab;
+
     EnemyRegistry _enemyRegistry;
     BreakableObjectSpawner _breakableObjectSpawner;
 
@@ -34,6 +50,26 @@ public class BulletFactory : MonoBehaviour
     /// ダメージフィールドのプレハブを取得します
     /// </summary>
     public GameObject DamageFieldPrefab => _damageFieldPrefab;
+
+    /// <summary>
+    /// ドローンのプレハブを取得します。
+    /// </summary>
+    public GameObject DronePrefab => _dronePrefab;
+
+    /// <summary>
+    /// バウンドボールのプレハブを取得します。
+    /// </summary>
+    public GameObject BoundBallPrefab => _boundBallPrefab;
+
+    /// <summary>
+    /// 火炎瓶のプレハブを取得します。
+    /// </summary>
+    public GameObject FlameBottlePrefab => _flameBottlePrefab;
+
+    /// <summary>
+    /// 炎エリアのプレハブを取得します。
+    /// </summary>
+    public GameObject FlameAreaPrefab => _flameAreaPrefab;
 
     /// <summary>
     /// 武器の探索先となる敵レジストリを取得します。

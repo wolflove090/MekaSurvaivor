@@ -6,18 +6,21 @@ using UnityEngine;
 /// </summary>
 public class BulletWeapon : WeaponBase
 {
+    static readonly float[] SHOOT_INTERVALS =
+    {
+        1.5f,
+        1.0f,
+        0.8f,
+        0.6f,
+        0.4f
+    };
+
     readonly EnemyRegistry _enemyRegistry;
     readonly BreakableObjectSpawner _breakableObjectSpawner;
     readonly Func<int> _sourcePowProvider;
 
     [Tooltip("発射間隔（秒）")]
-    float _shootInterval = 1f;
-
-    [Tooltip("強化1段階ごとの発射間隔短縮率")]
-    float _intervalReductionPerLevel = 0.15f;
-
-    [Tooltip("発射間隔の最小値（秒）")]
-    float _minShootInterval = 0.2f;
+    float _shootInterval = SHOOT_INTERVALS[0];
 
     [Tooltip("弾の発射位置のオフセット")]
     Vector3 _shootOffset = Vector3.zero;
@@ -95,11 +98,15 @@ public class BulletWeapon : WeaponBase
     public override void LevelUp()
     {
         _weaponState.IncrementUpgradeLevel();
-
-        float reducedInterval = _shootInterval * (1f - _intervalReductionPerLevel);
-        _shootInterval = Mathf.Max(_minShootInterval, reducedInterval);
+        _shootInterval = GetShootIntervalForCurrentLevel();
         ClampCooldownTimerToDuration();
 
         Debug.Log($"BulletWeapon: レベル {UpgradeLevel} に強化。発射間隔: {_shootInterval:0.00}s");
+    }
+
+    float GetShootIntervalForCurrentLevel()
+    {
+        int levelIndex = Mathf.Clamp(UpgradeLevel - 1, 0, SHOOT_INTERVALS.Length - 1);
+        return SHOOT_INTERVALS[levelIndex];
     }
 }

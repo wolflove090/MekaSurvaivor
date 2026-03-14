@@ -2,7 +2,8 @@
     "name": "MekaSurvaivor.EditModeTests",
     "rootNamespace": "",
     "references": [
-        "MekaSurvaivor.Runtime"
+        "MekaSurvaivor.Runtime",
+        "MekaSurvaivor.Editor"
     ],
     "includePlatforms": [
         "Editor"

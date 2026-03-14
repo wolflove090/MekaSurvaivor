@@ -9,6 +9,10 @@ public class PlayerController : MonoBehaviour
 {
     static PlayerController _instance;
 
+    [SerializeField]
+    [Tooltip("開始時に初期武器を自動付与するかどうか")]
+    bool _grantDefaultWeaponOnStart = true;
+
     HealthComponent _healthComponent;
     PlayerMovement _playerMovement;
     CharacterStats _characterStats;
@@ -132,7 +136,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        _weapon.Tick(Time.deltaTime);
+        _weapon?.Tick(Time.deltaTime);
 
         _playerExperience?.TickStyleEffect(_styleEffectContext, Time.deltaTime);
     }
@@ -150,6 +154,79 @@ public class PlayerController : MonoBehaviour
         }
 
         _weapon = _playerWeaponService.ApplyUpgrade(type, _weapon, _weapons);
+    }
+
+    /// <summary>
+    /// 指定した武器を現在所持しているかどうかを取得します。
+    /// </summary>
+    /// <param name="type">確認する武器種別</param>
+    /// <returns>所持している場合はtrue</returns>
+    public bool HasWeapon(WeaponUpgradeUiController.UpgradeCardType type)
+    {
+        return _playerWeaponService != null &&
+            _playerWeaponService.HasWeapon(type, _weapons);
+    }
+
+    /// <summary>
+    /// 指定した武器の現在レベルを取得します。
+    /// </summary>
+    /// <param name="type">確認する武器種別</param>
+    /// <param name="level">取得できた現在レベル</param>
+    /// <returns>武器を所持していてレベル取得できた場合はtrue</returns>
+    public bool TryGetWeaponLevel(WeaponUpgradeUiController.UpgradeCardType type, out int level)
+    {
+        level = 0;
+        return _playerWeaponService != null &&
+            _playerWeaponService.TryGetWeaponLevel(type, _weapons, out level);
+    }
+
+    /// <summary>
+    /// 指定した武器の目標レベルを設定します。
+    /// </summary>
+    /// <param name="type">設定対象の武器種別</param>
+    /// <param name="targetLevel">設定する目標レベル。0以下で未所持にします</param>
+    /// <returns>設定できた場合はtrue</returns>
+    public bool TrySetWeaponLevel(WeaponUpgradeUiController.UpgradeCardType type, int targetLevel)
+    {
+        if (_playerWeaponService == null)
+        {
+            Debug.LogWarning("PlayerController: WeaponServiceが未初期化のため武器レベルを設定できません。");
+            return false;
+        }
+
+        if (!_playerWeaponService.TryGetWeaponType(type, out _))
+        {
+            Debug.LogWarning($"PlayerController: 未対応の武器種別です。 type={type}");
+            return false;
+        }
+
+        Dictionary<WeaponUpgradeUiController.UpgradeCardType, int> targetLevels =
+            new Dictionary<WeaponUpgradeUiController.UpgradeCardType, int>();
+
+        foreach (WeaponUpgradeUiController.UpgradeCardType availableType in _playerWeaponService.GetAvailableUpgradeTypes())
+        {
+            int currentLevel = 0;
+            _playerWeaponService.TryGetWeaponLevel(availableType, _weapons, out currentLevel);
+            targetLevels[availableType] = currentLevel;
+        }
+
+        targetLevels[type] = Mathf.Max(0, targetLevel);
+        _weapon = _playerWeaponService.RebuildWeapons(targetLevels, _weapons);
+        return true;
+    }
+
+    /// <summary>
+    /// 現在選択可能な武器強化候補一覧を取得します。
+    /// </summary>
+    /// <returns>武器強化候補一覧</returns>
+    public IReadOnlyList<WeaponUpgradeUiController.UpgradeCardType> GetAvailableWeaponUpgradeTypes()
+    {
+        if (_playerWeaponService == null)
+        {
+            return Array.Empty<WeaponUpgradeUiController.UpgradeCardType>();
+        }
+
+        return _playerWeaponService.GetAvailableUpgradeTypes();
     }
 
     /// <summary>
@@ -262,6 +339,11 @@ public class PlayerController : MonoBehaviour
     /// <param name="other">接触したCollider</param>
     void OnTriggerEnter(Collider other)
     {
+        if (other.GetComponent<SandboxDummyEnemy>() != null)
+        {
+            return;
+        }
+
         if (other.CompareTag("Enemy"))
         {
             Vector3 knockbackDirection = transform.position - other.transform.position;
@@ -337,9 +419,13 @@ public class PlayerController : MonoBehaviour
             GetFacingDirection,
             enemyRegistry,
             breakableObjectSpawner);
-        _weapon = _playerWeaponService.ApplyUpgrade(
-            WeaponUpgradeUiController.UpgradeCardType.Shooter,
-            null,
-            _weapons);
+
+        if (_grantDefaultWeaponOnStart)
+        {
+            _weapon = _playerWeaponService.ApplyUpgrade(
+                WeaponUpgradeUiController.UpgradeCardType.Shooter,
+                null,
+                _weapons);
+        }
     }
 }

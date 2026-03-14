@@ -6,18 +6,22 @@ using UnityEngine;
 /// </summary>
 public class ThrowingWeapon : WeaponBase
 {
+    const int SIDE_THROW_LEVEL = 5;
+
+    static readonly float[] SHOOT_INTERVALS =
+    {
+        2.0f,
+        1.5f,
+        1.0f,
+        0.8f,
+        0.4f
+    };
+
     readonly Func<int> _sourcePowProvider;
     readonly Func<Vector3> _facingDirectionProvider;
 
     [Tooltip("発射間隔（秒）")]
-    float _shootInterval = 1f;
-
-    [Tooltip("強化1段階ごとの発射間隔短縮率")]
-    [Range(0f, 0.9f)]
-    float _intervalReductionPerLevel = 0.15f;
-
-    [Tooltip("発射間隔の最小値（秒）")]
-    float _minShootInterval = 0.25f;
+    float _shootInterval = SHOOT_INTERVALS[0];
 
     [Tooltip("弾の発射位置のオフセット")]
     Vector3 _shootOffset = Vector3.zero;
@@ -55,7 +59,21 @@ public class ThrowingWeapon : WeaponBase
 
         Vector3 spawnPosition = GetOriginPosition() + _shootOffset;
         Vector3 direction = _facingDirectionProvider != null ? _facingDirectionProvider() : Vector3.right;
+        direction.y = 0f;
+        if (direction.sqrMagnitude <= Mathf.Epsilon)
+        {
+            direction = Vector3.right;
+        }
+
+        direction.Normalize();
         int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
+        if (UpgradeLevel >= SIDE_THROW_LEVEL)
+        {
+            _effectExecutor.FireThrowing(new ThrowingFireRequest(spawnPosition, direction, sourcePow));
+            _effectExecutor.FireThrowing(new ThrowingFireRequest(spawnPosition, -direction, sourcePow));
+            return;
+        }
+
         _effectExecutor.FireThrowing(new ThrowingFireRequest(spawnPosition, direction, sourcePow));
     }
 
@@ -65,11 +83,15 @@ public class ThrowingWeapon : WeaponBase
     public override void LevelUp()
     {
         _weaponState.IncrementUpgradeLevel();
-
-        float reducedInterval = _shootInterval * (1f - _intervalReductionPerLevel);
-        _shootInterval = Mathf.Max(_minShootInterval, reducedInterval);
+        _shootInterval = GetShootIntervalForCurrentLevel();
         ClampCooldownTimerToDuration();
 
         Debug.Log($"ThrowingWeapon: レベル {UpgradeLevel} に強化。発射間隔: {_shootInterval:0.00}s");
+    }
+
+    float GetShootIntervalForCurrentLevel()
+    {
+        int levelIndex = Mathf.Clamp(UpgradeLevel - 1, 0, SHOOT_INTERVALS.Length - 1);
+        return SHOOT_INTERVALS[levelIndex];
     }
 }

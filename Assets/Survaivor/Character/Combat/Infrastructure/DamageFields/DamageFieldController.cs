@@ -29,7 +29,11 @@ public class DamageFieldController : MonoBehaviour
     [Tooltip("プレイヤーからのオフセット（Z軸で後ろに配置）")]
     Vector3 _positionOffset = new Vector3(0f, 0f, 0.5f);
 
-    Dictionary<GameObject, float> _enemiesInField = new Dictionary<GameObject, float>();
+    [SerializeField]
+    [Tooltip("破壊可能オブジェクトにも継続ダメージを与えるかどうか")]
+    bool _damageBreakableObjects = true;
+
+    Dictionary<GameObject, float> _targetsInField = new Dictionary<GameObject, float>();
     Transform _targetTransform;
     float _lifetimeTimer;
     int _sourcePow = 1;
@@ -50,6 +54,33 @@ public class DamageFieldController : MonoBehaviour
     public void SetSourcePow(int sourcePow)
     {
         _sourcePow = Mathf.Max(1, sourcePow);
+    }
+
+    /// <summary>
+    /// 追従するかどうかを設定します。
+    /// </summary>
+    /// <param name="shouldFollow">追従する場合はtrue</param>
+    public void SetFollowEnabled(bool shouldFollow)
+    {
+        _followPlayer = shouldFollow;
+    }
+
+    /// <summary>
+    /// 持続時間を設定します。
+    /// </summary>
+    /// <param name="duration">設定する持続時間</param>
+    public void SetDuration(float duration)
+    {
+        _duration = Mathf.Max(0.1f, duration);
+    }
+
+    /// <summary>
+    /// ダメージ間隔を設定します。
+    /// </summary>
+    /// <param name="damageInterval">設定するダメージ間隔</param>
+    public void SetDamageInterval(float damageInterval)
+    {
+        _damageInterval = Mathf.Max(0.05f, damageInterval);
     }
 
     /// <summary>
@@ -94,7 +125,7 @@ public class DamageFieldController : MonoBehaviour
     void OnEnable()
     {
         _lifetimeTimer = _duration;
-        _enemiesInField.Clear();
+        _targetsInField.Clear();
     }
 
     /// <summary>
@@ -102,7 +133,7 @@ public class DamageFieldController : MonoBehaviour
     /// </summary>
     void OnDisable()
     {
-        _enemiesInField.Clear();
+        _targetsInField.Clear();
     }
 
     void Update()
@@ -120,7 +151,7 @@ public class DamageFieldController : MonoBehaviour
         }
 
         List<GameObject> enemiesToRemove = new List<GameObject>();
-        List<GameObject> enemiesToUpdate = new List<GameObject>(_enemiesInField.Keys);
+        List<GameObject> enemiesToUpdate = new List<GameObject>(_targetsInField.Keys);
 
         foreach (GameObject enemy in enemiesToUpdate)
         {
@@ -130,20 +161,20 @@ public class DamageFieldController : MonoBehaviour
                 continue;
             }
 
-            float timer = _enemiesInField[enemy] - Time.deltaTime;
+            float timer = _targetsInField[enemy] - Time.deltaTime;
 
             if (timer <= 0f)
             {
-                ApplyDamageToEnemy(enemy);
+                ApplyDamageToTarget(enemy);
                 timer = _damageInterval;
             }
 
-            _enemiesInField[enemy] = timer;
+            _targetsInField[enemy] = timer;
         }
 
         foreach (var enemy in enemiesToRemove)
         {
-            _enemiesInField.Remove(enemy);
+            _targetsInField.Remove(enemy);
         }
     }
 
@@ -151,7 +182,7 @@ public class DamageFieldController : MonoBehaviour
     /// エネミーにダメージを与えます
     /// </summary>
     /// <param name="enemy">ダメージを与えるエネミー</param>
-    void ApplyDamageToEnemy(GameObject enemy)
+    void ApplyDamageToTarget(GameObject enemy)
     {
         IDamageable damageable = enemy.GetComponent<IDamageable>();
         if (damageable != null && !damageable.IsDead)
@@ -168,12 +199,12 @@ public class DamageFieldController : MonoBehaviour
     /// <param name="other">入ってきたCollider</param>
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Enemy"))
+        if (IsDamageTarget(other))
         {
-            if (!_enemiesInField.ContainsKey(other.gameObject))
+            if (!_targetsInField.ContainsKey(other.gameObject))
             {
-                ApplyDamageToEnemy(other.gameObject);
-                _enemiesInField[other.gameObject] = _damageInterval;
+                ApplyDamageToTarget(other.gameObject);
+                _targetsInField[other.gameObject] = _damageInterval;
             }
         }
     }
@@ -184,11 +215,11 @@ public class DamageFieldController : MonoBehaviour
     /// <param name="other">出て行ったCollider</param>
     void OnTriggerExit(Collider other)
     {
-        if (other.CompareTag("Enemy"))
+        if (IsDamageTarget(other))
         {
-            if (_enemiesInField.ContainsKey(other.gameObject))
+            if (_targetsInField.ContainsKey(other.gameObject))
             {
-                _enemiesInField.Remove(other.gameObject);
+                _targetsInField.Remove(other.gameObject);
             }
         }
     }
@@ -215,5 +246,30 @@ public class DamageFieldController : MonoBehaviour
     int CalculateDamage()
     {
         return Mathf.Max(1, _damage + (_sourcePow - 1));
+    }
+
+    /// <summary>
+    /// 対象Colliderが継続ダメージ対象かを判定します。
+    /// </summary>
+    /// <param name="other">判定対象</param>
+    /// <returns>対象の場合はtrue</returns>
+    bool IsDamageTarget(Collider other)
+    {
+        if (other == null)
+        {
+            return false;
+        }
+
+        if (other.CompareTag("Enemy"))
+        {
+            return true;
+        }
+
+        if (_damageBreakableObjects && other.CompareTag("BreakableObject"))
+        {
+            return true;
+        }
+
+        return false;
     }
 }

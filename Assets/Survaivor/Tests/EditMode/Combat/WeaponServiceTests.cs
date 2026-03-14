@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -132,6 +133,208 @@ public class WeaponServiceTests
         finally
         {
             UnityEngine.Object.DestroyImmediate(player);
+        }
+    }
+
+    /// <summary>
+    /// 強化候補一覧に新規武器3種を含む全武器種が返ることを検証します。
+    /// </summary>
+    [Test]
+    public void GetAvailableUpgradeTypes_ReturnsAllSupportedWeaponTypes()
+    {
+        WeaponService service = new WeaponService();
+
+        IReadOnlyList<WeaponUpgradeUiController.UpgradeCardType> types = service.GetAvailableUpgradeTypes();
+
+        Assert.That(types, Is.EqualTo(new[]
+        {
+            WeaponUpgradeUiController.UpgradeCardType.Shooter,
+            WeaponUpgradeUiController.UpgradeCardType.Throwing,
+            WeaponUpgradeUiController.UpgradeCardType.DamageField,
+            WeaponUpgradeUiController.UpgradeCardType.Drone,
+            WeaponUpgradeUiController.UpgradeCardType.BoundBall,
+            WeaponUpgradeUiController.UpgradeCardType.FlameBottle
+        }));
+    }
+
+    /// <summary>
+    /// 新規武器を選択すると対応する武器が生成されることを検証します。
+    /// </summary>
+    [TestCase(WeaponUpgradeUiController.UpgradeCardType.Drone, typeof(DroneWeapon))]
+    [TestCase(WeaponUpgradeUiController.UpgradeCardType.BoundBall, typeof(BoundBallWeapon))]
+    [TestCase(WeaponUpgradeUiController.UpgradeCardType.FlameBottle, typeof(FlameBottleWeapon))]
+    public void ApplyUpgrade_WhenSelectingNewWeaponType_CreatesExpectedWeapon(
+        WeaponUpgradeUiController.UpgradeCardType upgradeType,
+        Type expectedWeaponType)
+    {
+        GameObject player = new GameObject("Player");
+
+        try
+        {
+            WeaponService service = new WeaponService(
+                player.transform,
+                null,
+                () => 4,
+                () => Vector3.right);
+            Dictionary<Type, WeaponBase> weapons = new Dictionary<Type, WeaponBase>();
+
+            WeaponBase activeWeapon = service.ApplyUpgrade(upgradeType, null, weapons);
+
+            Assert.That(activeWeapon, Is.TypeOf(expectedWeaponType));
+            Assert.That(weapons.ContainsKey(expectedWeaponType), Is.True);
+            Assert.That(weapons[expectedWeaponType], Is.SameAs(activeWeapon));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(player);
+        }
+    }
+
+    /// <summary>
+    /// ドローン武器を新規取得した直後の最初のTickで展開されることを検証します。
+    /// </summary>
+    [Test]
+    public void ApplyUpgrade_WhenAddingDrone_FirstTickDeploysDroneImmediately()
+    {
+        GameObject player = new GameObject("Player");
+
+        try
+        {
+            RecordingWeaponEffectExecutor effectExecutor = new RecordingWeaponEffectExecutor();
+            WeaponService service = new WeaponService(
+                player.transform,
+                effectExecutor,
+                () => 4,
+                () => Vector3.right);
+            Dictionary<Type, WeaponBase> weapons = new Dictionary<Type, WeaponBase>();
+
+            WeaponBase activeWeapon = service.ApplyUpgrade(
+                WeaponUpgradeUiController.UpgradeCardType.Drone,
+                null,
+                weapons);
+
+            activeWeapon.Tick(0f);
+
+            Assert.That(effectExecutor.DeployDroneCallCount, Is.EqualTo(1));
+            Assert.That(effectExecutor.LastDroneRequest, Is.Not.Null);
+            Assert.That(effectExecutor.LastDroneRequest.FollowTarget, Is.EqualTo(player.transform));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(player);
+        }
+    }
+
+    /// <summary>
+    /// 目標レベル一覧から武器チェーンを再構築できることを検証します。
+    /// </summary>
+    [Test]
+    public void RebuildWeapons_WhenTargetLevelsIncludeRemovalAndDowngrade_RebuildsExpectedLoadout()
+    {
+        GameObject player = new GameObject("Player");
+
+        try
+        {
+            WeaponService service = new WeaponService(
+                player.transform,
+                null,
+                () => 4,
+                () => Vector3.right);
+            Dictionary<Type, WeaponBase> weapons = new Dictionary<Type, WeaponBase>();
+            Dictionary<WeaponUpgradeUiController.UpgradeCardType, int> targetLevels =
+                new Dictionary<WeaponUpgradeUiController.UpgradeCardType, int>
+                {
+                    { WeaponUpgradeUiController.UpgradeCardType.Shooter, 2 },
+                    { WeaponUpgradeUiController.UpgradeCardType.Throwing, 0 },
+                    { WeaponUpgradeUiController.UpgradeCardType.Drone, 3 }
+                };
+
+            WeaponBase activeWeapon = service.RebuildWeapons(targetLevels, weapons);
+
+            Assert.That(activeWeapon, Is.TypeOf<DroneWeapon>());
+            Assert.That(weapons.ContainsKey(typeof(BulletWeapon)), Is.True);
+            Assert.That(weapons[typeof(BulletWeapon)].UpgradeLevel, Is.EqualTo(2));
+            Assert.That(weapons.ContainsKey(typeof(ThrowingWeapon)), Is.False);
+            Assert.That(weapons.ContainsKey(typeof(DroneWeapon)), Is.True);
+            Assert.That(weapons[typeof(DroneWeapon)].UpgradeLevel, Is.EqualTo(3));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(player);
+        }
+    }
+
+    /// <summary>
+    /// テスト用に武器発動要求を記録する実装です。
+    /// </summary>
+    sealed class RecordingWeaponEffectExecutor : IWeaponEffectExecutor
+    {
+        /// <summary>
+        /// ドローン展開が呼ばれた回数を取得します。
+        /// </summary>
+        public int DeployDroneCallCount { get; private set; }
+
+        /// <summary>
+        /// 最後に受け取ったドローン展開要求を取得します。
+        /// </summary>
+        public DroneSpawnRequest LastDroneRequest { get; private set; }
+
+        /// <summary>
+        /// 通常弾の発射要求を受け取ります。
+        /// </summary>
+        /// <param name="request">受け取った要求</param>
+        public void FireBullet(BulletFireRequest request)
+        {
+        }
+
+        /// <summary>
+        /// 投擲弾の発射要求を受け取ります。
+        /// </summary>
+        /// <param name="request">受け取った要求</param>
+        public void FireThrowing(ThrowingFireRequest request)
+        {
+        }
+
+        /// <summary>
+        /// ダメージフィールド生成要求を受け取ります。
+        /// </summary>
+        /// <param name="request">受け取った要求</param>
+        public void SpawnDamageField(DamageFieldSpawnRequest request)
+        {
+        }
+
+        /// <summary>
+        /// ドローン展開要求を記録します。
+        /// </summary>
+        /// <param name="request">受け取った要求</param>
+        public void DeployDrone(DroneSpawnRequest request)
+        {
+            DeployDroneCallCount++;
+            LastDroneRequest = request;
+        }
+
+        /// <summary>
+        /// バウンドボールの発射要求を受け取ります。
+        /// </summary>
+        /// <param name="request">受け取った要求</param>
+        public void FireBoundBall(BoundBallFireRequest request)
+        {
+        }
+
+        /// <summary>
+        /// 火炎瓶の発射要求を受け取ります。
+        /// </summary>
+        /// <param name="request">受け取った要求</param>
+        public void FireFlameBottle(FlameBottleFireRequest request)
+        {
+        }
+
+        /// <summary>
+        /// 炎エリア生成要求を受け取ります。
+        /// </summary>
+        /// <param name="request">受け取った要求</param>
+        public void SpawnFlameArea(FlameAreaSpawnRequest request)
+        {
         }
     }
 }
