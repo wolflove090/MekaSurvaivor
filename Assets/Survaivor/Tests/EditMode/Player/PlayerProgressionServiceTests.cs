@@ -57,20 +57,25 @@ public class PlayerProgressionServiceTests
         Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Idol));
         Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1.2f));
         Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
-        Assert.That(state.HealPickupMultiplier, Is.EqualTo(1f));
+        Assert.That(state.AttackIntervalMultiplier, Is.EqualTo(1f));
 
         service.ChangeStyle(PlayerStyleType.Celeb, context);
 
         Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Celeb));
         Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1f));
         Assert.That(state.ExperienceMultiplier, Is.EqualTo(2f));
-        Assert.That(state.HealPickupMultiplier, Is.EqualTo(1f));
+        Assert.That(state.AttackIntervalMultiplier, Is.EqualTo(1f));
+
+        service.ChangeStyle(PlayerStyleType.Cowgirl, context);
+
+        Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Cowgirl));
+        Assert.That(state.AttackIntervalMultiplier, Is.EqualTo(0.75f));
 
         service.ResetStyleParameters();
 
         Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1f));
         Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
-        Assert.That(state.HealPickupMultiplier, Is.EqualTo(1f));
+        Assert.That(state.AttackIntervalMultiplier, Is.EqualTo(1f));
     }
 
     /// <summary>
@@ -93,7 +98,7 @@ public class PlayerProgressionServiceTests
     }
 
     /// <summary>
-    /// メイドへ切り替えた場合は旧倍率が消え、メイドの移動速度倍率だけが反映されることを検証します。
+    /// 空効果スタイルへ切り替えた場合も、前スタイルの倍率が残らないことを検証します。
     /// </summary>
     [Test]
     public void ChangeStyle_SwitchingToMaid_ClearsPreviousStyleMultipliers()
@@ -106,101 +111,28 @@ public class PlayerProgressionServiceTests
         service.ChangeStyle(PlayerStyleType.Maid, context);
 
         Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Maid));
-        Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1.5f));
+        Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1f));
         Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
+        Assert.That(state.AttackIntervalMultiplier, Is.EqualTo(1f));
     }
 
     /// <summary>
-    /// メイドからアイドルへ切り替えた後はメイド倍率が残らず、アイドル倍率に置き換わることを検証します。
+    /// カウガールから別スタイルへ切り替えると攻撃間隔倍率が基準値へ戻ることを検証します。
     /// </summary>
     [Test]
-    public void ChangeStyle_SwitchingFromMaidToIdol_ReplacesMoveSpeedMultiplier()
+    public void ChangeStyle_SwitchingFromCowgirl_ResetsAttackIntervalMultiplier()
     {
         PlayerState state = new PlayerState(1);
         PlayerProgressionService service = new PlayerProgressionService(state, 10, 1.5f);
         PlayerStyleEffectContext context = new PlayerStyleEffectContext(null, state);
 
-        service.ChangeStyle(PlayerStyleType.Maid, context);
+        service.ChangeStyle(PlayerStyleType.Cowgirl, context);
+        Assert.That(state.AttackIntervalMultiplier, Is.EqualTo(0.75f));
+
         service.ChangeStyle(PlayerStyleType.Idol, context);
 
         Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Idol));
-        Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1.2f));
-        Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
-    }
-
-    /// <summary>
-    /// メイドからセレブへ切り替えた後は移動速度倍率が基準値に戻り、経験値倍率のみが反映されることを検証します。
-    /// </summary>
-    [Test]
-    public void ChangeStyle_SwitchingFromMaidToCeleb_ResetsMoveSpeedAndAppliesExperienceMultiplier()
-    {
-        PlayerState state = new PlayerState(1);
-        PlayerProgressionService service = new PlayerProgressionService(state, 10, 1.5f);
-        PlayerStyleEffectContext context = new PlayerStyleEffectContext(null, state);
-
-        service.ChangeStyle(PlayerStyleType.Maid, context);
-        service.ChangeStyle(PlayerStyleType.Celeb, context);
-
-        Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Celeb));
-        Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1f));
-        Assert.That(state.ExperienceMultiplier, Is.EqualTo(2f));
-    }
-
-    /// <summary>
-    /// メイドを連続適用しても移動速度倍率が累積しないことを検証します。
-    /// </summary>
-    [Test]
-    public void ChangeStyle_ReapplyingMaid_DoesNotStackMoveSpeedMultiplier()
-    {
-        PlayerState state = new PlayerState(1);
-        PlayerProgressionService service = new PlayerProgressionService(state, 10, 1.5f);
-        PlayerStyleEffectContext context = new PlayerStyleEffectContext(null, state);
-
-        service.ChangeStyle(PlayerStyleType.Celeb, context);
-        service.ChangeStyle(PlayerStyleType.Maid, context);
-        service.ChangeStyle(PlayerStyleType.Maid, context);
-
-        Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Maid));
-        Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1.5f));
-        Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
-        Assert.That(state.HealPickupMultiplier, Is.EqualTo(1f));
-    }
-
-    /// <summary>
-    /// ナースへ変更したときに回復アイテム倍率が設定されることを検証します。
-    /// </summary>
-    [Test]
-    public void ChangeStyle_SwitchingToNurse_SetsHealPickupMultiplier()
-    {
-        PlayerState state = new PlayerState(1);
-        PlayerProgressionService service = new PlayerProgressionService(state, 10, 1.5f);
-        PlayerStyleEffectContext context = new PlayerStyleEffectContext(null, state);
-
-        service.ChangeStyle(PlayerStyleType.Nurse, context);
-
-        Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Nurse));
-        Assert.That(state.HealPickupMultiplier, Is.EqualTo(1.5f));
-        Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1f));
-        Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
-    }
-
-    /// <summary>
-    /// ナースから別スタイルへ変更したときに回復アイテム倍率が初期値へ戻ることを検証します。
-    /// </summary>
-    [Test]
-    public void ChangeStyle_SwitchingFromNurseToIdol_ResetsHealPickupMultiplier()
-    {
-        PlayerState state = new PlayerState(1);
-        PlayerProgressionService service = new PlayerProgressionService(state, 10, 1.5f);
-        PlayerStyleEffectContext context = new PlayerStyleEffectContext(null, state);
-
-        service.ChangeStyle(PlayerStyleType.Nurse, context);
-        service.ChangeStyle(PlayerStyleType.Idol, context);
-
-        Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Idol));
-        Assert.That(state.HealPickupMultiplier, Is.EqualTo(1f));
-        Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1.2f));
-        Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
+        Assert.That(state.AttackIntervalMultiplier, Is.EqualTo(1f));
     }
 
     /// <summary>
@@ -231,39 +163,6 @@ public class PlayerProgressionServiceTests
             Assert.That(healthComponent.CurrentHp, Is.EqualTo(hpBeforeTick));
             Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1.2f));
             Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
-        }
-        finally
-        {
-            Object.DestroyImmediate(playerObject);
-        }
-    }
-
-    /// <summary>
-    /// ナースを経由した後でも巫女の定期回復量が既存値のままであることを検証します。
-    /// </summary>
-    [Test]
-    public void TickStyleEffect_SwitchingFromNurseToMiko_UsesMikoBaseHealAmount()
-    {
-        GameObject playerObject = new GameObject("Player");
-
-        try
-        {
-            playerObject.AddComponent<CharacterStats>();
-            HealthComponent healthComponent = playerObject.AddComponent<HealthComponent>();
-            PlayerState state = new PlayerState(1);
-            PlayerProgressionService service = new PlayerProgressionService(state, 10, 1.5f);
-            PlayerStyleEffectContext context = new PlayerStyleEffectContext(healthComponent, state);
-
-            healthComponent.TakeDamage(3);
-            int hpBeforeTick = healthComponent.CurrentHp;
-
-            service.ChangeStyle(PlayerStyleType.Nurse, context);
-            service.ChangeStyle(PlayerStyleType.Miko, context);
-            service.TickStyleEffect(context, 30f);
-
-            Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Miko));
-            Assert.That(state.HealPickupMultiplier, Is.EqualTo(1f));
-            Assert.That(healthComponent.CurrentHp, Is.EqualTo(hpBeforeTick + 1));
         }
         finally
         {

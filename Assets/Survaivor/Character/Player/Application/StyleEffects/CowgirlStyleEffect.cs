@@ -3,17 +3,20 @@
 /// </summary>
 public class CowgirlStyleEffect : IPlayerStyleEffect
 {
+    const float AttackIntervalMultiplier = 0.75f;
+
     /// <summary>
     /// 効果が対応するスタイル種別を取得します
     /// </summary>
     public PlayerStyleType StyleType => PlayerStyleType.Cowgirl;
 
     /// <summary>
-    /// 現時点では追加効果を適用しません
+    /// 攻撃間隔短縮効果を適用します
     /// </summary>
     /// <param name="context">スタイル効果コンテキスト</param>
     public void ApplyParameters(PlayerStyleEffectContext context)
     {
+        context?.PlayerState?.SetAttackIntervalMultiplier(AttackIntervalMultiplier);
     }
 
     /// <summary>

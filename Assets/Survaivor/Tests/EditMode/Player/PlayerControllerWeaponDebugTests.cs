@@ -161,6 +161,39 @@ public class PlayerControllerWeaponDebugTests
     }
 
     /// <summary>
+    /// カウガールへ切り替えた直後に既存武器の残りクールダウンが短縮後間隔へ補正されることを検証します。
+    /// </summary>
+    [Test]
+    public void ChangeStyle_WhenSwitchingToCowgirl_ClampsExistingWeaponCooldownImmediately()
+    {
+        GameObject player = new GameObject("Player");
+        player.SetActive(false);
+
+        try
+        {
+            player.AddComponent<PlayerExperience>();
+            PlayerController controller = player.AddComponent<PlayerController>();
+
+            player.SetActive(true);
+
+            WeaponBase weapon = GetPrivateField<WeaponBase>(controller, "_weapon");
+            weapon.Tick(0f);
+
+            WeaponState weaponState = GetPrivateField<WeaponState>(weapon, "_weaponState", typeof(WeaponBase));
+            Assert.That(weaponState.CooldownRemaining, Is.EqualTo(1.5f).Within(0.0001f));
+
+            controller.ChangeStyle(PlayerStyleType.Cowgirl);
+
+            Assert.That(weaponState.CooldownRemaining, Is.EqualTo(1.125f).Within(0.0001f));
+            Assert.That(controller.GetComponent<PlayerExperience>().State.AttackIntervalMultiplier, Is.EqualTo(0.75f));
+        }
+        finally
+        {
+            Object.DestroyImmediate(player);
+        }
+    }
+
+    /// <summary>
     /// テスト用に初期武器自動付与設定を書き換えます。
     /// </summary>
     /// <param name="controller">設定対象のPlayerController</param>
@@ -173,5 +206,21 @@ public class PlayerControllerWeaponDebugTests
 
         Assert.That(field, Is.Not.Null);
         field.SetValue(controller, value);
+    }
+
+    /// <summary>
+    /// privateフィールド値を取得します。
+    /// </summary>
+    /// <typeparam name="T">取得する型</typeparam>
+    /// <param name="instance">取得対象インスタンス</param>
+    /// <param name="fieldName">フィールド名</param>
+    /// <param name="declaringType">フィールド宣言元型</param>
+    /// <returns>取得したフィールド値</returns>
+    static T GetPrivateField<T>(object instance, string fieldName, System.Type declaringType = null)
+    {
+        System.Type targetType = declaringType ?? instance.GetType();
+        FieldInfo field = targetType.GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That(field, Is.Not.Null, $"Field not found: {fieldName}");
+        return (T)field.GetValue(instance);
     }
 }

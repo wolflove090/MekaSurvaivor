@@ -1,26 +1,31 @@
-# メイドスタイル移動速度強化 ToDo
+# カウガール攻撃間隔短縮 ToDo
 
-## Phase 1: メイド効果を実装する
-- [ ] `Assets/Survaivor/Character/Player/Application/StyleEffects/MaidStyleEffect.cs` に移動速度倍率定数 `1.5f` を追加する。
-- [ ] `Assets/Survaivor/Character/Player/Application/StyleEffects/MaidStyleEffect.cs` の `ApplyParameters()` で `PlayerState.SetMoveSpeedMultiplier(1.5f)` を呼ぶ。
-- [ ] `Assets/Survaivor/Character/Player/Application/StyleEffects/MaidStyleEffect.cs` のドキュメントコメントを実装内容に合わせて更新する。
-- [ ] `MaidStyleEffect` に `Tick()` ベースの継続処理を追加せず、パラメータ適用だけで完結していることを確認する。
+## Phase 1: プレイヤー状態とスタイル効果を拡張する
+- [x] `Assets/Survaivor/Character/Player/Domain/PlayerState.cs` に `AttackIntervalMultiplier` と set/reset API を追加する。
+- [x] `Assets/Survaivor/Character/Player/Application/PlayerProgressionService.cs` の `ResetStyleParameters()` に攻撃間隔倍率 reset を追加する。
+- [x] `Assets/Survaivor/Character/Player/Application/StyleEffects/CowgirlStyleEffect.cs` を空実装から `0.75f` 設定実装へ変更する。
+- [x] `Assets/Survaivor/Tests/EditMode/Player/PlayerProgressionServiceTests.cs` にカウガール倍率の設定・解除テストを追加する。
 
-## Phase 2: スタイル切り替えの期待挙動をテストへ反映する
-- [ ] `Assets/Survaivor/Tests/EditMode/Player/PlayerProgressionServiceTests.cs` の既存メイド切り替えテスト期待値を `MoveSpeedMultiplier == 1.5f` に更新する。
-- [ ] `Celeb -> Maid` 切り替え後に `ExperienceMultiplier == 1f` かつ `MoveSpeedMultiplier == 1.5f` になるテストを維持または明示する。
-- [ ] `Maid -> Idol` 切り替え後に `MoveSpeedMultiplier == 1.2f` となり、メイド倍率が残らないことを検証するテストを追加する。
-- [ ] `Maid -> Celeb` 切り替え後に `MoveSpeedMultiplier == 1f` かつ `ExperienceMultiplier == 2f` になることを検証するテストを追加する。
-- [ ] `Maid -> Maid` または連続切り替え時に `MoveSpeedMultiplier` が `1.5f` を超えて累積しないことを検証するテストを追加する。
+## Phase 2: 武器へ倍率参照を配線する
+- [x] `Assets/Survaivor/Character/Combat/Application/WeaponBase.cs` に攻撃間隔倍率 provider と共通適用ヘルパーを追加する。
+- [x] `Assets/Survaivor/Character/Combat/Application/WeaponService.cs` の builder に攻撃間隔倍率 provider を通す。
+- [x] `Assets/Survaivor/Character/Combat/Application/BulletWeapon.cs` の `CooldownDuration` を倍率込みへ変更する。
+- [x] `Assets/Survaivor/Character/Combat/Application/ThrowingWeapon.cs` の `CooldownDuration` を倍率込みへ変更する。
+- [x] `Assets/Survaivor/Character/Combat/Application/DamageFieldWeapon.cs` の `CooldownDuration` を倍率込みへ変更する。
+- [x] `Assets/Survaivor/Character/Combat/Application/BoundBallWeapon.cs` の `CooldownDuration` を倍率込みへ変更する。
+- [x] `Assets/Survaivor/Character/Combat/Application/FlameBottleWeapon.cs` の `CooldownDuration` を倍率込みへ変更する。
+- [x] `Assets/Survaivor/Character/Combat/Application/DroneWeapon.cs` の `ShotInterval` にのみ倍率を反映し、`_deployInterval` は維持する。
 
-## Phase 3: 既存責務との整合を確認する
-- [ ] `Assets/Survaivor/Character/Player/Application/PlayerProgressionService.cs` の `ResetStyleParameters() -> ApplyParameters()` 順序を崩していないことを確認する。
-- [ ] `Assets/Survaivor/Character/Player/Infrastructure/PlayerController.cs` の `ApplyMoveSpeedFromStats()` を追加変更せず再利用できることを確認する。
-- [ ] `Assets/Survaivor/Character/Player/Domain/PlayerState.cs` の `MoveSpeedMultiplier` 初期値とリセット値が `1f` のままで問題ないことを確認する。
-- [ ] UI 文言、演出、SE、VFX が今回の変更対象に含まれていないことを確認する。
+## Phase 3: 既存武器への即時反映を成立させる
+- [x] `Assets/Survaivor/Character/Combat/Application/WeaponBase.cs` に武器チェーン全体のクールダウン再 clamp API を追加する。
+- [x] `Assets/Survaivor/Character/Player/Infrastructure/PlayerController.cs` の `WeaponService` 初期化で `PlayerState.AttackIntervalMultiplier` provider を渡す。
+- [x] `Assets/Survaivor/Character/Player/Infrastructure/PlayerController.cs` の `ChangeStyle()` 後に既存武器チェーンへ再 clamp を掛ける。
+- [x] カウガール切替前から所持している武器が、切替直後から短縮間隔に入ることを確認する。
 
-## Phase 4: 動作確認を行う
+## Phase 4: テストと動作確認を整備する
+- [x] `Assets/Survaivor/Tests/EditMode/Combat/WeaponLevelTuningTests.cs` に攻撃間隔倍率反映テストを追加する。
+- [x] `Assets/Survaivor/Tests/EditMode/Combat/WeaponServiceTests.cs` に provider 配線テストを追加する。
+- [x] `Assets/Survaivor/Tests/EditMode/Player/PlayerControllerWeaponDebugTests.cs` にスタイル切替後の即時反映テストを追加する。
+- [x] `DroneWeapon` だけが `DroneSpawnRequest.ShotInterval` のみ短縮されることをテストで固定化する。
 - [ ] `u tests run edit` で EditMode テストを実行する。
-- [ ] 必要に応じて Unity 上でメイド選択直後の移動速度上昇を確認する。
-- [ ] メイドから別スタイルへ変更した際に移動速度倍率が正しく切り替わることを確認する。
 - [ ] `u console get -l E` で関連エラーが出ていないことを確認する。

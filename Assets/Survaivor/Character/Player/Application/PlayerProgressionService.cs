@@ -99,7 +99,7 @@ public class PlayerProgressionService
             throw new ArgumentNullException(nameof(context));
         }
 
-        _activeStyleEffect?.Cleanup(context);
+        CleanupStyleEffect(context);
         ResetStyleParameters();
         State.SetCurrentStyle(styleType);
         _activeStyleEffect = _styleEffectFactory.Create(styleType);
@@ -128,7 +128,7 @@ public class PlayerProgressionService
     {
         State.ResetMoveSpeedMultiplier();
         State.ResetExperienceMultiplier();
-        State.ResetHealPickupMultiplier();
+        State.ResetAttackIntervalMultiplier();
     }
 
     /// <summary>

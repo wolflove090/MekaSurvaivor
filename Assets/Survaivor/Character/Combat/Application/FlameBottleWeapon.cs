@@ -51,7 +51,7 @@ public class FlameBottleWeapon : WeaponBase
     [Tooltip("1回の投擲で発射する火炎瓶数")]
     int _projectileCount = PROJECTILE_COUNTS[0];
 
-    protected override float CooldownDuration => _throwInterval;
+    protected override float CooldownDuration => ApplyAttackIntervalMultiplier(_throwInterval);
 
     /// <summary>
     /// 火炎瓶武器を初期化します。
@@ -66,7 +66,9 @@ public class FlameBottleWeapon : WeaponBase
         WeaponBase rideWeapon,
         IWeaponEffectExecutor effectExecutor,
         Func<float> sourcePowProvider,
-        Func<Vector3> facingDirectionProvider) : base(originTransform, rideWeapon, effectExecutor)
+        Func<Vector3> facingDirectionProvider,
+        Func<float> attackIntervalMultiplierProvider = null)
+        : base(originTransform, rideWeapon, effectExecutor, attackIntervalMultiplierProvider)
     {
         _sourcePowProvider = sourcePowProvider;
         _facingDirectionProvider = facingDirectionProvider;

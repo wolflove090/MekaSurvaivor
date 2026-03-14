@@ -41,6 +41,11 @@ public class PlayerState
     public float HealPickupMultiplier { get; private set; }
 
     /// <summary>
+    /// 攻撃間隔倍率を取得します。
+    /// </summary>
+    public float AttackIntervalMultiplier { get; private set; }
+
+    /// <summary>
     /// プレイヤー進行状態を初期化します。
     /// </summary>
     /// <param name="startLevel">開始レベル</param>
@@ -53,6 +58,7 @@ public class PlayerState
         ExperienceMultiplier = 1f;
         MoveSpeedMultiplier = 1f;
         HealPickupMultiplier = 1f;
+        AttackIntervalMultiplier = 1f;
     }
 
     /// <summary>
@@ -127,6 +133,23 @@ public class PlayerState
     public void ResetHealPickupMultiplier()
     {
         HealPickupMultiplier = 1f;
+    }
+
+    /// <summary>
+    /// 攻撃間隔倍率を設定します。
+    /// </summary>
+    /// <param name="multiplier">設定する倍率</param>
+    public void SetAttackIntervalMultiplier(float multiplier)
+    {
+        AttackIntervalMultiplier = Mathf.Max(0f, multiplier);
+    }
+
+    /// <summary>
+    /// 攻撃間隔倍率を初期値へ戻します。
+    /// </summary>
+    public void ResetAttackIntervalMultiplier()
+    {
+        AttackIntervalMultiplier = 1f;
     }
 
     /// <summary>

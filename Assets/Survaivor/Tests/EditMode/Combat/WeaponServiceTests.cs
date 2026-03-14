@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -265,6 +265,51 @@ public class WeaponServiceTests
     }
 
     /// <summary>
+    /// 武器生成サービスが攻撃間隔倍率providerを各武器へ配線することを検証します。
+    /// </summary>
+    [Test]
+    public void ApplyUpgrade_WithAttackIntervalMultiplierProvider_WiresScaledCooldownToCreatedWeapons()
+    {
+        GameObject player = new GameObject("Player");
+
+        try
+        {
+            RecordingWeaponEffectExecutor effectExecutor = new RecordingWeaponEffectExecutor();
+            WeaponService service = new WeaponService(
+                player.transform,
+                effectExecutor,
+                () => 1f,
+                () => Vector3.right,
+                () => 0.5f);
+            Dictionary<Type, WeaponBase> weapons = new Dictionary<Type, WeaponBase>();
+
+            WeaponBase bulletWeapon = service.ApplyUpgrade(
+                WeaponUpgradeUiController.UpgradeCardType.Shooter,
+                null,
+                weapons);
+            bulletWeapon.Tick(0f);
+
+            WeaponState bulletState = GetPrivateField<WeaponState>(bulletWeapon, "_weaponState", typeof(WeaponBase));
+            Assert.That(bulletState.CooldownRemaining, Is.EqualTo(0.75f).Within(0.0001f));
+
+            WeaponBase droneWeapon = service.ApplyUpgrade(
+                WeaponUpgradeUiController.UpgradeCardType.Drone,
+                bulletWeapon,
+                weapons);
+            droneWeapon.Tick(0f);
+
+            WeaponState droneState = GetPrivateField<WeaponState>(droneWeapon, "_weaponState", typeof(WeaponBase));
+            Assert.That(droneState.CooldownRemaining, Is.EqualTo(5f).Within(0.0001f));
+            Assert.That(effectExecutor.LastDroneRequest, Is.Not.Null);
+            Assert.That(effectExecutor.LastDroneRequest.ShotInterval, Is.EqualTo(1f).Within(0.0001f));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(player);
+        }
+    }
+
+    /// <summary>
     /// テスト用に武器発動要求を記録する実装です。
     /// </summary>
     sealed class RecordingWeaponEffectExecutor : IWeaponEffectExecutor
@@ -336,5 +381,21 @@ public class WeaponServiceTests
         public void SpawnFlameArea(FlameAreaSpawnRequest request)
         {
         }
+    }
+
+    /// <summary>
+    /// privateフィールド値を取得します。
+    /// </summary>
+    /// <typeparam name="T">取得する型</typeparam>
+    /// <param name="instance">取得対象インスタンス</param>
+    /// <param name="fieldName">フィールド名</param>
+    /// <param name="declaringType">フィールド宣言元型</param>
+    /// <returns>取得したフィールド値</returns>
+    static T GetPrivateField<T>(object instance, string fieldName, Type declaringType = null)
+    {
+        Type targetType = declaringType ?? instance.GetType();
+        FieldInfo field = targetType.GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That(field, Is.Not.Null, $"Field not found: {fieldName}");
+        return (T)field.GetValue(instance);
     }
 }

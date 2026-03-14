@@ -256,6 +256,7 @@ public class PlayerController : MonoBehaviour
         {
             _playerExperience?.ChangeStyle(styleType, _styleEffectContext);
             ApplyMoveSpeedFromStats();
+            _weapon?.ClampCooldownToCurrentDurationRecursively();
         }
         catch (System.Exception ex)
         {
@@ -430,12 +431,13 @@ public class PlayerController : MonoBehaviour
 
         _weaponEffectExecutor = new WeaponEffectExecutor(bulletFactory, transform);
         _playerWeaponService = new WeaponService(
-            transform,
-            _weaponEffectExecutor,
-            () => Pow,
-            GetFacingDirection,
-            _enemyRegistry,
-            breakableObjectSpawner);
+            weaponOrigin: transform,
+            effectExecutor: _weaponEffectExecutor,
+            sourcePowProvider: () => Pow,
+            facingDirectionProvider: GetFacingDirection,
+            attackIntervalMultiplierProvider: () => _playerState != null ? _playerState.AttackIntervalMultiplier : 1f,
+            enemyRegistry: _enemyRegistry,
+            breakableObjectSpawner: breakableObjectSpawner);
 
         if (_grantDefaultWeaponOnStart)
         {
