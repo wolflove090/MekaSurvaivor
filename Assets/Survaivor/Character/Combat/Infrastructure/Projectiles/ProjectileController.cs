@@ -23,7 +23,7 @@ public abstract class ProjectileController : MonoBehaviour
 
     protected Vector3 _direction;
     float _lifetimeTimer;
-    int _sourcePow = 1;
+    float _sourcePow = 1f;
 
     /// <summary>
     /// 弾の移動速度を取得または設定します
@@ -52,9 +52,9 @@ public abstract class ProjectileController : MonoBehaviour
     /// ダメージ計算に使用する攻撃力を設定します。
     /// </summary>
     /// <param name="sourcePow">攻撃元の攻撃力</param>
-    public void SetSourcePow(int sourcePow)
+    public void SetSourcePow(float sourcePow)
     {
-        _sourcePow = Mathf.Max(1, sourcePow);
+        _sourcePow = Mathf.Max(1f, sourcePow);
     }
 
     /// <summary>
@@ -116,7 +116,8 @@ public abstract class ProjectileController : MonoBehaviour
     /// <returns>適用する最終ダメージ値</returns>
     protected int CalculateDamage()
     {
-        return Mathf.Max(1, _damage + (_sourcePow - 1));
+        float damage = _damage + (_sourcePow - 1f);
+        return Mathf.Max(1, Mathf.RoundToInt(damage));
     }
 
     /// <summary>

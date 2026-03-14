@@ -12,7 +12,11 @@ public class PlayerStyleEffectFactory
         {
             { PlayerStyleType.Miko, () => new MikoStyleEffect() },
             { PlayerStyleType.Idol, () => new IdolStyleEffect() },
-            { PlayerStyleType.Celeb, () => new CelebStyleEffect() }
+            { PlayerStyleType.Celeb, () => new CelebStyleEffect() },
+            { PlayerStyleType.Maid, () => new MaidStyleEffect() },
+            { PlayerStyleType.Nurse, () => new NurseStyleEffect() },
+            { PlayerStyleType.Pirate, () => new PirateStyleEffect() },
+            { PlayerStyleType.Cowgirl, () => new CowgirlStyleEffect() }
         };
 
     /// <summary>

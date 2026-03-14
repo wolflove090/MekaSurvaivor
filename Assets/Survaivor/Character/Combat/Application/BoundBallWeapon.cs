@@ -26,7 +26,7 @@ public class BoundBallWeapon : WeaponBase
         3
     };
 
-    readonly Func<int> _sourcePowProvider;
+    readonly Func<float> _sourcePowProvider;
 
     [Tooltip("発射間隔（秒）")]
     float _shootInterval = SHOOT_INTERVALS[0];
@@ -34,7 +34,7 @@ public class BoundBallWeapon : WeaponBase
     [Tooltip("最大バウンド回数")]
     int _maxBounceCount = MAX_BOUNCE_COUNTS[0];
 
-    protected override float CooldownDuration => _shootInterval;
+    protected override float CooldownDuration => ApplyAttackIntervalMultiplier(_shootInterval);
 
     /// <summary>
     /// バウンドボール武器を初期化します。
@@ -47,7 +47,9 @@ public class BoundBallWeapon : WeaponBase
         Transform originTransform,
         WeaponBase rideWeapon,
         IWeaponEffectExecutor effectExecutor,
-        Func<int> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
+        Func<float> sourcePowProvider,
+        Func<float> attackIntervalMultiplierProvider = null)
+        : base(originTransform, rideWeapon, effectExecutor, attackIntervalMultiplierProvider)
     {
         _sourcePowProvider = sourcePowProvider;
     }
@@ -62,7 +64,7 @@ public class BoundBallWeapon : WeaponBase
             return;
         }
 
-        int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
+        float sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1f;
         Vector3 origin = GetOriginPosition();
         if (UpgradeLevel >= VERTICAL_SPLIT_LEVEL)
         {

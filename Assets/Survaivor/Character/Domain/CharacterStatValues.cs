@@ -8,7 +8,7 @@ public readonly struct CharacterStatValues
     /// <summary>
     /// 既定のステータス値を取得します。
     /// </summary>
-    public static CharacterStatValues Default => new CharacterStatValues(10, 1, 0, 5f);
+    public static CharacterStatValues Default => new CharacterStatValues(10, 1f, 0, 5f);
 
     /// <summary>
     /// 最大HPを取得します。
@@ -18,7 +18,7 @@ public readonly struct CharacterStatValues
     /// <summary>
     /// 攻撃力を取得します。
     /// </summary>
-    public int Pow { get; }
+    public float Pow { get; }
 
     /// <summary>
     /// 防御力を取得します。
@@ -37,10 +37,10 @@ public readonly struct CharacterStatValues
     /// <param name="pow">攻撃力</param>
     /// <param name="def">防御力</param>
     /// <param name="spd">移動速度</param>
-    public CharacterStatValues(int maxHp, int pow, int def, float spd)
+    public CharacterStatValues(int maxHp, float pow, int def, float spd)
     {
         MaxHp = Mathf.Max(1, maxHp);
-        Pow = Mathf.Max(0, pow);
+        Pow = Mathf.Max(0f, pow);
         Def = Mathf.Max(0, def);
         Spd = Mathf.Max(0f, spd);
     }

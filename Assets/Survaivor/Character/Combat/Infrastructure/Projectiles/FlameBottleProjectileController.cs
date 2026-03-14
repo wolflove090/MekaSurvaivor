@@ -15,7 +15,7 @@ public class FlameBottleProjectileController : MonoBehaviour
     float _flameDuration;
     float _flameRadius;
     float _lifetimeTimer;
-    int _sourcePow = 1;
+    float _sourcePow = 1f;
 
     /// <summary>
     /// 火炎瓶の飛翔パラメータを初期化します。
@@ -28,14 +28,14 @@ public class FlameBottleProjectileController : MonoBehaviour
     /// <param name="effectExecutor">炎エリア生成に使う実行ポート</param>
     public void Initialize(
         Vector3 initialVelocity,
-        int sourcePow,
+        float sourcePow,
         float groundY,
         float flameDuration,
         float flameRadius,
         IWeaponEffectExecutor effectExecutor)
     {
         _velocity = initialVelocity;
-        _sourcePow = Mathf.Max(1, sourcePow);
+        _sourcePow = Mathf.Max(1f, sourcePow);
         _groundY = groundY;
         _flameDuration = Mathf.Max(0.1f, flameDuration);
         _flameRadius = Mathf.Max(0.1f, flameRadius);

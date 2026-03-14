@@ -17,7 +17,7 @@ public class BulletWeapon : WeaponBase
 
     readonly EnemyRegistry _enemyRegistry;
     readonly BreakableObjectSpawner _breakableObjectSpawner;
-    readonly Func<int> _sourcePowProvider;
+    readonly Func<float> _sourcePowProvider;
 
     [Tooltip("発射間隔（秒）")]
     float _shootInterval = SHOOT_INTERVALS[0];
@@ -34,7 +34,7 @@ public class BulletWeapon : WeaponBase
         set => _shootInterval = value;
     }
 
-    protected override float CooldownDuration => _shootInterval;
+    protected override float CooldownDuration => ApplyAttackIntervalMultiplier(_shootInterval);
 
     /// <summary>
     /// 通常弾武器を初期化します。
@@ -51,7 +51,9 @@ public class BulletWeapon : WeaponBase
         IWeaponEffectExecutor effectExecutor,
         EnemyRegistry enemyRegistry,
         BreakableObjectSpawner breakableObjectSpawner,
-        Func<int> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
+        Func<float> sourcePowProvider,
+        Func<float> attackIntervalMultiplierProvider = null)
+        : base(originTransform, rideWeapon, effectExecutor, attackIntervalMultiplierProvider)
     {
         _enemyRegistry = enemyRegistry;
         _breakableObjectSpawner = breakableObjectSpawner;
@@ -88,7 +90,7 @@ public class BulletWeapon : WeaponBase
 
         Vector3 direction = (target.transform.position - shootPosition).normalized;
         direction.y = 0f;
-        int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
+        float sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1f;
         _effectExecutor.FireBullet(new BulletFireRequest(shootPosition, direction, sourcePow));
     }
 

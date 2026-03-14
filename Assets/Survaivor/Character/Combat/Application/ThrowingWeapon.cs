@@ -17,7 +17,7 @@ public class ThrowingWeapon : WeaponBase
         0.4f
     };
 
-    readonly Func<int> _sourcePowProvider;
+    readonly Func<float> _sourcePowProvider;
     readonly Func<Vector3> _facingDirectionProvider;
 
     [Tooltip("発射間隔（秒）")]
@@ -26,7 +26,7 @@ public class ThrowingWeapon : WeaponBase
     [Tooltip("弾の発射位置のオフセット")]
     Vector3 _shootOffset = Vector3.zero;
 
-    protected override float CooldownDuration => _shootInterval;
+    protected override float CooldownDuration => ApplyAttackIntervalMultiplier(_shootInterval);
 
     /// <summary>
     /// 投擲武器を初期化します。
@@ -40,8 +40,10 @@ public class ThrowingWeapon : WeaponBase
         Transform originTransform,
         WeaponBase rideWeapon,
         IWeaponEffectExecutor effectExecutor,
-        Func<int> sourcePowProvider,
-        Func<Vector3> facingDirectionProvider) : base(originTransform, rideWeapon, effectExecutor)
+        Func<float> sourcePowProvider,
+        Func<Vector3> facingDirectionProvider,
+        Func<float> attackIntervalMultiplierProvider = null)
+        : base(originTransform, rideWeapon, effectExecutor, attackIntervalMultiplierProvider)
     {
         _sourcePowProvider = sourcePowProvider;
         _facingDirectionProvider = facingDirectionProvider;
@@ -66,7 +68,7 @@ public class ThrowingWeapon : WeaponBase
         }
 
         direction.Normalize();
-        int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
+        float sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1f;
         if (UpgradeLevel >= SIDE_THROW_LEVEL)
         {
             _effectExecutor.FireThrowing(new ThrowingFireRequest(spawnPosition, direction, sourcePow));

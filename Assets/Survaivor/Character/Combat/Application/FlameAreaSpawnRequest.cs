@@ -30,7 +30,7 @@ public sealed class FlameAreaSpawnRequest : WeaponFireRequest
     /// <param name="tickInterval">継続ダメージ間隔</param>
     public FlameAreaSpawnRequest(
         Vector3 origin,
-        int sourcePow,
+        float sourcePow,
         float duration,
         float radius,
         float tickInterval = 0.5f) : base(origin, sourcePow)

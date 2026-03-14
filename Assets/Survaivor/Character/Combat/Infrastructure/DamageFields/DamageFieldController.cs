@@ -36,7 +36,7 @@ public class DamageFieldController : MonoBehaviour
     Dictionary<GameObject, float> _targetsInField = new Dictionary<GameObject, float>();
     Transform _targetTransform;
     float _lifetimeTimer;
-    int _sourcePow = 1;
+    float _sourcePow = 1f;
 
     /// <summary>
     /// 追従するターゲットを設定します
@@ -51,9 +51,9 @@ public class DamageFieldController : MonoBehaviour
     /// ダメージ計算に使用する攻撃力を設定します。
     /// </summary>
     /// <param name="sourcePow">攻撃元の攻撃力</param>
-    public void SetSourcePow(int sourcePow)
+    public void SetSourcePow(float sourcePow)
     {
-        _sourcePow = Mathf.Max(1, sourcePow);
+        _sourcePow = Mathf.Max(1f, sourcePow);
     }
 
     /// <summary>
@@ -245,7 +245,8 @@ public class DamageFieldController : MonoBehaviour
     /// <returns>適用する最終ダメージ値</returns>
     int CalculateDamage()
     {
-        return Mathf.Max(1, _damage + (_sourcePow - 1));
+        float damage = _damage + (_sourcePow - 1f);
+        return Mathf.Max(1, Mathf.RoundToInt(damage));
     }
 
     /// <summary>

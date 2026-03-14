@@ -12,7 +12,7 @@ public class CharacterStatsData : ScriptableObject
 
     [SerializeField]
     [Tooltip("攻撃力")]
-    int _pow = 1;
+    float _pow = 1f;
 
     [SerializeField]
     [Tooltip("防御力")]
@@ -30,7 +30,7 @@ public class CharacterStatsData : ScriptableObject
     /// <summary>
     /// 攻撃力を取得します
     /// </summary>
-    public int Pow => _pow;
+    public float Pow => _pow;
 
     /// <summary>
     /// 防御力を取得します
@@ -51,10 +51,25 @@ public class CharacterStatsData : ScriptableObject
         return new CharacterStatValues(_maxHp, _pow, _def, _spd);
     }
 
+    /// <summary>
+    /// ステータス値を一括設定します
+    /// </summary>
+    /// <param name="maxHp">最大HP</param>
+    /// <param name="pow">攻撃力</param>
+    /// <param name="def">防御力</param>
+    /// <param name="spd">移動速度</param>
+    public void SetValues(int maxHp, float pow, int def, float spd)
+    {
+        _maxHp = Mathf.Max(1, maxHp);
+        _pow = Mathf.Max(0f, pow);
+        _def = Mathf.Max(0, def);
+        _spd = Mathf.Max(0f, spd);
+    }
+
     void OnValidate()
     {
         _maxHp = Mathf.Max(1, _maxHp);
-        _pow = Mathf.Max(0, _pow);
+        _pow = Mathf.Max(0f, _pow);
         _def = Mathf.Max(0, _def);
         _spd = Mathf.Max(0f, _spd);
     }

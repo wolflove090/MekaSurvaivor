@@ -35,6 +35,7 @@ public class EnemySpawner : MonoBehaviour
     EnemySpawnService _enemySpawnService;
     EnemyRegistry _enemyRegistry;
     GameMessageBus _gameMessageBus;
+    PirateCrewRegistry _pirateCrewRegistry;
 
     /// <summary>
     /// スポーン間隔を取得または設定します
@@ -65,6 +66,8 @@ public class EnemySpawner : MonoBehaviour
         {
             _enemyRegistry = gameObject.AddComponent<EnemyRegistry>();
         }
+
+        _pirateCrewRegistry = FindFirstObjectByType<PirateCrewRegistry>();
     }
 
     void OnDestroy()
@@ -128,6 +131,12 @@ public class EnemySpawner : MonoBehaviour
             Debug.LogWarning("エネミープレハブが設定されていません");
             return;
         }
+
+        if (_pirateCrewRegistry == null)
+        {
+            _pirateCrewRegistry = FindFirstObjectByType<PirateCrewRegistry>();
+        }
+
         GameObject enemy = null;
         EnemyController enemyController = null;
 
@@ -153,6 +162,7 @@ public class EnemySpawner : MonoBehaviour
         }
 
         enemyController?.SetRegistry(_enemyRegistry);
+        enemyController?.SetPirateCrewRegistry(_pirateCrewRegistry);
         enemyController?.SetMessageBus(_gameMessageBus);
     }
 

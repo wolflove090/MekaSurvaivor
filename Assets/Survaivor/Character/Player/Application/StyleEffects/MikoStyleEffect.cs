@@ -42,4 +42,13 @@ public class MikoStyleEffect : IPlayerStyleEffect
             _timer -= HEAL_INTERVAL_SECONDS;
         }
     }
+
+    /// <summary>
+    /// 終了時に内部タイマーを破棄します
+    /// </summary>
+    /// <param name="context">スタイル効果コンテキスト</param>
+    public void Cleanup(PlayerStyleEffectContext context)
+    {
+        _timer = 0f;
+    }
 }

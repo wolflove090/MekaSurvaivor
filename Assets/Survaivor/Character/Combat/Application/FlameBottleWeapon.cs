@@ -24,7 +24,7 @@ public class FlameBottleWeapon : WeaponBase
         4
     };
 
-    readonly Func<int> _sourcePowProvider;
+    readonly Func<float> _sourcePowProvider;
     readonly Func<Vector3> _facingDirectionProvider;
 
     [Tooltip("投擲間隔（秒）")]
@@ -51,7 +51,7 @@ public class FlameBottleWeapon : WeaponBase
     [Tooltip("1回の投擲で発射する火炎瓶数")]
     int _projectileCount = PROJECTILE_COUNTS[0];
 
-    protected override float CooldownDuration => _throwInterval;
+    protected override float CooldownDuration => ApplyAttackIntervalMultiplier(_throwInterval);
 
     /// <summary>
     /// 火炎瓶武器を初期化します。
@@ -65,8 +65,10 @@ public class FlameBottleWeapon : WeaponBase
         Transform originTransform,
         WeaponBase rideWeapon,
         IWeaponEffectExecutor effectExecutor,
-        Func<int> sourcePowProvider,
-        Func<Vector3> facingDirectionProvider) : base(originTransform, rideWeapon, effectExecutor)
+        Func<float> sourcePowProvider,
+        Func<Vector3> facingDirectionProvider,
+        Func<float> attackIntervalMultiplierProvider = null)
+        : base(originTransform, rideWeapon, effectExecutor, attackIntervalMultiplierProvider)
     {
         _sourcePowProvider = sourcePowProvider;
         _facingDirectionProvider = facingDirectionProvider;
@@ -91,7 +93,7 @@ public class FlameBottleWeapon : WeaponBase
 
         horizontalDirection.Normalize();
 
-        int sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1;
+        float sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1f;
         Vector3 origin = GetOriginPosition() + horizontalDirection * _forwardSpawnOffset;
         float centerIndex = (_projectileCount - 1) * 0.5f;
         for (int i = 0; i < _projectileCount; i++)

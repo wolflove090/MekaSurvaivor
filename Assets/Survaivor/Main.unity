@@ -138,6 +138,7 @@ GameObject:
   - component: {fileID: 153723291}
   - component: {fileID: 153723292}
   - component: {fileID: 153723293}
+  - component: {fileID: 153723294}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -157,6 +158,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2c3d4e5f6a7890123456789012345bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  _grantDefaultWeaponOnStart: 1
 --- !u!212 &153723277
 SpriteRenderer:
   serializedVersion: 2
@@ -367,6 +369,23 @@ MonoBehaviour:
   _boundBallPrefab: {fileID: 4081888370426802533, guid: 687d95bf5af22455a98577ab9488a354, type: 3}
   _flameBottlePrefab: {fileID: 4081888370426802533, guid: 71fc1231172fb496b867cfa30870135e, type: 3}
   _flameAreaPrefab: {fileID: 4081888370426802533, guid: aef7f35928f6d41b684ad5b1d8edc1fe, type: 3}
+--- !u!114 &153723294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 153723275}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 12925193864634a14890a49820738334, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MekaSurvaivor.Runtime::PirateCrewSummonController
+  _crewMemberPrefab: {fileID: -7562400870298835786, guid: fc9dbd661a82b41fd805766e1f972bfb, type: 3}
+  _crewStatsData: {fileID: 11400000, guid: 2ad3f096a7304c538009914cb5f4874a, type: 2}
+  _initialPoolSize: 2
+  _forwardSpawnDistance: 1.5
+  _lateralSpawnSpacing: 0.8
 --- !u!1 &161327160
 GameObject:
   m_ObjectHideFlags: 0
@@ -722,10 +741,16 @@ MonoBehaviour:
   _layoutAsset: {fileID: 9197481963319205126, guid: d94e67f8435964a2a8b90d0168277cdd, type: 3}
   _styleSheet: {fileID: 7433441132597879392, guid: 9147c165db3b14e77b8a9b0ffce545f1, type: 3}
   _mikoStyleStats: {fileID: 11400000, guid: 1eb7dd7901204ec98b64fec43c4fb918, type: 2}
-  _idolStyleStats: {fileID: 11400000, guid: 16149924735d4775ae3803e86cbe807e, type: 2}
+  _maidStyleStats: {fileID: 11400000, guid: b4756f87991640f4986c312e05caf5e3, type: 2}
+  _nurseStyleStats: {fileID: 11400000, guid: fbea66360c12454086fa579aea170f22, type: 2}
+  _pirateStyleStats: {fileID: 11400000, guid: 05c856d65307493e9218e009fa319fb7, type: 2}
+  _cowgirlStyleStats: {fileID: 11400000, guid: e92a896651384de5bcc4f2e4a127f496, type: 2}
   _celebStyleStats: {fileID: 11400000, guid: 8c275de2ad3747d3bfcc902af2a90b53, type: 2}
   _mikoRightSprite: {fileID: 21300000, guid: ac06f3df74fe34873ba623bab6758023, type: 3}
-  _idolRightSprite: {fileID: 21300000, guid: f7c5e08c6d00d4c6980e5532d1ba9ed3, type: 3}
+  _maidRightSprite: {fileID: 21300000, guid: 3286ad7d5d4904acc960965fbc437ee0, type: 3}
+  _nurseRightSprite: {fileID: 21300000, guid: fe025eb58c56f45819f77ca9673b4aaa, type: 3}
+  _pirateRightSprite: {fileID: 21300000, guid: 29c510fd0d53840a99c3fbbf7fee13c0, type: 3}
+  _cowgirlRightSprite: {fileID: 21300000, guid: 84854def903184fbd9f910cec7093858, type: 3}
   _celebRightSprite: {fileID: 21300000, guid: 04bc42d1639ee45d799be297d1b60170, type: 3}
   _sortOrderWhileOpen: 100
 --- !u!114 &721230213

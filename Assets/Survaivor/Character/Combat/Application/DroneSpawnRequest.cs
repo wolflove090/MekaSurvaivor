@@ -37,7 +37,7 @@ public sealed class DroneSpawnRequest : WeaponFireRequest
     public DroneSpawnRequest(
         Vector3 origin,
         Transform followTarget,
-        int sourcePow,
+        float sourcePow,
         float orbitRadius,
         float shotInterval,
         float phaseOffsetDegrees) : base(origin, sourcePow)

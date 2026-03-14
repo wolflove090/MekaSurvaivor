@@ -57,17 +57,25 @@ public class PlayerProgressionServiceTests
         Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Idol));
         Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1.2f));
         Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
+        Assert.That(state.AttackIntervalMultiplier, Is.EqualTo(1f));
 
         service.ChangeStyle(PlayerStyleType.Celeb, context);
 
         Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Celeb));
         Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1f));
         Assert.That(state.ExperienceMultiplier, Is.EqualTo(2f));
+        Assert.That(state.AttackIntervalMultiplier, Is.EqualTo(1f));
+
+        service.ChangeStyle(PlayerStyleType.Cowgirl, context);
+
+        Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Cowgirl));
+        Assert.That(state.AttackIntervalMultiplier, Is.EqualTo(0.75f));
 
         service.ResetStyleParameters();
 
         Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1f));
         Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
+        Assert.That(state.AttackIntervalMultiplier, Is.EqualTo(1f));
     }
 
     /// <summary>
@@ -87,6 +95,44 @@ public class PlayerProgressionServiceTests
         Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Idol));
         Assert.That(state.CurrentExperience, Is.EqualTo(5));
         Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
+    }
+
+    /// <summary>
+    /// 空効果スタイルへ切り替えた場合も、前スタイルの倍率が残らないことを検証します。
+    /// </summary>
+    [Test]
+    public void ChangeStyle_SwitchingToMaid_ClearsPreviousStyleMultipliers()
+    {
+        PlayerState state = new PlayerState(1);
+        PlayerProgressionService service = new PlayerProgressionService(state, 10, 1.5f);
+        PlayerStyleEffectContext context = new PlayerStyleEffectContext(null, state);
+
+        service.ChangeStyle(PlayerStyleType.Celeb, context);
+        service.ChangeStyle(PlayerStyleType.Maid, context);
+
+        Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Maid));
+        Assert.That(state.MoveSpeedMultiplier, Is.EqualTo(1f));
+        Assert.That(state.ExperienceMultiplier, Is.EqualTo(1f));
+        Assert.That(state.AttackIntervalMultiplier, Is.EqualTo(1f));
+    }
+
+    /// <summary>
+    /// カウガールから別スタイルへ切り替えると攻撃間隔倍率が基準値へ戻ることを検証します。
+    /// </summary>
+    [Test]
+    public void ChangeStyle_SwitchingFromCowgirl_ResetsAttackIntervalMultiplier()
+    {
+        PlayerState state = new PlayerState(1);
+        PlayerProgressionService service = new PlayerProgressionService(state, 10, 1.5f);
+        PlayerStyleEffectContext context = new PlayerStyleEffectContext(null, state);
+
+        service.ChangeStyle(PlayerStyleType.Cowgirl, context);
+        Assert.That(state.AttackIntervalMultiplier, Is.EqualTo(0.75f));
+
+        service.ChangeStyle(PlayerStyleType.Idol, context);
+
+        Assert.That(state.CurrentStyleType, Is.EqualTo(PlayerStyleType.Idol));
+        Assert.That(state.AttackIntervalMultiplier, Is.EqualTo(1f));
     }
 
     /// <summary>

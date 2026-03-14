@@ -13,14 +13,14 @@ public abstract class WeaponFireRequest
     /// <summary>
     /// 攻撃元の攻撃力を取得します。
     /// </summary>
-    public int SourcePow { get; }
+    public float SourcePow { get; }
 
     /// <summary>
     /// 武器発動要求を初期化します。
     /// </summary>
     /// <param name="origin">発動元の位置</param>
     /// <param name="sourcePow">攻撃元の攻撃力</param>
-    protected WeaponFireRequest(Vector3 origin, int sourcePow)
+    protected WeaponFireRequest(Vector3 origin, float sourcePow)
     {
         Origin = origin;
         SourcePow = sourcePow;

@@ -20,6 +20,7 @@ public class WeaponService
     readonly Transform _weaponOrigin;
     readonly Dictionary<WeaponUpgradeUiController.UpgradeCardType, Func<WeaponBase, WeaponBase>> _weaponBuilders;
     readonly Dictionary<WeaponUpgradeUiController.UpgradeCardType, Type> _weaponTypes;
+    readonly Func<float> _attackIntervalMultiplierProvider;
 
     /// <summary>
     /// クールダウン制御専用のサービスを初期化します。
@@ -40,12 +41,14 @@ public class WeaponService
     public WeaponService(
         Transform weaponOrigin,
         IWeaponEffectExecutor effectExecutor,
-        Func<int> sourcePowProvider,
+        Func<float> sourcePowProvider,
         Func<Vector3> facingDirectionProvider,
+        Func<float> attackIntervalMultiplierProvider = null,
         EnemyRegistry enemyRegistry = null,
         BreakableObjectSpawner breakableObjectSpawner = null)
     {
         _weaponOrigin = weaponOrigin ?? throw new ArgumentNullException(nameof(weaponOrigin));
+        _attackIntervalMultiplierProvider = attackIntervalMultiplierProvider;
         _weaponBuilders = new Dictionary<WeaponUpgradeUiController.UpgradeCardType, Func<WeaponBase, WeaponBase>>
         {
             {
@@ -56,7 +59,8 @@ public class WeaponService
                     effectExecutor,
                     enemyRegistry,
                     breakableObjectSpawner,
-                    sourcePowProvider)
+                    sourcePowProvider,
+                    _attackIntervalMultiplierProvider)
             },
             {
                 WeaponUpgradeUiController.UpgradeCardType.Throwing,
@@ -65,7 +69,8 @@ public class WeaponService
                     rideWeapon,
                     effectExecutor,
                     sourcePowProvider,
-                    facingDirectionProvider)
+                    facingDirectionProvider,
+                    _attackIntervalMultiplierProvider)
             },
             {
                 WeaponUpgradeUiController.UpgradeCardType.DamageField,
@@ -73,7 +78,8 @@ public class WeaponService
                     _weaponOrigin,
                     rideWeapon,
                     effectExecutor,
-                    sourcePowProvider)
+                    sourcePowProvider,
+                    _attackIntervalMultiplierProvider)
             },
             {
                 WeaponUpgradeUiController.UpgradeCardType.Drone,
@@ -81,7 +87,8 @@ public class WeaponService
                     _weaponOrigin,
                     rideWeapon,
                     effectExecutor,
-                    sourcePowProvider)
+                    sourcePowProvider,
+                    _attackIntervalMultiplierProvider)
             },
             {
                 WeaponUpgradeUiController.UpgradeCardType.BoundBall,
@@ -89,7 +96,8 @@ public class WeaponService
                     _weaponOrigin,
                     rideWeapon,
                     effectExecutor,
-                    sourcePowProvider)
+                    sourcePowProvider,
+                    _attackIntervalMultiplierProvider)
             },
             {
                 WeaponUpgradeUiController.UpgradeCardType.FlameBottle,
@@ -98,7 +106,8 @@ public class WeaponService
                     rideWeapon,
                     effectExecutor,
                     sourcePowProvider,
-                    facingDirectionProvider)
+                    facingDirectionProvider,
+                    _attackIntervalMultiplierProvider)
             }
         };
         _weaponTypes = new Dictionary<WeaponUpgradeUiController.UpgradeCardType, Type>

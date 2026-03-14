@@ -21,7 +21,7 @@ public class GameScreenPresenter
     int _cachedMaxHp = int.MinValue;
     int _cachedCurrentExperience = int.MinValue;
     int _cachedExperienceToNext = int.MinValue;
-    int _cachedPow = int.MinValue;
+    float _cachedPow = float.MinValue;
     int _cachedDef = int.MinValue;
     float _cachedSpd = float.MinValue;
     string _cachedGameTimeText;
@@ -192,7 +192,7 @@ public class GameScreenPresenter
         int currentExperience = _playerExperience != null ? _playerExperience.CurrentExperience : 0;
         int experienceToNext = _playerExperience != null ? _playerExperience.ExperienceToNextLevel : 0;
         CharacterStatValues characterValues = _characterStats != null ? _characterStats.CurrentValues : CharacterStatValues.Default;
-        int pow = _characterStats != null ? characterValues.Pow : _playerController.Pow;
+        float pow = _characterStats != null ? characterValues.Pow : _playerController.Pow;
         int def = _characterStats != null ? characterValues.Def : CharacterStatValues.Default.Def;
         float spd = _playerController.MoveSpeed;
 
@@ -203,7 +203,7 @@ public class GameScreenPresenter
             _cachedMaxHp != maxHp ||
             _cachedCurrentExperience != currentExperience ||
             _cachedExperienceToNext != experienceToNext ||
-            _cachedPow != pow ||
+            !Mathf.Approximately(_cachedPow, pow) ||
             _cachedDef != def ||
             !Mathf.Approximately(_cachedSpd, spd);
 
@@ -225,7 +225,7 @@ public class GameScreenPresenter
             currentLevel.ToString(),
             $"{currentHp}/{maxHp}",
             $"{currentExperience}/{experienceToNext}",
-            pow.ToString(),
+            pow.ToString("0.##"),
             def.ToString(),
             spd.ToString("0.0"));
     }
