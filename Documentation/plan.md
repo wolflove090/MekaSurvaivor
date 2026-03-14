@@ -1,213 +1,154 @@
-# 海賊スタイル召喚能力 実装計画
+# ナース回復アイテム強化 実装計画
 
 ## 実装方針
-- `PirateStyleEffect` 自体は「10秒ごとの召喚要求を出す責務」に絞り、戦闘員の生成・管理は専用ランタイムコンポーネントへ分離する。既存の `MikoStyleEffect` と同様にタイマーはスタイル効果側で持つが、召喚実体を直接生成しない。
-- 現状の `PlayerStyleEffectContext` は `HealthComponent` と `PlayerState` しか持たず、召喚や敵探索に必要な参照を渡せない。プレイヤー Transform、`EnemyRegistry`、戦闘員管理サービスをコンテキストへ追加し、`PlayerController.BuildStyleEffectContext()` で組み立てる。
-- 戦闘員はプレイヤー武器と同じく `ObjectPool<T>` を使って再利用し、スタイル切替時と次回召喚時に明示的に全返却する。短周期生成のたびに `Instantiate/Destroy` を繰り返さない構成にする。
-- 敵の追跡先は `EnemyController.SetTarget()` が単一 Transform 前提で、`EnemySpawner` も常にプレイヤーを直接セットしている。これを維持しつつ、敵側に「おとりターゲット優先解決」を追加し、戦闘員が存在する間だけプレイヤーより戦闘員を優先する。
-- 戦闘員は既存の敵レジストリを流用して最寄り敵を探索し、敵不在時はプレイヤーの向きに従って XZ 平面を直進する。攻撃コンポーネントやダメージ判定は持たせず、`Player` タグにも `Enemy` タグにも属さない専用識別を用意する。
-- 接触ダメージは現在 `PlayerController.OnTriggerEnter()` が `Enemy` タグに直接反応している。戦闘員が敵へダメージを与えないことを保証するため、戦闘員側にはプレイヤーと同じ接触ダメージ処理を持たせず、敵からのみダメージを受ける構成に限定する。
+- 回復アイテム倍率はプレイヤーのランタイム状態として `PlayerState` に保持する。既存の経験値倍率・移動速度倍率と同じ責務に揃え、スタイル効果の適用先を一元化する。
+- ナース固有効果の付与と解除は既存の `PlayerController.ChangeStyle` -> `PlayerExperience.ChangeStyle` -> `PlayerProgressionService.ChangeStyle` フローに追従する。`NurseStyleEffect` は `ApplyParameters` で倍率を設定し、他スタイルへ切り替わる際は `ResetStyleParameters` で基準値 `1.0` に戻す。
+- `HealPickup` はスタイル種別を判定せず、取得時点のプレイヤー側倍率のみ参照して回復量を計算する。これにより、生成済みアイテムでも取得時点のスタイルが反映される。
+- 巫女の定期回復や `HealthComponent.Heal(int)` を直接呼ぶ他経路には影響を広げない。倍率適用は `HealPickup.CollectPickup` の中だけに限定する。
+- 要件書本文は `Mathf.RoundToInt` を前提としているため、計画書もそれに合わせる。ただし要件書末尾に「切り捨てにして」のメモが残っているため、実装着手前に確定が必要な確認事項として扱う。
 
 ## 変更対象ファイル一覧
 
 ### 改修対象
-- `Assets/Survaivor/Character/Player/Application/StyleEffects/PirateStyleEffect.cs`
-  - 10秒タイマー、`Time.timeScale == 0` 停止、2体召喚要求、初期化時の内部状態リセットを実装する。
-  - 次回召喚前の既存戦闘員クリアを、コンテキスト経由の管理コンポーネント呼び出しに置き換える。
-- `Assets/Survaivor/Character/Player/Application/StyleEffects/PlayerStyleEffectContext.cs`
-  - 戦闘員召喚に必要な `Transform`、`EnemyRegistry`、戦闘員管理窓口を保持できるよう拡張する。
-- `Assets/Survaivor/Character/Player/Infrastructure/PlayerController.cs`
-  - 戦闘員管理コンポーネントの取得または生成を追加し、`BuildStyleEffectContext()` へ注入する。
-  - `OnDestroy()` でスタイル解除相当のクリーンアップが走るよう、戦闘員破棄経路を確保する。
+- `Assets/Survaivor/Character/Player/Domain/PlayerState.cs`
+  - 回復アイテム倍率プロパティを追加する。
+  - 設定メソッドと初期値復帰メソッドを追加し、既存の倍率管理 API と並べる。
 - `Assets/Survaivor/Character/Player/Application/PlayerProgressionService.cs`
-  - スタイル切替時に旧スタイルの後始末を確実に行うため、`ResetStyleParameters()` だけでなくアクティブ効果の停止フック追加を検討し、海賊スタイル解除時に戦闘員破棄が漏れない構造へ調整する。
-- `Assets/Survaivor/Character/Enemy/Infrastructure/EnemyController.cs`
-  - 「既定ターゲット」と「戦闘員優先ターゲット」を分離し、毎フレーム有効なおとりを解決して追跡対象へ反映する。
-  - 無効化済み戦闘員参照を保持し続けない null 安全処理を追加する。
-- `Assets/Survaivor/Character/Enemy/Infrastructure/EnemySpawner.cs`
-  - 新規スポーン敵にも戦闘員優先ロジックが効くよう、プレイヤー既定ターゲット設定と敵登録順の整合を確認し、必要なら新しい優先解決 API 初期化を追加する。
-- `Assets/Survaivor/Character/Enemy/Infrastructure/EnemyRegistry.cs`
-  - 戦闘員移動用の最寄り敵探索をそのまま利用する。必要であれば可視条件なし検索の使い分けをコメントで補足する。
-
-### 新規作成想定
-- `Assets/Survaivor/Character/Player/Infrastructure/PirateCrewSummonController.cs`
-  - 戦闘員プール初期化、2体同時召喚、全戦闘員返却、アクティブ戦闘員一覧管理を担当する。
-  - 召喚失敗時は警告ログを出して処理継続する。
-- `Assets/Survaivor/Character/Player/Infrastructure/PirateCrewMemberController.cs`
-  - 戦闘員の初期化、HP30設定、敵追跡移動、敵不在時の前方移動、死亡時のプール返却を担当する。
-- `Assets/Survaivor/Character/Player/Infrastructure/PirateCrewRegistry.cs`
-  - アクティブ戦闘員一覧と「最寄りの有効戦闘員」検索を管理し、敵 AI から参照できるようにする。
-- `Assets/Survaivor/Character/Player/Infrastructure/PirateCrewTarget.cs`
-  - 敵が追跡対象として扱うための軽量コンポーネントまたはマーカー。戦闘員識別と有効判定の責務を持たせる。
-- `Assets/Survaivor/Character/Player/Prefabs/PirateCrewMember.prefab`
-  - 戦闘員用プレハブ。`HealthComponent`、`CharacterStats`、必要な Collider / Rigidbody、プール返却対応を設定する。
-- `Assets/GameResources/Player/PirateCrewMemberStatsData.asset`
-  - HP30 を持つ戦闘員用の `CharacterStatsData`。攻撃力は使わないため最小値で保持する。
+  - `ResetStyleParameters()` に回復アイテム倍率の初期化を追加する。
+  - スタイル切替時に既存倍率が残らない前提をナース効果まで拡張する。
+- `Assets/Survaivor/Character/Player/Application/StyleEffects/NurseStyleEffect.cs`
+  - 空実装をやめ、`ApplyParameters` で回復アイテム倍率 `1.5f` を設定する。
+  - `Tick` は引き続き noop のまま維持する。
+- `Assets/Survaivor/Items/Infrastructure/HealPickup/HealPickup.cs`
+  - `HealthComponent` だけでなく `PlayerExperience` または `PlayerState` へ到達できる参照も取得する。
+  - 取得時に基礎回復量 `3` と倍率から最終回復量を算出し、`HealthComponent.Heal()` へ渡す。
+  - スタイル判定は追加せず、倍率未取得時は `1.0` フォールバックにする。
 
 ### テスト追加・更新対象
 - `Assets/Survaivor/Tests/EditMode/Player/PlayerProgressionServiceTests.cs`
-  - 海賊スタイル切替時に召喚タイマーが開始され、他スタイルへ変更後は継続しないことを検証する。
-- `Assets/Survaivor/Tests/EditMode/Enemy/EnemyRegistryTests.cs`
-  - 既存レジストリ探索を戦闘員移動へ流用した際の前提を崩していないことを確認する。
-- `Assets/Survaivor/Tests/EditMode/...` 配下の新規テスト
-  - `PirateStyleEffect` の10秒召喚、2体生成、停止条件を検証する。
-  - `PirateCrewSummonController` の再召喚時全破棄、警告ログ、プール再利用を検証する。
-  - `PirateCrewRegistry` / `EnemyController` の優先ターゲット切替を検証する。
+  - ナース変更時に回復アイテム倍率が `1.5f` になることを検証する。
+  - ナースから他スタイルへ切り替えた際に倍率が `1.0f` へ戻ることを検証する。
+  - 既存の経験値倍率・移動速度倍率の回帰がないことを確認する。
+- `Assets/Survaivor/Tests/EditMode/...` 配下の新規または既存テスト
+  - `HealPickup` の取得時回復量を検証するテストを追加する。
+  - ナース時は `3 * 1.5` が丸め後 `5` になることを確認する。
+  - ナース以外では基礎値 `3` のままであることを確認する。
+  - 最大HP超過時も `HealthComponent` 側の上限処理が維持されることを確認する。
+
+### 変更不要想定
+- `Assets/Survaivor/Character/Infrastructure/HealthComponent.cs`
+  - 回復上限処理は既存実装で満たしているため変更しない。
+- `Assets/Survaivor/Character/Player/Infrastructure/PlayerController.cs`
+  - スタイル切替導線は既存のままで足りる想定。倍率保持先を `PlayerState` に寄せるため、変更は原則不要とする。
+- `Assets/Survaivor/Character/Player/Application/StyleEffects/MikoStyleEffect.cs`
+  - 巫女の定期回復は `HealthComponent.Heal(1)` を直接呼ぶ既存仕様を維持し、倍率適用対象外とする。
 
 ## データフロー / 処理フロー
 
-### 1. 海賊スタイル開始
-1. `PlayerController.ChangeStyle(PlayerStyleType.Pirate)` が呼ばれる。
-2. `PlayerProgressionService.ChangeStyle()` が既存スタイルの補正をリセットし、海賊スタイル効果を生成する。
-3. `PlayerController.BuildStyleEffectContext()` で組み立てたコンテキストが `PirateStyleEffect.ApplyParameters()` に渡される。
-4. `PirateStyleEffect` は内部タイマーを 0 に戻し、戦闘員管理側にも残存戦闘員クリアを要求する。
+### 1. スタイル変更時
+1. `PlayerController.ChangeStyle(PlayerStyleType.Nurse)` が呼ばれる。
+2. `PlayerExperience.ChangeStyle()` から `PlayerProgressionService.ChangeStyle()` へ到達する。
+3. `PlayerProgressionService.ResetStyleParameters()` が先に走り、移動速度倍率・経験値倍率・回復アイテム倍率を基準値へ戻す。
+4. `State.SetCurrentStyle(styleType)` 実行後、`PlayerStyleEffectFactory` が `NurseStyleEffect` を生成する。
+5. `NurseStyleEffect.ApplyParameters()` が `PlayerState` の回復アイテム倍率を `1.5f` に設定する。
 
-### 2. 10秒ごとの召喚
-1. `PlayerController.Update()` から `PlayerExperience.TickStyleEffect()` が毎フレーム呼ばれる。
-2. `PirateStyleEffect.Tick()` は `Time.timeScale == 0` の間はタイマーを進めない。
-3. ゲーム内時間で 10 秒経過すると、戦闘員管理コンポーネントへ「既存戦闘員を返却してから2体召喚」を依頼する。
-4. 戦闘員管理はプレイヤー前方の扇状オフセットを計算し、プールから 2 体取得して初期化する。
-5. 生成失敗時はその個体だけ警告ログを出し、他個体とゲーム進行は継続する。
+### 2. 回復アイテム取得時
+1. `HealPickup.OnEnable()` でプレイヤー参照を取得する。
+2. プレイヤー接触時に `CollectPickup()` が呼ばれる。
+3. `HealPickup` が基礎回復量 `_healAmount` と、プレイヤーが持つ現在倍率を取得する。
+4. 最終回復量を `Mathf.RoundToInt(_healAmount * multiplier)` で算出する。
+5. 算出値を `HealthComponent.Heal(finalAmount)` に渡し、上限処理は `HealthComponent` へ委譲する。
+6. アイテムは既存どおりプール返却または破棄される。
 
-### 3. 戦闘員の行動
-1. 各 `PirateCrewMemberController` は `EnemyRegistry.FindNearestEnemy(transform.position)` で最寄り敵を探す。
-2. 敵が見つかればその方向へ XZ 平面移動する。
-3. 敵がいなければプレイヤーの向きベクトルを基準に直進する。
-4. 戦闘員は攻撃生成処理を持たず、接触時にも敵へダメージを与えない。
-5. HP が 0 になった個体はレジストリから外れ、プールへ返却される。
-
-### 4. 敵の優先ターゲット切替
-1. `EnemySpawner` が敵を生成し、既定ターゲットとしてプレイヤー Transform をセットする。
-2. `EnemyController.Update()` は毎フレーム `PirateCrewRegistry` から「最も近い有効戦闘員」を問い合わせる。
-3. 見つかればその戦闘員 Transform を追跡対象に採用する。
-4. 見つからなければ既定ターゲットのプレイヤー Transform に戻る。
-5. 戦闘員が死亡・返却された場合も、次フレームで自動的に次候補またはプレイヤーへ復帰する。
-
-### 5. 海賊スタイル終了
-1. プレイヤーが別スタイルへ変更される。
-2. `PlayerProgressionService.ChangeStyle()` の旧スタイル終了処理、または `PirateStyleEffect` 側の停止フックで、戦闘員管理へ全返却を指示する。
-3. 以後は召喚タイマーを進めず、新規召喚も行わない。
-4. 敵は有効な戦闘員がいなくなった時点で既定ターゲットのプレイヤーへ戻る。
+### 3. ナース解除時
+1. ナース以外のスタイルへ変更すると、再度 `PlayerProgressionService.ChangeStyle()` が呼ばれる。
+2. `ResetStyleParameters()` により回復アイテム倍率が `1.0f` へ戻る。
+3. 新スタイルが回復アイテム倍率を設定しない限り、以後の `HealPickup` は基礎回復量 `3` を使用する。
 
 ## 実装ステップ
 
-### Phase 1: 参照注入とライフサイクル整備
-- `PlayerStyleEffectContext` を拡張し、プレイヤー Transform、`EnemyRegistry`、戦闘員管理窓口を保持できるようにする。
-- `PlayerController` で必要コンポーネントを初期化し、スタイル効果コンテキスト再構築時に注入する。
-- スタイル切替時に旧スタイルの後始末を呼べる設計へ `PlayerProgressionService` と `IPlayerStyleEffect` を拡張する。
+### Phase 1: 状態モデル拡張
+- `PlayerState` に回復アイテム倍率プロパティと setter/resetter を追加する。
+- 初期値は `1.0f` とし、既存コンストラクタで初期化する。
+- `PlayerProgressionService.ResetStyleParameters()` から確実に初期値へ戻せるようにする。
 
-### Phase 2: 戦闘員生成・管理基盤
-- `PirateCrewSummonController`、`PirateCrewRegistry`、戦闘員プレハブを追加する。
-- `ObjectPool<PirateCrewMemberController>` で 2 体以上を再利用できる構成を作る。
-- 召喚位置計算、全返却、再召喚時の既存戦闘員クリア、生成失敗ログを実装する。
+### Phase 2: ナース効果実装
+- `NurseStyleEffect.ApplyParameters()` で `PlayerState` に倍率 `1.5f` を設定する。
+- `context` や `PlayerState` が未解決の場合は安全に何もしない。
+- 同一スタイル再適用時も加算ではなく代入にすることで、倍率の重複適用を防ぐ。
 
-### Phase 3: 戦闘員の移動と被ダメージ
-- `PirateCrewMemberController` に最寄り敵追跡と前方直進を実装する。
-- `CharacterStatsData` で HP30 を設定し、`HealthComponent` と組み合わせて死亡時返却を実装する。
-- 戦闘員が攻撃機能を持たないこと、既存プレイヤー武器が戦闘員を誤って攻撃対象にしないことを確認する。
+### Phase 3: 回復アイテム適用
+- `HealPickup` にプレイヤーの進行状態へアクセスする経路を追加する。
+- 取得時点の倍率参照で最終回復量を算出する実装へ変更する。
+- プレイヤー参照の一部が取得できない場合は `1.0f` を使い、既存挙動を壊さない。
 
-### Phase 4: 敵ターゲット優先
-- `EnemyController` に優先ターゲット解決処理を追加する。
-- `PirateCrewRegistry` から最寄りの有効戦闘員を引けるようにする。
-- 既存敵・新規敵ともに同じ優先ルールで動作することを確認する。
-
-### Phase 5: テストと確認
-- EditMode テストでスタイル効果、戦闘員管理、敵ターゲット切替を網羅する。
-- `u tests run edit` で回帰確認する。
-- 必要に応じて PlayMode で海賊スタイル選択後 10 秒周期、解除時破棄、敵のおとり切替を目視確認する。
+### Phase 4: テスト整備
+- `PlayerProgressionServiceTests` にナース倍率付与・解除のケースを追加する。
+- `HealPickup` の回復量テストを追加し、丸め結果・最大HP上限・スタイル切替後の解除を検証する。
+- 巫女の定期回復がナース倍率の影響を受けないことを回帰テストで担保する。
 
 ## リスクと対策
-- リスク: `IPlayerStyleEffect` に終了フックがないままだと、海賊スタイル解除時の後始末が `ChangeStyle()` の外に散らばる。
-  - 対策: 効果の開始・更新・終了ライフサイクルを明示し、海賊固有の破棄処理を共通経路へ乗せる。
-- リスク: `EnemyController` が毎フレーム全戦闘員を総当たりすると、敵数増加時に負荷が伸びる。
-  - 対策: `PirateCrewRegistry` で有効戦闘員一覧を管理し、少数前提でも不要なアロケーションなしで探索する。
-- リスク: 戦闘員プレハブに `Enemy` タグを付けると、プレイヤー武器やダメージフィールドの攻撃対象になってしまう。
-  - 対策: 専用タグまたはマーカーを使い、敵攻撃対象の識別とプレイヤー武器対象の識別を分離する。
-- リスク: 既存の `PlayerController.OnTriggerEnter()` は `Enemy` タグ接触で直接プレイヤーへダメージを与えるため、戦闘員をおとりにしても敵がすり抜けるとプレイヤー被弾が残る。
-  - 対策: まずは追跡先変更で行動を戦闘員へ誘導し、必要なら敵側の接触ダメージ担当を将来的に `EnemyController` 側へ寄せやすい構造を意識して分離する。
-- リスク: プール返却時にレジストリ解除漏れがあると、敵が無効オブジェクトを追跡する。
-  - 対策: 戦闘員の `OnEnable/OnDisable` または明示的な `Initialize/Release` で登録解除を対にする。
-- リスク: 10 秒判定を `Time.deltaTime` ベースでそのまま積むと、一時停止明けや大きなフレーム落ちで複数回召喚が走る可能性がある。
-  - 対策: while で複数回消化するか、今回は 1 フレーム 1 回に制限するかを方針化し、要件どおり「10秒ごとに1回」を保つ実装にする。
+- リスク: `ResetStyleParameters()` に回復アイテム倍率の初期化を入れ忘れると、ナース解除後も倍率が残留する。
+  - 対策: スタイル切替テストでナース -> 他スタイルの戻り値を明示的に検証する。
+- リスク: `HealPickup` がスタイル種別や `PlayerController` に直接依存し始めると、責務が崩れて今後のスタイル追加で分岐が増える。
+  - 対策: `HealPickup` では倍率値だけを読む実装に限定し、スタイル名ベースの条件分岐を禁止する。
+- リスク: `OnEnable()` で `PlayerExperience` を取得できないケースがあると NullReference になりうる。
+  - 対策: `HealthComponent` と同様に null 安全に扱い、倍率取得不可時は `1.0f` にフォールバックする。
+- リスク: 端数処理方針が未確定のまま実装すると、要件書とテスト期待値が食い違う。
+  - 対策: 計画段階では `Mathf.RoundToInt` を採用し、実装前に要件書の未確定事項を解消する。
+- リスク: `HealPickup` テストで MonoBehaviour 初期化順に依存すると不安定になる。
+  - 対策: EditMode テストでは最小構成の `GameObject` を組み立て、必要コンポーネントを明示的に追加して検証する。
 
 ## 検証方針
 - EditMode テスト
-  - 海賊スタイル選択時のみ 10 秒ごとに召喚要求が発生すること。
-  - `Time.timeScale == 0` 相当では召喚タイマーが進まないこと。
-  - 1 回の召喚で 2 体生成され、再召喚時に前回分が返却されること。
-  - 別スタイルへ変更すると既存戦闘員が破棄され、新規召喚が止まること。
-  - 戦闘員が最寄り敵へ向かい、敵不在時は前方移動へフォールバックすること。
-  - 敵が戦闘員存在中はプレイヤーではなく戦闘員を優先し、全消滅後にプレイヤーへ戻ること。
+  - `ChangeStyle(PlayerStyleType.Nurse)` 後に `PlayerState` の回復アイテム倍率が `1.5f` になること。
+  - ナースから `Idol` や `Maid` に変更した後、回復アイテム倍率が `1.0f` に戻ること。
+  - `HealPickup` 取得時に基礎回復量 `3` が通常時 `3`、ナース時 `5` になること。
+  - HP が最大値付近でも回復後に `MaxHp` を超えないこと。
+  - 巫女スタイルの定期回復がナース倍率を参照しないこと。
 - 手動確認
-  - 海賊スタイル選択後、約10秒ごとにプレイヤー前方へ 2 体ずつ出現すること。
-  - 戦闘員が敵に近づくだけで攻撃しないこと。
-  - スタイル解除時に画面上の戦闘員が消え、以後増えないこと。
-  - 複数敵がいても、おとりがいる間は敵群が戦闘員へ引き寄せられること。
+  - ナース選択中に既存配置済みの回復アイテムを取得しても `5` 回復になること。
+  - ナース解除後に新規・既存どちらの回復アイテムでも `3` 回復へ戻ること。
 - Unity 確認
-  - `u tests run edit` で関連テストが通ること。
-  - `u console get -l E` で海賊スタイル関連の例外が出ていないこと。
+  - `u tests run edit` で関連 EditMode テストが通ること。
+  - `u console get -l E` でスタイル切替および回復取得時のエラーが出ていないこと。
 
 ## コードスニペット（主要変更イメージ）
 ```csharp
-public interface IPlayerStyleEffect
+public class PlayerState
 {
-    PlayerStyleType StyleType { get; }
-    void ApplyParameters(PlayerStyleEffectContext context);
-    void Tick(PlayerStyleEffectContext context, float deltaTime);
-    void Cleanup(PlayerStyleEffectContext context);
+    public float HealPickupMultiplier { get; private set; }
+
+    public void SetHealPickupMultiplier(float multiplier)
+    {
+        HealPickupMultiplier = Mathf.Max(0f, multiplier);
+    }
+
+    public void ResetHealPickupMultiplier()
+    {
+        HealPickupMultiplier = 1f;
+    }
 }
 ```
 
 ```csharp
-public class PirateStyleEffect : IPlayerStyleEffect
+public class NurseStyleEffect : IPlayerStyleEffect
 {
-    const float SUMMON_INTERVAL_SECONDS = 10f;
-    float _timer;
+    const float HEAL_PICKUP_MULTIPLIER = 1.5f;
 
     public void ApplyParameters(PlayerStyleEffectContext context)
     {
-        _timer = 0f;
-        context?.PirateCrewSummonController?.ClearAll();
-    }
-
-    public void Tick(PlayerStyleEffectContext context, float deltaTime)
-    {
-        if (context?.PirateCrewSummonController == null || Time.timeScale <= 0f)
-        {
-            return;
-        }
-
-        _timer += deltaTime;
-        while (_timer >= SUMMON_INTERVAL_SECONDS)
-        {
-            context.PirateCrewSummonController.ResummonCrew(
-                context.PlayerTransform.position,
-                context.PlayerFacingDirection);
-            _timer -= SUMMON_INTERVAL_SECONDS;
-        }
-    }
-
-    public void Cleanup(PlayerStyleEffectContext context)
-    {
-        context?.PirateCrewSummonController?.ClearAll();
+        context?.PlayerState?.SetHealPickupMultiplier(HEAL_PICKUP_MULTIPLIER);
     }
 }
 ```
 
 ```csharp
-public class EnemyController : MonoBehaviour
+void CollectPickup()
 {
-    Transform _defaultTargetTransform;
-    PirateCrewRegistry _pirateCrewRegistry;
-
-    void Update()
-    {
-        Transform resolvedTarget = _pirateCrewRegistry != null
-            ? _pirateCrewRegistry.FindNearestActiveCrew(transform.position)
-            : null;
-
-        _targetTransform = resolvedTarget != null ? resolvedTarget : _defaultTargetTransform;
-        _enemyBehavior?.Execute(this);
-    }
+    float multiplier = _playerState != null ? _playerState.HealPickupMultiplier : 1f;
+    int finalHealAmount = Mathf.RoundToInt(_healAmount * multiplier);
+    _playerHealthComponent?.Heal(finalHealAmount);
+    ReturnToPoolOrDestroy();
 }
 ```

@@ -36,6 +36,11 @@ public class PlayerState
     public float MoveSpeedMultiplier { get; private set; }
 
     /// <summary>
+    /// 回復アイテム倍率を取得します。
+    /// </summary>
+    public float HealPickupMultiplier { get; private set; }
+
+    /// <summary>
     /// プレイヤー進行状態を初期化します。
     /// </summary>
     /// <param name="startLevel">開始レベル</param>
@@ -47,6 +52,7 @@ public class PlayerState
         ExperienceToNextLevel = 0;
         ExperienceMultiplier = 1f;
         MoveSpeedMultiplier = 1f;
+        HealPickupMultiplier = 1f;
     }
 
     /// <summary>
@@ -104,6 +110,23 @@ public class PlayerState
     public void ResetMoveSpeedMultiplier()
     {
         MoveSpeedMultiplier = 1f;
+    }
+
+    /// <summary>
+    /// 回復アイテム倍率を設定します。
+    /// </summary>
+    /// <param name="multiplier">設定する倍率</param>
+    public void SetHealPickupMultiplier(float multiplier)
+    {
+        HealPickupMultiplier = Mathf.Max(0f, multiplier);
+    }
+
+    /// <summary>
+    /// 回復アイテム倍率を初期値へ戻します。
+    /// </summary>
+    public void ResetHealPickupMultiplier()
+    {
+        HealPickupMultiplier = 1f;
     }
 
     /// <summary>

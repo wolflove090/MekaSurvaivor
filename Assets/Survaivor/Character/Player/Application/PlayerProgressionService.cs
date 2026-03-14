@@ -128,6 +128,7 @@ public class PlayerProgressionService
     {
         State.ResetMoveSpeedMultiplier();
         State.ResetExperienceMultiplier();
+        State.ResetHealPickupMultiplier();
     }
 
     /// <summary>

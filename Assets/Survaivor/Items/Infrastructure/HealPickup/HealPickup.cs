@@ -25,6 +25,7 @@ public class HealPickup : MonoBehaviour
 
     Transform _playerTransform;
     HealthComponent _playerHealthComponent;
+    PlayerState _playerState;
     bool _isMovingToPlayer;
 
     /// <summary>
@@ -35,12 +36,15 @@ public class HealPickup : MonoBehaviour
         _isMovingToPlayer = false;
         _playerTransform = null;
         _playerHealthComponent = null;
+        _playerState = null;
 
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
             _playerTransform = player.transform;
             _playerHealthComponent = player.GetComponent<HealthComponent>();
+            PlayerExperience playerExperience = player.GetComponent<PlayerExperience>();
+            _playerState = playerExperience != null ? playerExperience.State : null;
         }
     }
 
@@ -80,7 +84,11 @@ public class HealPickup : MonoBehaviour
     {
         if (_playerHealthComponent != null)
         {
-            _playerHealthComponent.Heal(_healAmount);
+            float healPickupMultiplier = _playerState != null
+                ? _playerState.HealPickupMultiplier
+                : 1f;
+            int finalHealAmount = Mathf.RoundToInt(_healAmount * healPickupMultiplier);
+            _playerHealthComponent.Heal(finalHealAmount);
         }
 
         ReturnToPoolOrDestroy();
