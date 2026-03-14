@@ -34,7 +34,7 @@ public class BoundBallWeapon : WeaponBase
     [Tooltip("最大バウンド回数")]
     int _maxBounceCount = MAX_BOUNCE_COUNTS[0];
 
-    protected override float CooldownDuration => _shootInterval;
+    protected override float CooldownDuration => ApplyAttackIntervalMultiplier(_shootInterval);
 
     /// <summary>
     /// バウンドボール武器を初期化します。
@@ -47,7 +47,9 @@ public class BoundBallWeapon : WeaponBase
         Transform originTransform,
         WeaponBase rideWeapon,
         IWeaponEffectExecutor effectExecutor,
-        Func<float> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
+        Func<float> sourcePowProvider,
+        Func<float> attackIntervalMultiplierProvider = null)
+        : base(originTransform, rideWeapon, effectExecutor, attackIntervalMultiplierProvider)
     {
         _sourcePowProvider = sourcePowProvider;
     }

@@ -26,7 +26,7 @@ public class ThrowingWeapon : WeaponBase
     [Tooltip("弾の発射位置のオフセット")]
     Vector3 _shootOffset = Vector3.zero;
 
-    protected override float CooldownDuration => _shootInterval;
+    protected override float CooldownDuration => ApplyAttackIntervalMultiplier(_shootInterval);
 
     /// <summary>
     /// 投擲武器を初期化します。
@@ -41,7 +41,9 @@ public class ThrowingWeapon : WeaponBase
         WeaponBase rideWeapon,
         IWeaponEffectExecutor effectExecutor,
         Func<float> sourcePowProvider,
-        Func<Vector3> facingDirectionProvider) : base(originTransform, rideWeapon, effectExecutor)
+        Func<Vector3> facingDirectionProvider,
+        Func<float> attackIntervalMultiplierProvider = null)
+        : base(originTransform, rideWeapon, effectExecutor, attackIntervalMultiplierProvider)
     {
         _sourcePowProvider = sourcePowProvider;
         _facingDirectionProvider = facingDirectionProvider;

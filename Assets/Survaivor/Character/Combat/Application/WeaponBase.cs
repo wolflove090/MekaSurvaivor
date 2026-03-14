@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -8,6 +9,7 @@ public abstract class WeaponBase
     protected readonly Transform _originTransform;
     protected readonly IWeaponEffectExecutor _effectExecutor;
     protected readonly WeaponState _weaponState;
+    readonly Func<float> _attackIntervalMultiplierProvider;
 
     // デコレーションパターンで武器を増やす
     WeaponBase _rideWeapon;
@@ -29,11 +31,16 @@ public abstract class WeaponBase
     /// <param name="originTransform">発動基準のTransform</param>
     /// <param name="rideWeapon">多重発動する下位武器</param>
     /// <param name="effectExecutor">武器発動要求の実行ポート</param>
-    public WeaponBase(Transform originTransform, WeaponBase rideWeapon, IWeaponEffectExecutor effectExecutor)
+    public WeaponBase(
+        Transform originTransform,
+        WeaponBase rideWeapon,
+        IWeaponEffectExecutor effectExecutor,
+        Func<float> attackIntervalMultiplierProvider = null)
     {
         _originTransform = originTransform;
         _rideWeapon = rideWeapon;
         _effectExecutor = effectExecutor;
+        _attackIntervalMultiplierProvider = attackIntervalMultiplierProvider;
         _weaponService = new WeaponService();
         _weaponState = new WeaponState(CooldownDuration);
     }
@@ -77,6 +84,15 @@ public abstract class WeaponBase
     }
 
     /// <summary>
+    /// 武器チェーン全体のクールダウン残り時間を現在の発動間隔以内に補正します。
+    /// </summary>
+    public void ClampCooldownToCurrentDurationRecursively()
+    {
+        ClampCooldownTimerToDuration();
+        _rideWeapon?.ClampCooldownToCurrentDurationRecursively();
+    }
+
+    /// <summary>
     /// 次のTickで即時発動できる状態にします。
     /// </summary>
     protected void ReadyCooldownForImmediateTrigger()
@@ -91,5 +107,18 @@ public abstract class WeaponBase
     protected Vector3 GetOriginPosition()
     {
         return _originTransform != null ? _originTransform.position : Vector3.zero;
+    }
+
+    /// <summary>
+    /// 基準攻撃間隔へ現在の攻撃間隔倍率を適用します。
+    /// </summary>
+    /// <param name="baseInterval">基準攻撃間隔</param>
+    /// <returns>倍率適用後の攻撃間隔</returns>
+    protected float ApplyAttackIntervalMultiplier(float baseInterval)
+    {
+        float multiplier = _attackIntervalMultiplierProvider != null
+            ? _attackIntervalMultiplierProvider()
+            : 1f;
+        return Mathf.Max(0f, baseInterval * Mathf.Max(0f, multiplier));
     }
 }

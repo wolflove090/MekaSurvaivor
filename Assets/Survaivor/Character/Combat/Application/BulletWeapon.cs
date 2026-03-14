@@ -34,7 +34,7 @@ public class BulletWeapon : WeaponBase
         set => _shootInterval = value;
     }
 
-    protected override float CooldownDuration => _shootInterval;
+    protected override float CooldownDuration => ApplyAttackIntervalMultiplier(_shootInterval);
 
     /// <summary>
     /// 通常弾武器を初期化します。
@@ -51,7 +51,9 @@ public class BulletWeapon : WeaponBase
         IWeaponEffectExecutor effectExecutor,
         EnemyRegistry enemyRegistry,
         BreakableObjectSpawner breakableObjectSpawner,
-        Func<float> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
+        Func<float> sourcePowProvider,
+        Func<float> attackIntervalMultiplierProvider = null)
+        : base(originTransform, rideWeapon, effectExecutor, attackIntervalMultiplierProvider)
     {
         _enemyRegistry = enemyRegistry;
         _breakableObjectSpawner = breakableObjectSpawner;

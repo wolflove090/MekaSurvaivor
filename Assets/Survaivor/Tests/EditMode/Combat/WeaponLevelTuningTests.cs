@@ -15,7 +15,7 @@ public class WeaponLevelTuningTests
     [Test]
     public void BulletWeapon_LevelIntervalsMatchTable()
     {
-        float[] expectedIntervals = { 1.5f, 1.0f, 0.8f, 0.4f, 0.2f };
+        float[] expectedIntervals = { 1.5f, 1.0f, 0.8f, 0.6f, 0.4f };
 
         GameObject player = new GameObject("Player");
         try
@@ -208,7 +208,7 @@ public class WeaponLevelTuningTests
     [Test]
     public void FlameBottleWeapon_IntervalAndProjectileCountMatchTable()
     {
-        float[] expectedIntervals = { 1.5f, 1.0f, 1.0f, 1.0f, 1.0f };
+        float[] expectedIntervals = { 2.0f, 1.5f, 1.5f, 1.5f, 1.5f };
         int[] expectedProjectileCounts = { 1, 1, 2, 3, 4 };
 
         GameObject player = new GameObject("Player");
@@ -244,7 +244,7 @@ public class WeaponLevelTuningTests
     [Test]
     public void DroneWeapon_LevelFiveDeploysTwoPhasedRequests()
     {
-        float[] expectedIntervals = { 2.0f, 1.5f, 1.0f, 0.8f, 0.4f };
+        float[] expectedIntervals = { 2.0f, 1.5f, 1.0f, 0.8f, 0.8f };
 
         GameObject player = new GameObject("Player");
         try
@@ -315,14 +315,75 @@ public class WeaponLevelTuningTests
 
             service.RebuildWeapons(targetLevels, weapons);
 
-            Assert.That(GetPrivateField<float>((BulletWeapon)weapons[typeof(BulletWeapon)], "_shootInterval"), Is.EqualTo(0.2f).Within(0.0001f));
+            Assert.That(GetPrivateField<float>((BulletWeapon)weapons[typeof(BulletWeapon)], "_shootInterval"), Is.EqualTo(0.4f).Within(0.0001f));
             Assert.That(GetPrivateField<float>((ThrowingWeapon)weapons[typeof(ThrowingWeapon)], "_shootInterval"), Is.EqualTo(0.8f).Within(0.0001f));
             Assert.That(GetPrivateField<float>((DamageFieldWeapon)weapons[typeof(DamageFieldWeapon)], "_currentAreaScale"), Is.EqualTo(4.0f).Within(0.0001f));
-            Assert.That(GetPrivateField<float>((DroneWeapon)weapons[typeof(DroneWeapon)], "_droneShotInterval"), Is.EqualTo(0.4f).Within(0.0001f));
+            Assert.That(GetPrivateField<float>((DroneWeapon)weapons[typeof(DroneWeapon)], "_droneShotInterval"), Is.EqualTo(0.8f).Within(0.0001f));
             Assert.That(GetPrivateField<float>((BoundBallWeapon)weapons[typeof(BoundBallWeapon)], "_shootInterval"), Is.EqualTo(0.8f).Within(0.0001f));
             Assert.That(GetPrivateField<int>((BoundBallWeapon)weapons[typeof(BoundBallWeapon)], "_maxBounceCount"), Is.EqualTo(3));
-            Assert.That(GetPrivateField<float>((FlameBottleWeapon)weapons[typeof(FlameBottleWeapon)], "_throwInterval"), Is.EqualTo(1.0f).Within(0.0001f));
+            Assert.That(GetPrivateField<float>((FlameBottleWeapon)weapons[typeof(FlameBottleWeapon)], "_throwInterval"), Is.EqualTo(1.5f).Within(0.0001f));
             Assert.That(GetPrivateField<int>((FlameBottleWeapon)weapons[typeof(FlameBottleWeapon)], "_projectileCount"), Is.EqualTo(3));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(player);
+        }
+    }
+
+    /// <summary>
+    /// 攻撃間隔倍率が通常武器のクールダウンへ反映されることを検証します。
+    /// </summary>
+    [Test]
+    public void BulletWeapon_WithAttackIntervalMultiplier_UsesScaledCooldown()
+    {
+        GameObject player = new GameObject("Player");
+
+        try
+        {
+            BulletWeapon weapon = new BulletWeapon(
+                player.transform,
+                null,
+                new RecordingWeaponEffectExecutor(),
+                null,
+                null,
+                () => 1f,
+                () => 0.75f);
+
+            weapon.Tick(0f);
+
+            WeaponState state = GetPrivateField<WeaponState>(weapon, "_weaponState", typeof(WeaponBase));
+            Assert.That(state.CooldownRemaining, Is.EqualTo(1.125f).Within(0.0001f));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(player);
+        }
+    }
+
+    /// <summary>
+    /// ドローン武器は攻撃間隔倍率をShotIntervalにだけ反映し、再展開間隔は維持することを検証します。
+    /// </summary>
+    [Test]
+    public void DroneWeapon_WithAttackIntervalMultiplier_ScalesOnlyShotInterval()
+    {
+        GameObject player = new GameObject("Player");
+
+        try
+        {
+            RecordingWeaponEffectExecutor effectExecutor = new RecordingWeaponEffectExecutor();
+            DroneWeapon weapon = new DroneWeapon(
+                player.transform,
+                null,
+                effectExecutor,
+                () => 1f,
+                () => 0.75f);
+
+            weapon.Tick(0f);
+
+            WeaponState state = GetPrivateField<WeaponState>(weapon, "_weaponState", typeof(WeaponBase));
+            Assert.That(state.CooldownRemaining, Is.EqualTo(5f).Within(0.0001f));
+            Assert.That(effectExecutor.DroneRequests.Count, Is.EqualTo(1));
+            Assert.That(effectExecutor.DroneRequests[0].ShotInterval, Is.EqualTo(1.5f).Within(0.0001f));
         }
         finally
         {
@@ -351,9 +412,10 @@ public class WeaponLevelTuningTests
     /// <param name="instance">取得対象インスタンス</param>
     /// <param name="fieldName">フィールド名</param>
     /// <returns>取得したフィールド値</returns>
-    static T GetPrivateField<T>(object instance, string fieldName)
+    static T GetPrivateField<T>(object instance, string fieldName, Type declaringType = null)
     {
-        FieldInfo field = instance.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+        Type targetType = declaringType ?? instance.GetType();
+        FieldInfo field = targetType.GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That(field, Is.Not.Null, $"Field not found: {fieldName}");
         return (T)field.GetValue(instance);
     }

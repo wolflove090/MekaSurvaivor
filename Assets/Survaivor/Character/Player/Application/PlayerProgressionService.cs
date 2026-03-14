@@ -127,6 +127,7 @@ public class PlayerProgressionService
     {
         State.ResetMoveSpeedMultiplier();
         State.ResetExperienceMultiplier();
+        State.ResetAttackIntervalMultiplier();
     }
 
     /// <summary>

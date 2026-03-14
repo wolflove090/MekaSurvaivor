@@ -39,7 +39,9 @@ public class DroneWeapon : WeaponBase
         Transform originTransform,
         WeaponBase rideWeapon,
         IWeaponEffectExecutor effectExecutor,
-        Func<float> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
+        Func<float> sourcePowProvider,
+        Func<float> attackIntervalMultiplierProvider = null)
+        : base(originTransform, rideWeapon, effectExecutor, attackIntervalMultiplierProvider)
     {
         _sourcePowProvider = sourcePowProvider;
         ReadyCooldownForImmediateTrigger();
@@ -57,6 +59,7 @@ public class DroneWeapon : WeaponBase
 
         float sourcePow = _sourcePowProvider != null ? _sourcePowProvider() : 1f;
         int droneCount = UpgradeLevel >= 5 ? 2 : 1;
+        float shotInterval = ApplyAttackIntervalMultiplier(_droneShotInterval);
         for (int index = 0; index < droneCount; index++)
         {
             // Lv5では2機を180度ずらして展開し、常に対角配置で周回させる。
@@ -67,7 +70,7 @@ public class DroneWeapon : WeaponBase
                     _originTransform,
                     sourcePow,
                     _orbitRadius,
-                    _droneShotInterval,
+                    shotInterval,
                     phaseOffsetDegrees));
         }
     }

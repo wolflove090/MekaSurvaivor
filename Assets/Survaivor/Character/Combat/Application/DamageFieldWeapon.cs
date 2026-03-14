@@ -33,7 +33,7 @@ public class DamageFieldWeapon : WeaponBase
         set => _spawnInterval = value;
     }
 
-    protected override float CooldownDuration => _spawnInterval;
+    protected override float CooldownDuration => ApplyAttackIntervalMultiplier(_spawnInterval);
 
     /// <summary>
     /// ダメージフィールド武器を初期化します。
@@ -46,7 +46,9 @@ public class DamageFieldWeapon : WeaponBase
         Transform originTransform,
         WeaponBase rideWeapon,
         IWeaponEffectExecutor effectExecutor,
-        Func<float> sourcePowProvider) : base(originTransform, rideWeapon, effectExecutor)
+        Func<float> sourcePowProvider,
+        Func<float> attackIntervalMultiplierProvider = null)
+        : base(originTransform, rideWeapon, effectExecutor, attackIntervalMultiplierProvider)
     {
         _sourcePowProvider = sourcePowProvider;
     }

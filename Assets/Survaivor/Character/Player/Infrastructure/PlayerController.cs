@@ -249,6 +249,7 @@ public class PlayerController : MonoBehaviour
         {
             _playerExperience?.ChangeStyle(styleType, _styleEffectContext);
             ApplyMoveSpeedFromStats();
+            _weapon?.ClampCooldownToCurrentDurationRecursively();
         }
         catch (System.Exception ex)
         {
@@ -417,6 +418,7 @@ public class PlayerController : MonoBehaviour
             _weaponEffectExecutor,
             () => Pow,
             GetFacingDirection,
+            () => _playerState != null ? _playerState.AttackIntervalMultiplier : 1f,
             enemyRegistry,
             breakableObjectSpawner);
 
